@@ -2251,7 +2251,7 @@
             currentTenant.data.inventory.splice(idx, 1); saveAndRefresh(); 
         });
     }
-};
+
 </script>
 </body>
 </html>
