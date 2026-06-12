@@ -429,10 +429,10 @@
     <div id="welcomeGateway" class="gateway-box">
         <h2>እንኳን ደህና መጡ! <span id="syncIndicator" class="hidden offline-tag">Offline ሞድ</span></h2>
         <p>እባክዎ መተግበሪያውን በምን ሁኔታ መጠቀም እንደሚፈልጉ ይምረጡ፦</p>
-        <button class="gateway-btn" onclick="switchView('buyerPage')">🛍️ እኔ ገዢ ነኝ (የዕቃዎች ማሳያ ማውጫ)</button>
-        <button class="gateway-btn" onclick="checkAdminPrivacyKey()">👑 እኔ አከራይ ነኝ (Main Owner)</button>
-        <button class="gateway-btn" onclick="showLoginSection('merchant')">💼 እኔ ሱቅ ባለቤት ነኝ (Tenant Owner)</button>
-        <button class="gateway-btn" onclick="showLoginSection('staff')">🛠️ እኔ ሰራተኛ ነኝ (Store Staff)</button>
+        <button class="gateway-btn" onclick="switchView('buyerPage')">🛍️ እኔ ገዢ ነኝ </button>
+        <button class="gateway-btn" onclick="checkAdminPrivacyKey()">👑 እኔ አከራይ ነኝ </button>
+        <button class="gateway-btn" onclick="showLoginSection('merchant')">💼 እኔ ሱቅ ባለቤት ነኝ </button>
+        <button class="gateway-btn" onclick="showLoginSection('staff')">🛠️ እኔ ሰራተኛ ነኝ </button>
     </div>
 
     <div id="loginPage" class="login-box hidden">
