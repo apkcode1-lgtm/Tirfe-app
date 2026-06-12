@@ -1,4 +1,3 @@
-ትርፌ አፕ ሁልግዜ ምርጫችን ነው 
 <!DOCTYPE html>
 <html lang="am">
 <head>
