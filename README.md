@@ -1,9 +1,10 @@
+ትርፌ አፕ ሁልግዜ ምርጫችን ነው 
 <!DOCTYPE html>
 <html lang="am">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=0.5, maximum-scale=3.0">
-    <title>ትርፌ የሱቅ መቆጣጠሪያ አፕሊኬشن - Ultimate v11.0</title>
+    <title>ትርፌ የሱቅ መቆጣጠሪያ አፕሊኬሽን - Ultimate v11.0</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
