@@ -684,7 +684,9 @@
 
         <div class="section-box">
             <h2>⚙️ መቼቶች እና ፕሮፋይል</h2>
-            <button class="btn-add btn-block" style="margin-bottom: 12px; padding: 10px;" onclick="openTenantProfileEditor()">⚙️ የሱቅ መረጃ እና ኮድ ማስተካከያ</button>
+            
+            <button id="btn_profile_editor" class="btn-add btn-block" style="margin-bottom: 12px; padding: 10px;" onclick="openTenantProfileEditor()">⚙️ የሱቅ መረጃ እና ኮድ ማስተካከያ</button>
+            
             <div class="profile-data"><label>የሱቅ ስም፡</label> <span id="profShopName">-</span></div>
             <div class="profile-data" id="expiryRowOwner"><label>የውል ማቂያ ቀን፡</label> <span id="profExpiry" style="color: var(--danger-color);">-</span></div>
             
@@ -744,15 +746,11 @@
     let currentLoginMode = "merchant"; 
     let isOnline = true;
 
-    // አዲስ የተጨመረ ግሎባል ቫርያብል - የገዢዎችን ማጣሪያ ለመያዝ
     let activeCategoryFilter = "all";
 
     window.addEventListener('online', handleOnlineStatus);
     window.addEventListener('offline', handleOnlineStatus);
 
-    /* -----------------------------------------------------------------
-       🎯 አዲስ/የተቀየረ፦ የኢንተርኔት መጥፋትን በዘመናዊ መንገድ መቆጣጠሪያ (JavaScript)
-    ----------------------------------------------------------------- */
     function handleOnlineStatus() {
         isOnline = navigator.onLine;
         const tag = document.getElementById('syncIndicator');
@@ -768,7 +766,6 @@
         }
     }
 
-    // አዲስ የተጨመረ - የንግድ ዘርፍ ማጣሪያ በተን ሲነካ የሚሰራ
     function setCategoryFilter(cat) {
         activeCategoryFilter = cat;
         renderBuyerCatalog();
@@ -1073,6 +1070,7 @@
         document.getElementById('themeSelector').value = activeTheme;
         document.getElementById('inventorySearchInput').value = "";
 
+        // አዲስ የተስተካከለ - ሰራተኛ ማየት የሌለባቸውን ነገሮች መደበቅ
         if (currentUserRole === "staff") {
             document.getElementById('ownerDashboard').classList.add('hidden');
             document.getElementById('chartContainer').classList.add('hidden');
@@ -1084,6 +1082,10 @@
             document.getElementById('ownerStaffConfig').classList.add('hidden');
             document.getElementById('expiryRowOwner').classList.add('hidden');
             document.getElementById('btn_settlement').classList.add('hidden');
+            
+            // የሱቅ መረጃ ማስተካከያ እና ሂሳብ ታሪክ ከሰራተኛ ይደበቃል
+            document.getElementById('btn_profile_editor').classList.add('hidden');
+            document.getElementById('historySection').classList.add('hidden');
         } else {
             document.getElementById('ownerDashboard').classList.remove('hidden');
             document.getElementById('chartContainer').classList.remove('hidden');
@@ -1095,6 +1097,10 @@
             document.getElementById('ownerStaffConfig').classList.remove('hidden');
             document.getElementById('expiryRowOwner').classList.remove('hidden');
             document.getElementById('btn_settlement').classList.remove('hidden');
+            
+            // አሰሪው ሲገባ እንዲታይ ይደረጋል
+            document.getElementById('btn_profile_editor').classList.remove('hidden');
+            document.getElementById('historySection').classList.remove('hidden');
             
             document.getElementById('staffUser').value = tenant.staffUser || "";
             document.getElementById('staffPass').value = tenant.staffPass || "";
@@ -1114,7 +1120,6 @@
         let hasData = false;
         let query = document.getElementById('buyerSearchInput') ? document.getElementById('buyerSearchInput').value.trim().toLowerCase() : "";
 
-        // 1. አዲስ፡ ያሉትን የንግድ ዘርፎች በሙሉ መሰብሰብ
         let categories = new Set();
         if (localDB.tenants) {
             Object.values(localDB.tenants).forEach(t => {
@@ -1125,7 +1130,6 @@
             });
         }
         
-        // 2. አዲስ፡ የካቴጎሪ መምረጫ በተኖችን መሳል
         let catContainer = document.getElementById('buyerCategoryContainer');
         if (catContainer) {
             let catHTML = `<button class="category-btn ${activeCategoryFilter === 'all' ? 'active' : ''}" onclick="setCategoryFilter('all')">🌐 ሁሉም</button>`;
@@ -1140,7 +1144,6 @@
                 let t = localDB.tenants[tKey];
                 if (t.status === "active") {
                     
-                    // 3. አዲስ፡ ገዢው የተለየ ካቴጎሪ ከመረጠ ሌሎች ሱቆችን ማለፍ (Filter)
                     let tBType = t.businessType || "አጠቃላይ ንግድ";
                     if (activeCategoryFilter !== "all" && tBType !== activeCategoryFilter) return;
                     
@@ -1219,7 +1222,7 @@
         let telegram = document.getElementById('newTelegram').value.trim();
         let mapsLink = document.getElementById('newMapsLink').value.trim();
         let address = document.getElementById('newAddress').value.trim();
-        let businessType = document.getElementById('newBusinessType').value.trim() || 'አጠቃላይ ንግድ'; // አዲስ የተጨመረ
+        let businessType = document.getElementById('newBusinessType').value.trim() || 'አጠቃላይ ንግድ';
         let registrationFee = parseFloat(document.getElementById('newRegistrationFee').value) || 0;
         let contractType = document.getElementById('newContractType').value;
         let expiryDate = document.getElementById('newExpiryDate').value;
@@ -1240,7 +1243,7 @@
         
         localDB.tenants[user] = { 
             shopName: shop, fullName: fullName, phone: phone, telegram: telegram || "-", address: address || "-",
-            businessType: businessType, // አዲስ የተጨመረ
+            businessType: businessType,
             googleMapsLink: mapsLink || "",
             shopLogo: shopLogo || "",
             username: user, 
@@ -1259,7 +1262,7 @@
         document.getElementById('newShopName').value = ''; document.getElementById('newFullName').value = '';
         document.getElementById('newUsername').value = ''; document.getElementById('newPhone').value = ''; 
         document.getElementById('newTelegram').value = ''; document.getElementById('newMapsLink').value = '';
-        document.getElementById('newAddress').value = ''; document.getElementById('newBusinessType').value = ''; // አዲስ
+        document.getElementById('newAddress').value = ''; document.getElementById('newBusinessType').value = '';
         document.getElementById('newExpiryDate').value = '';
         document.getElementById('newRegistrationFee').value = ''; document.getElementById('newShopLogo').value = '';
     }
@@ -1273,7 +1276,7 @@
             { id: "telegram", label: "ቴሌግራም", type: "text", defaultValue: t.telegram },
             { id: "mapsLink", label: "ጎግል ማፕ ሊንክ", type: "text", defaultValue: t.googleMapsLink || "" },
             { id: "address", label: "አድራሻ (ሀገር/ከተማ)", type: "text", defaultValue: t.address },
-            { id: "businessType", label: "የንግድ ዘርፍ", type: "text", defaultValue: t.businessType || "አጠቃላይ ንግድ" }, // አዲስ
+            { id: "businessType", label: "የንግድ ዘርፍ", type: "text", defaultValue: t.businessType || "አጠቃላይ ንግድ" },
             { id: "shopLogo", label: "የሱቅ ፕሮፋይል ፎቶ ሊንክ (URL)", type: "text", defaultValue: t.shopLogo || "" },
             { id: "registrationFee", label: "የመመዝገቢያ/ኪራይ ክፍያ (ETB)", type: "number", defaultValue: t.registrationFee || 0 },
             { id: "expiryDate", label: "የውል ማቂያ ቀን", type: "date", defaultValue: t.expiryDate }
@@ -1284,7 +1287,7 @@
             t.telegram = res.telegram.trim();
             t.googleMapsLink = res.mapsLink.trim();
             t.address = res.address.trim();
-            t.businessType = res.businessType.trim(); // አዲስ
+            t.businessType = res.businessType.trim();
             t.shopLogo = res.shopLogo.trim();
             t.registrationFee = parseFloat(res.registrationFee) || 0;
             t.expiryDate = res.expiryDate;
@@ -1297,6 +1300,12 @@
     }
 
     function openTenantProfileEditor() {
+        // አዲስ የተስተካከለ - ሰራተኛ ሆኖ ይሄን ከነካ አቋርጦ እንዲወጣ
+        if(currentUserRole === "staff") {
+            showCustomAlert("ክልክል", "ይህን መረጃ እና የይለፍ ቃል ማስተካከል የሚችለው የሱቁ ባለቤት ብቻ ነው!");
+            return;
+        }
+
         showFormModal("⚙️ የሱቅ መረጃ እና ምስጢራዊ ኮድ ማስተካከያ", [
             { id: "shopName", label: "የሱቅ ስም", type: "text", defaultValue: currentTenant.shopName },
             { id: "phone", label: "የሱቅ ስልክ ቁጥር", type: "text", defaultValue: currentTenant.phone },
@@ -1347,7 +1356,6 @@
             let loginInfo = `👤 አባል ስም: <code>${t.username}</code><br>${codeDisplay}<br>🛠️ ሰራተኛ: <code>${t.staffUser || '-'}</code>`;
             let contractDisplay = `<span>${t.contractType || 'በወር'}</span><br><b class="text-warning">${t.registrationFee || 0} ETB</b>`;
             
-            // አዲስ የተጨመረ
             let bType = t.businessType || 'አጠቃላይ ንግድ';
 
             tbody.innerHTML += `<tr>
@@ -1448,7 +1456,6 @@
         let dateStr = new Date().toLocaleDateString('am-ET');
         let currentSeller = sellerRole || (currentUserRole === 'staff' ? 'ሰራተኛ (Employee)' : 'ባለቤት (Employer)');
         
-        // አዲስ የተጨመረ የንግድ ዘርፍ ማውጫ
         let bType = currentTenant.businessType || 'አጠቃላይ ንግድ'; 
 
         let rawTextForShare = `======= ${currentTenant.shopName.toUpperCase()} =======\nየንግድ ዘርፍ: ${bType}\nደረሰኝ ቁጥር: #${recId}\nየሸጠው ሰው: ${currentSeller}\nቀን: ${dateStr}\n---------------------------\nዕቃ: ${itemName}\nብዛት: ${count}\nጠቅላላ ዋጋ: ${totalVal} ETB\n---------------------------\nእናመሰግናለን!`;
