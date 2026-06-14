@@ -13,7 +13,7 @@
         :root {
             --bg-color: #0b0f19;
             --card-bg: #151f32;
-            --text-color: #f1f5f9;
+            --text-color: #38bdf8;
             --accent-color: #38bdf8;
             --success-color: #4ade80;
             --danger-color: #f87171;
