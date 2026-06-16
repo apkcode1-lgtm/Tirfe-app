@@ -3,337 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=0.5, maximum-scale=3.0">
-    <title>ትርፌ የሱቅ መቆጣጠሪያ አፕሊኬሽን - Ultimate v11.0</title>
-    
     <meta name="theme-color" content="#0b0f19">
-    <link rel="manifest" href='data:application/manifest+json,{"name":"Tirfe App","short_name":"Tirfe","start_url":".","display":"standalone","background_color":"#0b0f19","theme_color":"#38bdf8","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/869/869636.png","sizes":"192x192","type":"image/png"}]}'>
-
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Tirfe%20App%22%2C%22short_name%22%3A%22Tirfe%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230b0f19%22%2C%22theme_color%22%3A%22%2338bdf8%22%7D">
     
+    <title>ትርፌ የሱቅ መቆጣጠሪያ አፕሊኬሽን - Ultimate v12.0</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
         :root {
-            --bg-color: #0b0f19;
-            --card-bg: #151f32;
-            --text-color: #38bdf8;
-            --accent-color: #38bdf8;
-            --success-color: #4ade80;
-            --danger-color: #f87171;
-            --warning-color: #fbbf24;
-            --purple-color: #c084fc;
-            --border-color: rgba(255, 255, 255, 0.08);
+            --bg-color: #0b0f19; --card-bg: #151f32; --text-color: #38bdf8;
+            --accent-color: #38bdf8; --success-color: #4ade80; --danger-color: #f87171;
+            --warning-color: #fbbf24; --purple-color: #c084fc; --border-color: rgba(255, 255, 255, 0.08);
             --hover-color: rgba(56, 189, 248, 0.1);
         }
 
-        .theme-deepblue { --bg-color: #0b0f19; --card-bg: #151f32;
-        --accent-color: #38bdf8; --success-color: #4ade80; }
-        .theme-emerald { --bg-color: #061e1a; --card-bg: #0b3c34; --accent-color: #2ec4b6;
-        --success-color: #4ade80; }
-        .theme-purple { --bg-color: #1a0933; --card-bg: #2d1254; --accent-color: #a29bfe; --success-color: #00cec9;
-        }
-        .theme-charcoal { --bg-color: #121212; --card-bg: #1e1e1e; --accent-color: #9b59b6; --success-color: #2ecc71;
-        }
+        .theme-deepblue { --bg-color: #0b0f19; --card-bg: #151f32; --accent-color: #38bdf8; --success-color: #4ade80; }
+        .theme-emerald { --bg-color: #061e1a; --card-bg: #0b3c34; --accent-color: #2ec4b6; --success-color: #4ade80; }
+        .theme-purple { --bg-color: #1a0933; --card-bg: #2d1254; --accent-color: #a29bfe; --success-color: #00cec9; }
+        .theme-charcoal { --bg-color: #121212; --card-bg: #1e1e1e; --accent-color: #9b59b6; --success-color: #2ecc71; }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
         
         html, body {
-            width: 100%;
-            min-height: 100vh; background-color: var(--bg-color); color: var(--text-color); 
+            width: 100%; min-height: 100vh; background-color: var(--bg-color); color: var(--text-color); 
             padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
             font-size: calc(12px + 0.4vw); -webkit-text-size-adjust: 100%;
         }
         
-        .container { width: 100%;
-            max-width: 1200px; margin: 0 auto; padding: 12px; }
-        .hidden { display: none !important;
-        }
-        .text-success { color: var(--success-color) !important;
-        }
-        .text-danger { color: var(--danger-color) !important;
-        }
-        .text-warning { color: var(--warning-color) !important;
-        }
-        .text-purple { color: var(--purple-color) !important;
-        }
+        .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 12px; }
+        .hidden { display: none !important; }
+        .text-success { color: var(--success-color) !important; }
+        .text-danger { color: var(--danger-color) !important; }
+        .text-warning { color: var(--warning-color) !important; }
+        .text-purple { color: var(--purple-color) !important; }
         
         .gateway-box, .login-box {
-            width: 100%;
-            max-width: 450px; margin: 40px auto; background-color: var(--card-bg); 
+            width: 100%; max-width: 450px; margin: 40px auto; background-color: var(--card-bg); 
             padding: 30px 25px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-            text-align: center;
-            border: 1px solid var(--border-color); transition: transform 0.3s ease;
+            text-align: center; border: 1px solid var(--border-color); transition: transform 0.3s ease;
         }
-        .gateway-box h2, .login-box h2 { color: var(--success-color);
-            font-size: 1.6rem; margin-bottom: 8px; font-weight: 800; }
-        .gateway-box p, .login-box p { color: #94a3b8;
-            font-size: 0.85rem; margin-bottom: 20px; }
+        .gateway-box h2, .login-box h2 { color: var(--success-color); font-size: 1.6rem; margin-bottom: 8px; font-weight: 800; }
+        .gateway-box p, .login-box p { color: #94a3b8; font-size: 0.85rem; margin-bottom: 20px; }
 
         .gateway-btn {
-            background-color: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
+            background-color: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);
             color: var(--text-color); padding: 15px; margin: 10px 0; width: 100%; border-radius: 10px;
-            font-size: 1.05rem; font-weight: bold;
-            cursor: pointer; text-align: left; display: flex;
+            font-size: 1.05rem; font-weight: bold; cursor: pointer; text-align: left; display: flex;
             align-items: center; gap: 12px; transition: all 0.2s;
         }
-        .gateway-btn:hover { background-color: var(--accent-color); color: #000; transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(56, 189, 248, 0.3); }
+        .gateway-btn:hover { background-color: var(--accent-color); color: #000; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(56, 189, 248, 0.3); }
 
         input, select, input[type="file"] {
-            width: 100%;
-            padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #3a506b;
-            background-color: rgba(0,0,0,0.3); color: white; font-size: 1rem; outline: none;
-            transition: border-color 0.3s;
+            width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #3a506b;
+            background-color: rgba(0,0,0,0.3); color: white; font-size: 1rem; outline: none; transition: border-color 0.3s;
         }
-        input:focus, select:focus { border-color: var(--accent-color);
-            box-shadow: 0 0 8px rgba(56, 189, 248, 0.3); }
+        input:focus, select:focus { border-color: var(--accent-color); box-shadow: 0 0 8px rgba(56, 189, 248, 0.3); }
 
         .welcome-header {
-            text-align: center;
-            margin-bottom: 20px; padding: 20px;
+            text-align: center; margin-bottom: 20px; padding: 20px;
             background: linear-gradient(135deg, var(--card-bg), #0f172a); border-radius: 12px; border: 1px solid var(--border-color);
         }
-        .welcome-header h1 { color: var(--success-color); margin-bottom: 5px; font-size: 1.6rem; font-weight: 800;
-        }
-        .welcome-header p { color: var(--accent-color); font-size: 0.9rem;
-        }
+        .welcome-header h1 { color: var(--success-color); margin-bottom: 5px; font-size: 1.6rem; font-weight: 800; }
+        .welcome-header p { color: var(--accent-color); font-size: 0.9rem; }
 
         .session-badge {
-            display: block;
-            text-align: center; color: var(--warning-color); font-size: 0.85rem; margin-bottom: 15px; 
-            background: rgba(251, 191, 36, 0.08); padding: 10px; border-radius: 8px;
-            border: 1px dashed var(--warning-color);
+            display: block; text-align: center; color: var(--warning-color); font-size: 0.85rem; margin-bottom: 15px; 
+            background: rgba(251, 191, 36, 0.08); padding: 10px; border-radius: 8px; border: 1px dashed var(--warning-color);
         }
         
-        .dashboard { display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
         .card {
-            background-color: var(--card-bg);
-            padding: 15px 12px; border-radius: 10px; text-align: center; 
+            background-color: var(--card-bg); padding: 15px 12px; border-radius: 10px; text-align: center; 
             border: 1px solid var(--border-color); border-left: 4px solid var(--accent-color); transition: transform 0.2s;
         }
-        .card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-        .card h3 { margin: 0 0 6px 0; font-size: 0.75rem; color: #94a3b8;
-            text-transform: uppercase; }
-        .card p { margin: 0; font-size: 1.2rem; font-weight: bold;
-            color: var(--success-color); word-break: break-all; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .card h3 { margin: 0 0 6px 0; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; }
+        .card p { margin: 0; font-size: 1.2rem; font-weight: bold; color: var(--success-color); word-break: break-all; }
 
-        .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 10px; margin-bottom: 20px; }
+        .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
         button { 
-            padding: 12px 10px;
-            border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem;
-            display: inline-flex; align-items: center; justify-content: center; gap: 4px;
-            transition: opacity 0.2s, transform 0.2s;
+            padding: 12px 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem;
+            display: inline-flex; align-items: center; justify-content: center; gap: 4px; transition: opacity 0.2s, transform 0.2s;
         }
-        button:hover { opacity: 0.9; transform: scale(0.98);
-        }
-        button:active { transform: scale(0.95);
-        }
-        .btn-block { width: 100%;
-        }
-        .btn-add { background-color: var(--accent-color); color: #000;
-        }
-        .btn-sell { background-color: var(--success-color); color: #000;
-        }
-        .btn-expense { background-color: #f43f5e; color: #fff;
-        }
-        .btn-credit { background-color: #f59e0b; color: #000;
-        }
-        .btn-draw { background-color: var(--purple-color); color: #000;
-        }
-        .btn-config { background-color: #64748b; color: #fff;
-        }
-        .btn-next-day { background-color: #a855f7; color: #fff;
-        }
-        .btn-clear { background-color: var(--danger-color); color: #000;
-        }
-        .btn-sm { padding: 6px 10px; font-size: 0.8rem; border-radius: 6px;
-        }
+        button:hover { opacity: 0.9; transform: scale(0.98); }
+        button:active { transform: scale(0.95); }
+        .btn-block { width: 100%; }
+        .btn-add { background-color: var(--accent-color); color: #000; }
+        .btn-sell { background-color: var(--success-color); color: #000; }
+        .btn-expense { background-color: #f43f5e; color: #fff; }
+        .btn-credit { background-color: #f59e0b; color: #000; }
+        .btn-draw { background-color: var(--purple-color); color: #000; }
+        .btn-config { background-color: #64748b; color: #fff; }
+        .btn-next-day { background-color: #a855f7; color: #fff; }
+        .btn-clear { background-color: var(--danger-color); color: #000; }
+        .btn-sm { padding: 6px 10px; font-size: 0.8rem; border-radius: 6px; }
 
-        .section-box { background-color: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 20px;
-            border: 1px solid var(--border-color); }
-        .section-box h2 { font-size: 1.2rem; margin-bottom: 12px;
-            border-bottom: 2px solid var(--border-color); padding-bottom: 6px; color: var(--accent-color); }
+        .section-box { background-color: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+        .section-box h2 { font-size: 1.2rem; margin-bottom: 12px; border-bottom: 2px solid var(--border-color); padding-bottom: 6px; color: var(--accent-color); }
 
-        .table-responsive { width: 100%;
-            overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-color); -webkit-overflow-scrolling: touch;
-        }
-        table { width: 100%; border-collapse: collapse; min-width: 500px; background-color: var(--card-bg) !important;
-        }
-        th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--border-color);
-            white-space: nowrap; font-size: 0.9rem; color: var(--text-color) !important; }
-        th { background-color: rgba(0,0,0,0.5) !important;
-            color: var(--accent-color) !important; font-weight: 600; }
-        tr:hover td { background-color: var(--hover-color) !important;
-        }
+        .table-responsive { width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-color); -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; background-color: var(--card-bg) !important; }
+        th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--border-color); white-space: nowrap; font-size: 0.9rem; color: var(--text-color) !important; }
+        th { background-color: rgba(0,0,0,0.5) !important; color: var(--accent-color) !important; font-weight: 600; }
+        tr:hover td { background-color: var(--hover-color) !important; }
 
-        .low-stock-row { background-color: rgba(248, 113, 113, 0.1) !important;
-        }
-        .low-stock-badge { background: #f87171 !important; color: #000 !important; padding: 2px 6px;
-            border-radius: 4px; font-weight: bold; font-size: 0.75rem; margin-left: 5px; }
+        .low-stock-row { background-color: rgba(248, 113, 113, 0.1) !important; }
+        .low-stock-badge { background: #f87171 !important; color: #000 !important; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; margin-left: 5px; }
 
-        .badge-danger { background: var(--danger-color);
-            color: #000; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;
-        }
-        .badge-success { background: var(--success-color); color: #000; padding: 2px 5px; border-radius: 4px;
-            font-size: 0.75rem; font-weight: bold; }
-        .badge-warning { background: var(--warning-color); color: #000;
-            padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .badge-danger { background: var(--danger-color); color: #000; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .badge-success { background: var(--success-color); color: #000; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .badge-warning { background: var(--warning-color); color: #000; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
 
-        .grid-3 { display: grid;
-            grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px; }
-        @media(min-width: 768px) { .grid-3 { grid-template-columns: repeat(3, 1fr);
-        } .btn-clear { grid-column: span 2; } }
+        .grid-3 { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px; }
+        @media(min-width: 768px) { .grid-3 { grid-template-columns: repeat(3, 1fr); } .btn-clear { grid-column: span 2; } }
 
-        .profile-data { background: rgba(0,0,0,0.2);
-            padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); font-size: 0.9rem;
-        }
-        .profile-data label { font-weight: bold; color: #94a3b8;
-        }
-        .profile-data span { color: var(--warning-color); font-weight: bold;
-        }
+        .profile-data { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); font-size: 0.9rem; }
+        .profile-data label { font-weight: bold; color: #94a3b8; }
+        .profile-data span { color: var(--warning-color); font-weight: bold; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 15px;
-        }
-        .modal-card { background-color: var(--card-bg); border-radius: 14px; width: 100%; max-width: 480px; padding: 20px;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.5); border: 1px solid var(--border-color); overflow-y: auto; max-height: 90vh;
-        }
-        .modal-header { margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;
-        }
-        .modal-header h3 { font-size: 1.2rem; color: var(--success-color);
-        }
-        .modal-body { margin-bottom: 15px;
-        }
-        .modal-footer { display: flex; justify-content: flex-end; gap: 8px;
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
+        .modal-card { background-color: var(--card-bg); border-radius: 14px; width: 100%; max-width: 480px; padding: 20px; box-shadow: 0 15px 30px rgba(0,0,0,0.5); border: 1px solid var(--border-color); overflow-y: auto; max-height: 90vh; }
+        .modal-header { margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        .modal-header h3 { font-size: 1.2rem; color: var(--success-color); }
+        .modal-body { margin-bottom: 15px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 8px; }
         
-        .search-container { margin-bottom: 12px;
-        }
-        .search-input { border: 1px solid var(--accent-color); background: rgba(56, 189, 248, 0.05);
-        }
-        .offline-tag { background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px;
-            font-size: 0.75rem; font-weight: bold; animation: blink 1.5s infinite; }
-        @keyframes blink { 0% { opacity: 0.4;
-        } 50% { opacity: 1; } 100% { opacity: 0.4;
-        } }
+        .search-container { margin-bottom: 12px; }
+        .search-input { border: 1px solid var(--accent-color); background: rgba(56, 189, 248, 0.05); }
+        .offline-tag { background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; animation: blink 1.5s infinite; }
+        @keyframes blink { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
 
         /* PDF Printing Adjustments */
-        .receipt-container { background-color: #ffffff;
-            color: #333333; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .receipt-header { text-align: center; margin-bottom: 15px; border-bottom: 2px dashed #333; padding-bottom: 10px;
-        }
-        .receipt-header h4 { margin: 0; font-size: 1.3rem; color: #111; text-transform: uppercase;
-        }
-        .receipt-header p { margin: 4px 0; font-size: 0.85rem; color: #565656;
-        }
-        .receipt-table { width: 100%; margin-top: 10px; border-collapse: collapse;
-        }
-        .receipt-table th, .receipt-table td { color: #222 !important; padding: 8px 5px;
-            font-size: 0.85rem; border-bottom: 1px dashed #ddd; text-align: left; }
-        .receipt-table th { background-color: #f5f5f5 !important;
-            font-weight: bold; }
-        .receipt-summary { margin-top: 15px; border-top: 2px dashed #333; padding-top: 8px;
-            text-align: right; font-size: 0.95rem; font-weight: bold; color: #111; }
-        .receipt-footer { text-align: center;
-            margin-top: 20px; font-size: 0.8rem; color: #777; font-style: italic; }
-        .receipt-actions-grid { display: grid;
-            grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+        .receipt-container { background-color: #ffffff; color: #333333; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .receipt-header { text-align: center; margin-bottom: 15px; border-bottom: 2px dashed #333; padding-bottom: 10px; }
+        .receipt-header h4 { margin: 0; font-size: 1.3rem; color: #111; text-transform: uppercase; }
+        .receipt-header p { margin: 4px 0; font-size: 0.85rem; color: #565656; }
+        .receipt-table { width: 100%; margin-top: 10px; border-collapse: collapse; }
+        .receipt-table th, .receipt-table td { color: #222 !important; padding: 8px 5px; font-size: 0.85rem; border-bottom: 1px dashed #ddd; text-align: left; }
+        .receipt-table th { background-color: #f5f5f5 !important; font-weight: bold; }
+        .receipt-summary { margin-top: 15px; border-top: 2px dashed #333; padding-top: 8px; text-align: right; font-size: 0.95rem; font-weight: bold; color: #111; }
+        .receipt-footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: #777; font-style: italic; }
+        .receipt-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
 
-        .shops-grid { display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 15px; }
-        .shop-card { background-color: var(--card-bg);
-            border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; transition: transform 0.2s;
-        }
-        .shop-card:hover { transform: translateY(-3px); border-color: var(--accent-color);
-        }
-        .shop-card-header { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px; margin-bottom: 12px; }
-        .shop-avatar { width: 50px; height: 50px; border-radius: 50%;
-            object-fit: cover; background: #252f48; border: 2px solid var(--accent-color); }
-        .shop-meta h3 { color: var(--success-color);
-            font-size: 1.2rem; }
-        .shop-meta p { color: #94a3b8; font-size: 0.8rem;
-        }
-        .shop-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;
-        }
-        .btn-link-action { padding: 6px; font-size: 0.8rem; text-decoration: none; border-radius: 6px; text-align: center;
-            font-weight: bold; display: block; }
+        .shops-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 15px; }
+        .shop-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; transition: transform 0.2s; }
+        .shop-card:hover { transform: translateY(-3px); border-color: var(--accent-color); }
+        .shop-card-header { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 12px; }
+        .shop-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: #252f48; border: 2px solid var(--accent-color); }
+        .shop-meta h3 { color: var(--success-color); font-size: 1.2rem; }
+        .shop-meta p { color: #94a3b8; font-size: 0.8rem; }
+        .shop-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .btn-link-action { padding: 6px; font-size: 0.8rem; text-decoration: none; border-radius: 6px; text-align: center; font-weight: bold; display: block; }
         
-        .catalog-item-card { background: rgba(0,0,0,0.2);
-            border-radius: 8px; padding: 8px; margin-top: 8px; display: flex; gap: 10px; align-items: center; border: 1px solid rgba(255,255,255,0.03);
-            flex-wrap: wrap;}
-        .catalog-item-img { width: 55px; height: 55px; border-radius: 6px; object-fit: cover;
-            background: #1c273a; cursor: pointer; transition: transform 0.2s;}
-        .catalog-item-img:hover { transform: scale(1.05);
-        }
-        .catalog-item-info { flex: 1; min-width: 120px;
-        }
+        .catalog-item-card { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px; margin-top: 8px; display: flex; gap: 10px; align-items: center; border: 1px solid rgba(255,255,255,0.03); flex-wrap: wrap;}
+        .catalog-item-img { width: 55px; height: 55px; border-radius: 6px; object-fit: cover; background: #1c273a; cursor: pointer; transition: transform 0.2s;}
+        .catalog-item-img:hover { transform: scale(1.05); }
+        .catalog-item-info { flex: 1; min-width: 120px; }
 
-        .category-filters { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px;
-            -webkit-overflow-scrolling: touch; }
-        .category-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--accent-color); color: var(--text-color);
-            padding: 8px 16px; border-radius: 20px; white-space: nowrap; cursor: pointer; font-size: 0.9rem; transition: 0.3s;
-        }
-        .category-btn:hover { background: rgba(56, 189, 248, 0.2);
-        }
-        .category-btn.active { background: var(--accent-color); color: #000; font-weight: bold;
-        }
+        .category-filters { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; -webkit-overflow-scrolling: touch; }
+        .category-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--accent-color); color: var(--text-color); padding: 8px 16px; border-radius: 20px; white-space: nowrap; cursor: pointer; font-size: 0.9rem; transition: 0.3s; }
+        .category-btn:hover { background: rgba(56, 189, 248, 0.2); }
+        .category-btn.active { background: var(--accent-color); color: #000; font-weight: bold; }
 
-        .critical-offline-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #0b0f19; z-index: 99999; display: flex; justify-content: center; align-items: center; padding: 20px; text-align: center;
-        }
-        .offline-status-card { background-color: #151f32; border: 1px solid rgba(248, 113, 113, 0.3);
-            padding: 35px 25px; border-radius: 16px; max-width: 460px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-        }
-        .offline-status-card .icon-zone { font-size: 3.5rem; margin-bottom: 15px; animation: pulse-glow 2s infinite ease-in-out;
-        }
-        .offline-status-card h2 { color: #f87171; font-size: 1.6rem; margin-bottom: 12px; font-weight: 800;
-        }
-        .offline-status-card p { color: #94a3b8; font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px;
-        }
-        .offline-loader { display: inline-block; width: 24px; height: 24px;
-            border: 3px solid rgba(56, 189, 248, 0.2); border-radius: 50%; border-top-color: #38bdf8; animation: spin-loader 1s ease-in-out infinite; vertical-align: middle; margin-right: 10px;
-        }
-        .offline-status-card .footer-note { font-size: 0.8rem; color: #64748b; border-top: 1px solid rgba(255,255,255,0.05);
-            padding-top: 15px; margin-top: 10px; }
-        @keyframes spin-loader { to { transform: rotate(360deg);
-        } }
-        @keyframes pulse-glow { 0% { transform: scale(1); opacity: 0.8;
-        } 50% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 0.8;
-        } }
+        .critical-offline-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #0b0f19; z-index: 99999; display: flex; justify-content: center; align-items: center; padding: 20px; text-align: center; }
+        .offline-status-card { background-color: #151f32; border: 1px solid rgba(248, 113, 113, 0.3); padding: 35px 25px; border-radius: 16px; max-width: 460px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        .offline-status-card .icon-zone { font-size: 3.5rem; margin-bottom: 15px; animation: pulse-glow 2s infinite ease-in-out; }
+        .offline-status-card h2 { color: #f87171; font-size: 1.6rem; margin-bottom: 12px; font-weight: 800; }
+        .offline-status-card p { color: #94a3b8; font-size: 0.95rem; line-height: 1.6; margin-bottom: 25px; }
+        .offline-loader { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(56, 189, 248, 0.2); border-radius: 50%; border-top-color: #38bdf8; animation: spin-loader 1s ease-in-out infinite; vertical-align: middle; margin-right: 10px; }
+        .offline-status-card .footer-note { font-size: 0.8rem; color: #64748b; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; margin-top: 10px; }
+        @keyframes spin-loader { to { transform: rotate(360deg); } }
+        @keyframes pulse-glow { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }
 
         @media print {
-            body * { visibility: hidden;
-            }
-            #printableReceiptArea, #printableReceiptArea * { visibility: visible;
-            }
-            #printableReceiptArea { position: absolute; left: 0; top: 0;
-            width: 100%; box-shadow: none; padding: 0; }
+            body * { visibility: hidden; }
+            #printableReceiptArea, #printableReceiptArea * { visibility: visible; }
+            #printableReceiptArea { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; padding: 0; }
         }
         
-        .cart-section { background-color: rgba(0, 0, 0, 0.2);
-            border: 1px solid #eab308; border-radius: 8px; padding: 15px; margin-bottom: 15px;
-        }
-        .cart-header { color: #eab308; margin-bottom: 10px; font-size: 1.2rem; display: flex; align-items: center;
-            gap: 8px; }
-        .cart-empty-text { color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px;
-        }
-        .cart-total-bar { border-top: 1px dashed #eab308; padding-top: 12px; margin-bottom: 15px; font-size: 1.2rem;
-            font-weight: bold; color: white; }
+        .cart-section { background-color: rgba(0, 0, 0, 0.2); border: 1px solid #eab308; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .cart-header { color: #eab308; margin-bottom: 10px; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+        .cart-empty-text { color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px; }
+        .cart-total-bar { border-top: 1px dashed #eab308; padding-top: 12px; margin-bottom: 15px; font-size: 1.2rem; font-weight: bold; color: white; }
     </style>
 </head>
 <body class="theme-deepblue">
 
-<div id="imageLightbox" class="modal-overlay hidden" onclick="this.classList.add('hidden')" style="z-index: 100000; cursor: zoom-out;">
+<div id="imageLightbox" class="modal-overlay hidden" onclick="this.classList.add('hidden')" style="z-index: 999999 !important; cursor: zoom-out;">
     <img id="lightboxImg" src="" style="max-width: 90%; max-height: 90%; border-radius: 8px; border: 2px solid var(--accent-color); box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
 </div>
 
@@ -371,8 +233,8 @@
     </div>
 
     <div id="loginPage" class="login-box hidden">
-        <h2 id="loginTitle">ትርፌ አፕ (Tirfe Tech)</h2>
-        <p id="loginDesc">የኪራይና የሱቅ መቆጣጠሪያ ማዕከላዊ ሲስተም v11.0</p>
+        <h2 id="loginTitle">ትርፌ አፕ (Tirfe App)</h2>
+        <p id="loginDesc">የኪራይና የሱቅ መቆጣጠሪያ ማዕከላዊ ሲስተም</p>
         <input type="text" id="loginUser" placeholder="የተጠቃሚ ስም (Username)">
         <input type="password" id="loginPass" placeholder="የይለፍ ቃል / ጊዜያዊ ኮድ">
         <button class="btn-sell btn-block" onclick="handleLogin()">🔒 ደህንነቱ የተጠበቀ መግቢያ</button>
@@ -389,11 +251,19 @@
         </div>
         
         <div class="section-box">
-            <h2>📦 የጠየቋቸው የዴሊቨሪ ትዕዛዞች (My Orders)</h2>
+            <h2>📦 የጠየቋቸው ትዕዛዞች (Orders) እና ደረሰኞች</h2>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>የሱቅ ስም</th><th>ዕቃና ብዛት</th><th>ዋጋ</th><th>ቀን</th><th>ሁኔታ</th></tr></thead>
+                    <thead><tr><th>የሱቅ ስም</th><th>ዕቃና ብዛት</th><th>ዋጋ</th><th>ቀን</th><th>ሁኔታ/ደረሰኝ</th></tr></thead>
                     <tbody id="buyerOrdersBody"></tbody>
+                </table>
+            </div>
+            
+            <h3 style="margin-top: 20px; font-size: 1rem; color: var(--success-color);">🧾 የተቆረጡ ደረሰኞች (My Receipts)</h3>
+            <div class="table-responsive" style="margin-top: 10px;">
+                <table>
+                    <thead><tr><th>ደረሰኝ ID</th><th>ቀን</th><th>ዕቃ (ብዛት)</th><th>የተከፈለ</th><th>እርምጃ</th></tr></thead>
+                    <tbody id="buyerReceiptsBody"></tbody>
                 </table>
             </div>
         </div>
@@ -545,10 +415,20 @@
             <button class="btn-credit" onclick="openDebtModal()">💳 ዕዳ መዝግብ</button>
             <button class="btn-draw" onclick="openDrawerModal()">💸 ከሳጥን ብር ማንሻ / መልስ</button>
             <button class="btn-config" id="btn_settlement" style="background-color: #22c55e; color: black;" onclick="openSettlementModal()">📊 ሂሳብ ማወራረጃ</button>
-            <button class="btn-config" onclick="configureBank()">🏦 የባንክ አፕ ማያያዣ</button>
+            <button class="btn-config" onclick="configureBank()">🏦 የባንክ / ቴሌግራም አፕ ማያያዣ</button>
             <button class="btn-next-day" id="btn_next_day" onclick="startNewDaySession()">🔄 አዲስ ቀን ጀምር</button>
             <button class="btn-clear" id="btn_clear_all" onclick="clearAllTenantData()">🗑️ ዳታ አጽዳ</button>
             <button class="btn-expense" id="btn_close_shift" style="background:#f59e0b; color:#000;" onclick="triggerShiftReport()">🔒 የዕለት ሂሳብ ዝጋ (ሪፖርት)</button>
+        </div>
+
+        <div class="section-box" id="remoteCartSection">
+            <h2 style="color:var(--warning-color);">🛒 የገዥዎች Cart (Online Orders)</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>ገዥ (Username)</th><th>የዕቃዎች ብዛት</th><th>የሚጠበቅ ሂሳብ</th><th>እርምጃ</th></tr></thead>
+                    <tbody id="sellerRemoteCartsBody"></tbody>
+                </table>
+            </div>
         </div>
 
         <div class="section-box" id="deliverySection">
@@ -658,7 +538,7 @@
 
         <div class="section-box">
             <h2>⚙️ መቼቶች እና ፕሮፋይል</h2>
-            <button id="btn_profile_editor" class="btn-add btn-block" style="margin-bottom: 12px; padding: 10px;" onclick="openTenantProfileEditor()">⚙️ የሱቅ መረጃ እና ኮድ ማስተካከያ</button>
+            <button id="btn_profile_editor" class="btn-add btn-block" style="margin-bottom: 12px; padding: 10px;" onclick="openTenantProfileEditor()">⚙️ የሱቅ መረጃ እና ፎቶ ማስተካከያ</button>
             
             <div class="profile-data"><label>የሱቅ ስም፡</label> <span id="profShopName">-</span></div>
             <div class="profile-data" id="expiryRowOwner"><label>የውል ማቂያ ቀን፡</label> <span id="profExpiry" style="color: var(--danger-color);">-</span></div>
@@ -708,25 +588,9 @@
 </div>
 
 <script>
-    // Fix 3: የ Firebase ኮድ በትክክል መዋሃድ
-    const firebaseConfig = {
-      apiKey: "AIzaSyBgXU6N4cMV2q-d3XeFzvgFT98gJ1GM7Ws",
-      authDomain: "tirfe-app.firebaseapp.com",
-      databaseURL: "https://tirfe-app-default-rtdb.firebaseio.com",
-      projectId: "tirfe-app",
-      storageBucket: "tirfe-app.firebasestorage.app",
-      messagingSenderId: "228622358915",
-      appId: "1:228622358915:web:c9ff3039a6d6cf66613eb6"
-    };
-
+    const firebaseConfig = { databaseURL: "https://tirfe-app-v2-300c2-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    
-    // Fix 4: API Auth (Firebase Auth Initialization)
-    const auth = firebase.auth();
-    auth.onAuthStateChanged(user => {
-        if(!user) { auth.signInAnonymously().catch(err => console.log("API Auth error: ", err)); }
-    });
 
     let localDB = { tenants: {}, buyers: {} };
     let currentTenant = null;
@@ -764,14 +628,13 @@
         reader.readAsDataURL(file);
     }
 
-    // Helper: ፎቶ በትልቁ ለማየት
     function viewImageFullscreen(src) {
+        if(!src) return;
         let modal = document.getElementById('imageLightbox');
         document.getElementById('lightboxImg').src = src;
         modal.classList.remove('hidden');
     }
 
-    // Helper: ትክክለኛውን ቀን ለማግኘት (Format: YYYY-MM-DD)
     function getTodayFormatted() {
         let todayObj = new Date();
         let yyyy = todayObj.getFullYear();
@@ -812,7 +675,7 @@
         localStorage.setItem('tirfe_local_db', JSON.stringify(localDB));
     }
 
-    // Fix 2: የቴሌግራም ሪፖርት መላኪያ
+    // Fix 4: Telegram Automation Function
     function sendTelegramAlert(message) {
         if (!currentTenant || !currentTenant.telegramToken || !currentTenant.telegramChatId) return;
         const token = currentTenant.telegramToken;
@@ -872,12 +735,10 @@
         }
     }
 
-    // የሰዓት መቆጣጠሪያ 
     setInterval(() => {
         let now = new Date();
         let hours = now.getHours(); 
         
-        // ማታ 4:00 (10 PM/22:00) ሲል ሂሳብ እንዲዘጋ ማስገደጃ
         if(hours >= 22 && currentTenant && currentTenant.data && currentTenant.data.sessionActive && !currentTenant.data.shiftClosed) {
             document.getElementById('shiftStatusAlert').classList.remove('hidden');
             document.getElementById('shiftStatusAlert').innerHTML = "⚠️ ማታ 4:00 (10:00 PM) ሆኗል! እባክዎ የዕለቱን ሂሳብ ወዲያውኑ ይዝጉ!";
@@ -917,10 +778,11 @@
         if(!localDB.buyers) localDB.buyers = {};
         if(localDB.buyers[u]) {
             if(localDB.buyers[u].phone !== p) {
-                err.innerText = "❌ ይህ ዩዘርኔም አስቀድሞ በሌላ ሰው ተይዟል! እባክዎ ሌላ የተለየ ዩዘርኔም ይምረጡ።"; return;
+                err.innerText = "❌ ይህ ዩዘርኔም አስቀድሞ በሌላ ሰው ተይዟል! እባክዎ ሌላ የተለየ ዩዘርኔም ይምረጡ።";
+                return;
             }
         } else {
-            localDB.buyers[u] = { username: u, phone: p, joinDate: new Date().getTime() };
+            localDB.buyers[u] = { username: u, phone: p, joinDate: new Date().getTime(), receipts: [] };
             pushToFirebase();
         }
 
@@ -1009,15 +871,12 @@
                         ], (res) => {
                             let sp = res.securePass.trim();
                             if (!sp) { showCustomAlert("ስህተት", "የይለፍ ቃል ባዶ መሆን አይችልም!"); return; }
-    
                             tenant.password = sp; 
                             tenant.isActivated = true;
                             localDB.tenants[user] = tenant;
-             
                             pushToFirebase();
                             currentUserRole = "owner";
                             localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
-                   
                             launchApp(tenant);
                         });
                         return;
@@ -1073,7 +932,6 @@
         return false;
     }
 
-    // Fix 6: Monthly Reset Calculation fixed
     function checkMonthlyAccessReset() {
         if (!currentTenant || !currentTenant.data) return;
         let now = new Date();
@@ -1089,23 +947,19 @@
         let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         if (diffDays >= 30) {
             let d = currentTenant.data;
-            let totalMonthlySales = 0;
-            let finalMonthlyNetProfit = 0;
+            let expensesList = d.expenses || [];
             let totalMonthlyExp = 0;
-            let totalMonthlyDraws = 0;
-            
-            let historyList = d.history || [];
-            let lastResetTimestamp = d.lastMonthlyResetDate;
-
-            historyList.forEach(h => {
-                // Sum up unarchived records that belong to this month
-                if(!h.isMonthlyArchive && new Date(h.date).getTime() >= lastResetTimestamp) {
-                    totalMonthlySales += parseFloat(h.sales) || 0;
-                    finalMonthlyNetProfit += parseFloat(h.profit) || 0;
-                    totalMonthlyExp += parseFloat(h.expenses) || 0;
-                    totalMonthlyDraws += parseFloat(h.draws) || 0;
-                }
+            expensesList.forEach(e => totalMonthlyExp += parseFloat(e.amount) || 0);
+            let totalMonthlySales = 0;
+            let totalMonthlyProfit = 0;
+            let inv = d.inventory || [];
+            inv.forEach(item => {
+                totalMonthlySales += (item.price * item.sold);
+                totalMonthlyProfit += (item.price - item.cost) * item.sold;
             });
+            let finalMonthlyNetProfit = totalMonthlyProfit - totalMonthlyExp;
+            
+            if(!d.history) d.history = [];
             
             let lastResetObj = new Date(d.lastMonthlyResetDate);
             let formattedPeriod = `${lastResetObj.toLocaleDateString('en-GB')} - ${now.toLocaleDateString('en-GB')}`;
@@ -1116,22 +970,19 @@
                 sales: totalMonthlySales,
                 profit: finalMonthlyNetProfit,
                 expenses: totalMonthlyExp,
-                draws: totalMonthlyDraws,
+                draws: 0,
                 reportedCash: d.reportedCash || 0,
                 expectedCash: d.expectedCash || 0,
                 variance: d.variance || 0,
                 isMonthlyArchive: true
             });
-            
-            d.expenses = []; // Clear for new month
+            d.expenses = [];
             d.lastMonthlyResetDate = currentTimestamp; 
             
             localDB.tenants[currentTenant.username] = currentTenant;
             saveToLocalStorage();
             pushToFirebase();
             showCustomAlert("📅 አዲስ ወር ጀምሯል", `ያለፈው 30 ቀናት የሱቅ ወጪና የሂሳብ መረጃዎች ተጠቅልለው ማህደር (Archive) ውስጥ ገብተዋል። ለአዲሱ ወር ወጪው ከ 0 ተጀምሯል።`);
-            
-            sendTelegramAlert(`📅 የወር ሂሳብ ተዘግቷል!\nወቅት: ${formattedPeriod}\nጠቅላላ ሽያጭ: ${totalMonthlySales} ETB\nጠቅላላ ወጪ: ${totalMonthlyExp} ETB\nየተጣራ ትርፍ: ${finalMonthlyNetProfit} ETB`);
         }
     }
 
@@ -1189,6 +1040,7 @@
         }, 200);
     }
 
+    // Fix 1: Delivery vs Buy Button Functions
     window.openDeliveryOrderModal = function(shopKey, itemIdx, itemName, price) {
         if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return; }
         showFormModal("🚚 " + itemName + " - ዴሊቨሪ ማዘዣ", [
@@ -1205,23 +1057,34 @@
 
             let orderId = Math.floor(100000 + Math.random() * 900000);
             t.data.deliveryOrders.push({
-                orderId: orderId,
-                buyerUser: currentBuyer.username,
-                buyerPhone: res.phone,
-                address: res.address,
-                mapLink: res.mapLink,
-                itemIdx: itemIdx,
-                itemName: itemName,
-                qty: qty,
-                price: price,
-                total: qty * price,
-                status: "pending",
-                date: getTodayFormatted()
+                orderId: orderId, buyerUser: currentBuyer.username, buyerPhone: res.phone,
+                address: res.address, mapLink: res.mapLink, itemIdx: itemIdx, itemName: itemName,
+                qty: qty, price: price, total: qty * price, status: "pending", date: getTodayFormatted()
             });
-            localDB.tenants[shopKey] = t;
-            pushToFirebase();
+            localDB.tenants[shopKey] = t; pushToFirebase();
             showCustomAlert("ተሳክቷል", "ትዕዛዝዎ ለሻጩ ተልኳል። ሻጩ ሲቀበለው በገጽዎ ላይ 'በመንገድ ላይ ነው' የሚል ምልክት ያያሉ።");
             renderBuyerCatalog();
+        });
+    };
+
+    window.buyFromShop = function(shopKey, itemIdx, itemName, price, availableRem) {
+        if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return; }
+        showFormModal("🛒 " + itemName + " - ወደ ሻጭ Cart ማስገቢያ", [
+            { id: "qty", label: "የሚፈልጉት ብዛት", type: "number", defaultValue: "1" }
+        ], (res) => {
+            let qty = parseFloat(res.qty) || 0;
+            if(qty <= 0) { showCustomAlert("ስህተት", "የተሳሳተ ብዛት!"); return; }
+            if(qty > availableRem) { showCustomAlert("ብዛት የለም", "የጠየቁት ብዛት በአሁኑ ሰዓት ከስቶር የለም (አልቋል)!"); return; }
+
+            let t = localDB.tenants[shopKey];
+            if(!t.data.remoteCarts) t.data.remoteCarts = {};
+            if(!t.data.remoteCarts[currentBuyer.username]) t.data.remoteCarts[currentBuyer.username] = [];
+            
+            t.data.remoteCarts[currentBuyer.username].push({
+                itemIdx: itemIdx, itemName: itemName, qty: qty, price: price, total: qty * price
+            });
+            localDB.tenants[shopKey] = t; pushToFirebase();
+            showCustomAlert("🛒 ትዕዛዙ Cart ውስጥ ገብቷል", "በተጨማሪ ሌላ ዕቃ ማዘዝ ይችላሉ። ሲጨርሱ ሱቁ ደረሰኝ ቆርጦ ይልክልዎታል።");
         });
     };
 
@@ -1257,12 +1120,27 @@
         }
 
         let myOrdersHTML = "";
+        let myReceiptsHTML = "";
+
+        // Fill receipts table for buyer
+        if(currentBuyer && currentBuyer.receipts) {
+            let reversed = [...currentBuyer.receipts].reverse();
+            reversed.forEach(rec => {
+                myReceiptsHTML += `<tr>
+                    <td><b>#${rec.recId}</b></td>
+                    <td>${rec.date}</td>
+                    <td>${rec.itemName} (${rec.count})</td>
+                    <td style="color:var(--success-color);"><b>${rec.totalVal} ETB</b></td>
+                    <td><button class="btn-sm btn-add" onclick="viewBuyerReceipt('${rec.recId}')">📥 አውርድ</button></td>
+                </tr>`;
+            });
+        }
+
         if (localDB.tenants) {
             Object.keys(localDB.tenants).forEach(tKey => {
                 let t = localDB.tenants[tKey];
                 if (t.status === "active") {
                     let tBType = t.businessType || "አጠቃላይ ንግድ";
-                   
                     if (activeCategoryFilter !== "all" && tBType !== activeCategoryFilter) return;
                     
                     let matchingItems = [];
@@ -1278,6 +1156,7 @@
 
                     let shopLogo = t.shopLogo || "https://cdn-icons-png.flaticon.com/512/869/869636.png";
                     let tgLink = t.telegram && t.telegram !== "-" ? (t.telegram.startsWith('@') ? t.telegram.substring(1) : t.telegram) : "";
+                    
                     let shopCardHTML = `
                     <div class="shop-card">
                         <div class="shop-card-header">
@@ -1289,7 +1168,7 @@
                         </div>
                         <div style="margin-top:5px; font-size:0.85rem; color:#94a3b8; font-weight:bold;">📦 ዕቃዎች ዝርዝር፦</div>
                         <div class="shop-items-list">`;
-                        
+
                     if (matchingItems.length === 0) {
                         shopCardHTML += `<p style="font-size:0.8rem; color:#64748b; padding:5px 0;">በአሁኑ ሰዓት የተመዘገበ ዕቃ የለም።</p>`;
                     } else {
@@ -1297,6 +1176,7 @@
                             let itemImg = item.imgUrl || "https://cdn-icons-png.flaticon.com/512/3342/3342137.png";
                             let modelDisplay = item.model ? `<br><small style="color:var(--accent-color)">ሞዴል: ${item.model}</small>` : '';
                             let unitLabel = item.unitType === 'kg' ? 'ኪሎ' : (item.isAdvanced ? 'ሜትር' : 'ፍሬ');
+                            let rem = item.qty - item.sold;
 
                             shopCardHTML += `
                             <div class="catalog-item-card">
@@ -1304,7 +1184,10 @@
                                 <div class="catalog-item-info">
                                     <span style="font-weight:bold; font-size:0.9rem;">${item.name}</span>${modelDisplay}
                                     <div style="color:var(--warning-color); font-weight:bold; margin-top:2px;">${item.price} ETB <small>(${unitLabel})</small></div>
-                                    <button class="btn-add btn-sm" style="margin-top:5px;" onclick="openDeliveryOrderModal('${tKey}', ${item.originalIdx}, '${item.name}', ${item.price})">🚚 በዴሊቨሪ ይዘዙ</button>
+                                    <div style="display:flex; gap:5px; margin-top:5px; flex-wrap:wrap;">
+                                        <button class="btn-add btn-sm" onclick="openDeliveryOrderModal('${tKey}', ${item.originalIdx}, '${item.name}', ${item.price})">🚚 ዴሊቨሪ</button>
+                                        <button class="btn-success btn-sm" style="background:var(--warning-color); color:#000;" onclick="buyFromShop('${tKey}', ${item.originalIdx}, '${item.name}', ${item.price}, ${rem})">🛒 ሱቅ ነኝ ግዛ</button>
+                                    </div>
                                 </div>
                             </div>`;
                         });
@@ -1324,7 +1207,7 @@
                         t.data.deliveryOrders.forEach(ord => {
                             if(ord.buyerUser === currentBuyer.username) {
                                 let st = ord.status;
-                                let badge = st === "pending" ? "በመጠባበቅ ላይ" : (st === "accepted" ? "በመንገድ ላይ ነው" : (st === "completed" ? "ተረክበዋል" : "ተመልሷል"));
+                                let badge = st === "pending" ? "በመጠባበቅ ላይ" : (st === "accepted" ? "በመንገድ ላይ" : (st === "completed" ? "ተረክበዋል" : "ተመልሷል"));
                                 let cl = st === "pending" ? "text-warning" : (st === "accepted" ? "text-success" : "text-danger");
                                 myOrdersHTML += `<tr>
                                     <td>${t.shopName}</td>
@@ -1349,11 +1232,23 @@
             if(myOrdersHTML === "") ordersBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">ምንም የዴሊቨሪ ትዕዛዝ አልጠየቁም።</td></tr>`;
             else ordersBody.innerHTML = myOrdersHTML;
         }
+
+        let receiptsBody = document.getElementById('buyerReceiptsBody');
+        if(receiptsBody) {
+            if(myReceiptsHTML === "") receiptsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">የተቆረጠ ደረሰኝ የለም።</td></tr>`;
+            else receiptsBody.innerHTML = myReceiptsHTML;
+        }
     }
 
-    function generateRandomCode() {
-        return Math.floor(100000 + Math.random() * 900000).toString();
-    }
+    // View buyer receipt
+    window.viewBuyerReceipt = function(recId) {
+        let rec = currentBuyer.receipts.find(r => r.recId === parseInt(recId) || r.recId === recId);
+        if(!rec) return;
+        if(rec.advancedItems) { generateAdvancedReceipt(rec.advancedItems, rec.totalVal, rec.seller, rec.recId, false, rec.shopName, rec.bType); } 
+        else { generateAdvancedReceipt([{name: rec.itemName, count: rec.count, unitPrice: rec.totalVal/rec.count, total: rec.totalVal}], rec.totalVal, rec.seller, rec.recId, false, rec.shopName, rec.bType); }
+    };
+
+    function generateRandomCode() { return Math.floor(100000 + Math.random() * 900000).toString(); }
 
     function registerTenant() {
         let shop = document.getElementById('newShopName').value.trim();
@@ -1373,8 +1268,7 @@
         }
 
         if (localDB.tenants && localDB.tenants[user]) {
-            showCustomAlert("⚠️ ምዝገባው አልተሳካም", `"${user}" የሚለው የተጠቃሚ ስም (Username) አስቀድሞ በሌላ ተከራይ ተወስዷል! እባክዎ የተለየ ስም ይጠቀሙ።`);
-            return;
+            showCustomAlert("⚠️ ምዝገባው አልተሳካም", `"${user}" የሚለው የተጠቃሚ ስም (Username) አስቀድሞ በሌላ ተከራይ ተወስዷል! እባክዎ የተለየ ስም ይጠቀሙ።`); return;
         }
 
         let fileInput = document.getElementById('newShopLogoFile');
@@ -1388,7 +1282,7 @@
                 username: user, password: genCode, activationCode: genCode, codeCreatedAt: timestampNow,
                 isActivated: false, contractType: contractType, expiryDate: expiryDate, registrationFee: registrationFee,
                 status: "active", theme: "theme-deepblue", staffUser: "", staffPass: "",
-                data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], lastMonthlyResetDate: timestampNow } 
+                data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, lastMonthlyResetDate: timestampNow } 
             };
             pushToFirebase(); renderAdminPanel();
             
@@ -1418,24 +1312,16 @@
             { id: "registrationFee", label: "የመመዝገቢያ/ኪራይ ክፍያ (ETB)", type: "number", defaultValue: t.registrationFee || 0 },
             { id: "expiryDate", label: "የውል ማቂያ ቀን", type: "date", defaultValue: t.expiryDate }
         ], (res) => {
-            t.shopName = res.shopName.trim();
-            t.fullName = res.fullName.trim();
-            t.phone = res.phone.trim();
-            t.telegram = res.telegram.trim();
-            t.googleMapsLink = res.mapsLink.trim();
-            t.address = res.address.trim();
-            t.businessType = res.businessType.trim();
-            t.registrationFee = parseFloat(res.registrationFee) || 0;
+            t.shopName = res.shopName.trim(); t.fullName = res.fullName.trim();
+            t.phone = res.phone.trim(); t.telegram = res.telegram.trim();
+            t.googleMapsLink = res.mapsLink.trim(); t.address = res.address.trim();
+            t.businessType = res.businessType.trim(); t.registrationFee = parseFloat(res.registrationFee) || 0;
             t.expiryDate = res.expiryDate;
-            
-            localDB.tenants[user] = t;
-            pushToFirebase();
-            renderAdminPanel();
+            localDB.tenants[user] = t; pushToFirebase(); renderAdminPanel();
             showCustomAlert("ተሳክቷል", "የተከራዩ መረጃ በተሳካ ሁኔታ ተሻሽሏል!");
         });
     }
 
-    // Fix 5: የሻጭ ፕሮፋይል ፎቶ የሚቀየርበት ማስተካከያ
     function openTenantProfileEditor() {
         if(currentUserRole === "staff") { showCustomAlert("ክልክል", "ይህን መረጃ እና የይለፍ ቃል ማስተካከል የሚችለው የሱቁ ባለቤት ብቻ ነው!"); return; }
 
@@ -1443,26 +1329,25 @@
             { id: "shopName", label: "የሱቅ ስም", type: "text", defaultValue: currentTenant.shopName },
             { id: "phone", label: "የሱቅ ስልክ ቁጥር", type: "text", defaultValue: currentTenant.phone },
             { id: "mapsLink", label: "የጎግል ማፕ ሊንክ (Google Maps URL)", type: "text", defaultValue: currentTenant.googleMapsLink || "" },
-            { id: "newPassword", label: "አዲስ ምስጢራዊ ኮድ / ፓስዎርድ ለመቀየር (ባዶ ከሆነ አይቀየርም)", type: "password", placeholder: "አዲስ ነባር ኮድ" },
-            { id: "newLogo", label: "የሱቅ ፕሮፋይል ፎቶ ለመቀየር ከጋላሪ ይምረጡ (አማራጭ)", type: "file" }
-        ], (res) => {
-            currentTenant.shopName = res.shopName.trim();
-            currentTenant.phone = res.phone.trim();
-            currentTenant.googleMapsLink = res.mapsLink.trim();
-            
-            if (res.newPassword && res.newPassword.trim() !== "") {
-                currentTenant.password = res.newPassword.trim();
-            }
-            
-            if(res.newLogo) {
-                processImageUpload(res.newLogo, (base64) => {
-                    currentTenant.shopLogo = base64;
-                    saveAndRefresh();
-                    showCustomAlert("ተሳክቷል", "የሱቅዎ መረጃ እና ፎቶ በተሳካ ሁኔታ ተስተካክሏል!");
-                });
-            } else {
+            { id: "newLogo", label: "የሱቅ ፎቶ/ሎጎ ለመቀየር (አማራጭ)", type: "file" },
+            { id: "newPassword", label: "አዲስ ምስጢራዊ ኮድ / ፓስዎርድ ለመቀየር (ባዶ ከሆነ አይቀየርም)", type: "password", placeholder: "አዲስ ነባር ኮድ" }
+        ], (res, fileInput) => {
+            let updateTenantData = function(base64Logo) {
+                currentTenant.shopName = res.shopName.trim();
+                currentTenant.phone = res.phone.trim();
+                currentTenant.googleMapsLink = res.mapsLink.trim();
+                if(base64Logo) currentTenant.shopLogo = base64Logo;
+                if (res.newPassword && res.newPassword.trim() !== "") {
+                    currentTenant.password = res.newPassword.trim();
+                }
                 saveAndRefresh();
                 showCustomAlert("ተሳክቷል", "የሱቅዎ መረጃ በተሳካ ሁኔታ ተስተካክሏል!");
+            };
+
+            if(fileInput && fileInput.files[0]) {
+                processImageUpload(fileInput.files[0], updateTenantData);
+            } else {
+                updateTenantData("");
             }
         });
     }
@@ -1472,12 +1357,10 @@
         tbody.innerHTML = '';
         let query = document.getElementById('adminSearchInput') ? document.getElementById('adminSearchInput').value.trim().toLowerCase() : "";
 
-        let totalTenants = 0; let activeTenants = 0;
-        let totalFeesCollected = 0;
+        let totalTenants = 0; let activeTenants = 0; let totalFeesCollected = 0;
 
         Object.keys(localDB.tenants).forEach(key => {
-            let t = localDB.tenants[key];
-            totalTenants++;
+            let t = localDB.tenants[key]; totalTenants++;
             if (t.status === "active") activeTenants++;
             totalFeesCollected += (parseFloat(t.registrationFee) || 0);
 
@@ -1522,15 +1405,12 @@
         let t = localDB.tenants[user];
         let newCode = generateRandomCode();
         t.activationCode = newCode; t.password = newCode; t.codeCreatedAt = new Date().getTime(); t.isActivated = false; 
-        localDB.tenants[user] = t;
-        pushToFirebase(); renderAdminPanel();
+        localDB.tenants[user] = t; pushToFirebase(); renderAdminPanel();
         showCustomAlert("ኮድ ተለውጧል", `ለተከራዩ አዲስ ኮድ ተፈጥሯል፦ ${newCode}`);
     }
 
     function toggleTenantStatus(user) {
-        let t = localDB.tenants[user];
-        t.status = t.status === "active" ? "blocked" : "active";
-        pushToFirebase(); renderAdminPanel();
+        let t = localDB.tenants[user]; t.status = t.status === "active" ? "blocked" : "active"; pushToFirebase(); renderAdminPanel();
     }
 
     function deleteTenant(user) { 
@@ -1544,8 +1424,7 @@
     }
 
     function saveAndRefresh() { 
-        localDB.tenants[currentTenant.username] = currentTenant; saveToLocalStorage(); pushToFirebase();
-        renderApp(); 
+        localDB.tenants[currentTenant.username] = currentTenant; saveToLocalStorage(); pushToFirebase(); renderApp(); 
     }
 
     function addItemDirectly() {
@@ -1563,7 +1442,6 @@
         let proceedAdd = function(imgBase64) {
             let inv = currentTenant.data.inventory || [];
             let existingItem = inv.find(item => item.name.toLowerCase() === name.toLowerCase() && (!item.model || item.model.toLowerCase() === model.toLowerCase()));
-            
             if (existingItem) {
                 existingItem.qty += qty;
                 existingItem.cost = cost;
@@ -1573,14 +1451,11 @@
             } else {
                 inv.push({ name, model: model || "-", cost, price, qty, sold: 0, profit: 0, imgUrl: imgBase64 || "", unitType: "pcs" });
             }
-            
-            currentTenant.data.inventory = inv;
-            saveAndRefresh();
+            currentTenant.data.inventory = inv; saveAndRefresh();
             document.getElementById('itemName').value = ''; document.getElementById('itemModel').value = '';
             document.getElementById('itemCost').value = ''; document.getElementById('itemPrice').value = ''; 
             document.getElementById('itemQty').value = ''; document.getElementById('itemImgFile').value = '';
         };
-        
         if(file) processImageUpload(file, proceedAdd);
         else proceedAdd("");
     }
@@ -1594,9 +1469,7 @@
             if(!reason || amount <= 0) return;
             let d = currentTenant.data || {}; if(!d.expenses) d.expenses = [];
             
-            d.expenses.push({ 
-                reason, amount, date: getTodayFormatted(), time: new Date().toLocaleTimeString('en-GB') 
-            });
+            d.expenses.push({ reason, amount, date: getTodayFormatted(), time: new Date().toLocaleTimeString('en-GB') });
             currentTenant.data = d; saveAndRefresh();
         });
     }
@@ -1625,11 +1498,7 @@
             let calculatedAmount = selectedItem.price * qty;
             let d = currentTenant.data || {}; if (!d.debts) d.debts = [];
             
-            d.debts.push({ 
-                customer: customer, phone: phone || "-", itemName: selectedItem.name,
-                qty: qty, amount: calculatedAmount, paid: 0, date: selectedDate 
-            });
-            
+            d.debts.push({ customer: customer, phone: phone || "-", itemName: selectedItem.name, qty: qty, amount: calculatedAmount, paid: 0, date: selectedDate });
             selectedItem.sold += qty; 
             currentTenant.data = d; saveAndRefresh();
             sendTelegramAlert(`💳 አዲስ እዳ ተመዘገበ (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nባለእዳ፦ ${customer}\nእቃ፦ ${selectedItem.name} (${qty})\nየታሰበ ሂሳብ፦ ${calculatedAmount} ETB\nቀን፦ ${selectedDate}`);
@@ -1650,8 +1519,8 @@
             debt.paid += amt;
             currentTenant.data.collectedCreditToday = (parseFloat(currentTenant.data.collectedCreditToday) || 0) + amt;
             saveAndRefresh();
+            sendTelegramAlert(`💵 የዕዳ ክፍያ ተሰበሰበ (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nከ ${debt.customer} ላይ ${amt} ETB ተቀብለዋል።`);
             showCustomAlert("ክፍያ ተፈጽሟል", `${debt.customer} እዳ ከፍሏል!`);
-            sendTelegramAlert(`💵 ዕዳ ክፍያ ተቀበሉ!\nባለእዳ፦ ${debt.customer}\nየተከፈለው: ${amt} ETB`);
         });
     }
 
@@ -1674,16 +1543,12 @@
             let finalAmount = action === "withdraw" ? amount : -amount;
             let displayType = action === "withdraw" ? "ገንዘብ ተነሳ" : "ገንዘብ ተመለሰ";
             
-            d.drawerLog.push({ 
-                reason: `${action === "withdraw" ? "⚠️ [የተነሳ] " : "✅ [የተመለሰ] "} ${reason}`, 
-                amount: finalAmount, time: new Date().toLocaleTimeString('en-GB') 
-            });
+            d.drawerLog.push({ reason: `${action === "withdraw" ? "⚠️ [የተነሳ] " : "✅ [የተመለሰ] "} ${reason}`, amount: finalAmount, time: new Date().toLocaleTimeString('en-GB') });
             currentTenant.data = d; saveAndRefresh();
             sendTelegramAlert(`💸 ከሳጥን ${displayType} (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nምክንያት፡ ${reason}\nመጠን፡ ${amount} ETB`);
         });
     }
 
-    // Fix 6: የሂሳብ አሰላል (Settlement) የ Month እና Year ስህተቶች ታርመዋል
     function openSettlementModal() {
         if(currentUserRole === "staff") return;
         showFormModal("📊 የሂሳብ ማወራረጃ ማዕከል", [
@@ -1697,61 +1562,36 @@
             let bankAmt = parseFloat(res.bankBalance) || 0;
             let d = currentTenant.data || {};
             
-            let currentDaySales = 0; let currentStockValue = 0;
+            let totalSales = 0; let totalCost = 0; let totalExpenses = 0; let totalDraws = 0; let totalDebtRemaining = 0; let currentStockValue = 0;
 
             let inv = d.inventory || [];
             inv.forEach(item => {
                 let remaining = Math.max(0, item.qty - item.sold);
                 currentStockValue += (item.cost * remaining);
-                currentDaySales += (item.price * item.sold);
+                totalSales += (item.price * item.sold);
+                totalCost += (item.cost * item.sold);
             });
 
-            let totalDebtRemaining = 0;
             let debts = d.debts || [];
             debts.forEach(debt => { totalDebtRemaining += (debt.amount - debt.paid); });
 
             if (period === "monthly") {
-                let totalMonthlySales = currentDaySales;
-                let totalMonthlyExpenses = 0;
-                let totalMonthlyDraws = 0;
+                (d.expenses || []).forEach(e => totalExpenses += parseFloat(e.amount) || 0);
+                (d.drawerLog || []).forEach(dr => totalDraws += parseFloat(dr.amount) || 0);
                 
-                (d.expenses || []).forEach(e => totalMonthlyExpenses += parseFloat(e.amount) || 0);
-                (d.drawerLog || []).forEach(dr => totalMonthlyDraws += parseFloat(dr.amount) || 0);
-
-                let historyList = d.history || [];
-                historyList.forEach(h => {
-                    if (!h.isMonthlyArchive) {
-                        totalMonthlySales += parseFloat(h.sales) || 0;
-                        totalMonthlyDraws += parseFloat(h.draws) || 0;
-                        // Expenses already summed correctly since d.expenses holds the whole unarchived month
-                    }
-                });
+                let grossProfit = totalSales - totalCost;
+                let netProfit = grossProfit - totalExpenses;
                 
-                let expectedBankBalance = totalMonthlySales - totalMonthlyExpenses - totalMonthlyDraws - totalDebtRemaining;
+                let expectedBankBalance = totalSales - totalExpenses - totalDraws - totalDebtRemaining;
                 if(expectedBankBalance < 0) expectedBankBalance = 0;
 
                 let variance = bankAmt - expectedBankBalance;
                 let resultMessage = "";
-                
                 if (variance === 0) { resultMessage = "✅ የባንክ ሂሳብዎ ከሲስተሙ ጋር በትክክል ይገጥማል! ካፒታልዎ ጤናማ ነው።"; }
                 else if (variance > 0) { resultMessage = `📈 ጥሩ ነው! ካፒታልዎ በ ${variance.toFixed(2)} ETB ጨምሯል (ትርፍ አሳይቷል)።`; }
                 else { resultMessage = `⚠️ ትኩረት፦ ካፒታልዎ በ ${Math.abs(variance).toFixed(2)} ETB ቀንሷል! እባክዎ ወጪዎችን ይፈትሹ።`; }
 
-                let AmharicSummary = `
-                ======= 📅 የወር ሂሳብ ማወራረጃ ሪፖርት =======
-                • በሱቅ ውስጥ ያለ ዕቃ ካፒታል ዋጋ፡ ${currentStockValue.toFixed(2)} ETB
-                • ጠቅላላ የተመዘገበ ሽያጭ፡ ${totalMonthlySales.toFixed(2)} ETB
-                • የዚህ ወር ጠቅላላ ወጪዎች፡ ${totalMonthlyExpenses.toFixed(2)} ETB
-                • ከሳጥን የተነሳ ጠቅላላ ብር፡ ${totalMonthlyDraws.toFixed(2)} ETB
-                • በሰዎች ላይ ያለ ቀሪ ዕዳ፡ ${totalDebtRemaining.toFixed(2)} ETB
-                ----------------------------------------
-                • በባንክ ሊኖር የሚገባው (Expected)፦ ${expectedBankBalance.toFixed(2)} ETB
-                • እርስዎ ያስገቡት የባንክ መረጃ፦ ${bankAmt.toFixed(2)} ETB
-                • የካፒታል ልዩነት ውጤት፦ ${variance.toFixed(2)} ETB
-                ----------------------------------------
-                የሲስተም ማጠቃለያ ማስታወሻ፦
-                ${resultMessage}
-                `;
+                let AmharicSummary = `======= 📅 የወር ሂሳብ ማወራረጃ ሪፖርት =======\n• በሱቅ ውስጥ ያለ ዕቃ ካፒታል ዋጋ፡ ${currentStockValue.toFixed(2)} ETB\n• ጠቅላላ የተመዘገበ ሽያጭ፡ ${totalSales.toFixed(2)} ETB\n• የዚህ ወር ጠቅላላ ወጪዎች፡ ${totalExpenses.toFixed(2)} ETB\n• ከሳጥን የተነሳ ጠቅላላ ብር፡ ${totalDraws.toFixed(2)} ETB\n• በሰዎች ላይ ያለ ቀሪ ዕዳ፡ ${totalDebtRemaining.toFixed(2)} ETB\n----------------------------------------\n• በባንክ ሊኖር የሚገባው (Expected)፦ ${expectedBankBalance.toFixed(2)} ETB\n• እርስዎ ያስገቡት የባንክ መረጃ፦ ${bankAmt.toFixed(2)} ETB\n• የካፒታል ልዩነት ውጤት፦ ${variance.toFixed(2)} ETB\n----------------------------------------\nየሲስተም ማጠቃለያ ማስታወሻ፦\n${resultMessage}`;
                 
                 showCustomAlert("📊 ወርሃዊ ማወራረጃ ማጠቃለያ", AmharicSummary);
                 sendTelegramAlert(`📊 የሂሳብ ማወራረጃ ሪፖርት ማጠቃለያ (የወር)፦\n${AmharicSummary}`);
@@ -1765,38 +1605,16 @@
                         archiveExpenses += parseFloat(h.expenses) || 0;
                     }
                 });
-                
-                let currentMonthExpenses = 0;
-                (d.expenses || []).forEach(e => currentMonthExpenses += parseFloat(e.amount) || 0);
+                let currentGrossProfit = totalSales - totalCost;
+                let currentExpenses = 0;
+                (d.expenses || []).forEach(e => currentExpenses += parseFloat(e.amount) || 0);
+                let currentNetProfit = currentGrossProfit - currentExpenses;
 
-                let currentMonthProfit = 0;
-                historyList.forEach(h => {
-                    if(!h.isMonthlyArchive) currentMonthProfit += parseFloat(h.profit) || 0;
-                });
-                
-                let todayProfit = 0;
-                inv.forEach(item => { todayProfit += (item.price - item.cost) * item.sold; });
-                currentMonthProfit += (todayProfit - currentMonthExpenses);
+                let overallYearlySales = archiveSales + totalSales;
+                let overallYearlyProfit = archiveProfit + currentNetProfit;
+                let overallYearlyExpenses = archiveExpenses + currentExpenses;
 
-                let currentMonthSales = currentDaySales;
-                historyList.forEach(h => { if(!h.isMonthlyArchive) currentMonthSales += parseFloat(h.sales) || 0; });
-
-                let overallYearlySales = archiveSales + currentMonthSales;
-                let overallYearlyProfit = archiveProfit + currentMonthProfit;
-                let overallYearlyExpenses = archiveExpenses + currentMonthExpenses;
-
-                let yearlySummary = `
-                ======= 📆 አመታዊ የካፒታልና ሂሳብ ማወራረጃ =======
-                • ጠቅላላ የአመቱ የሱቅ ሽያጭ፡ ${overallYearlySales.toFixed(2)} ETB
-                • ጠቅላላ የተመዘገቡ አመታዊ ወጪዎች፡ ${overallYearlyExpenses.toFixed(2)} ETB
-                • አጠቃላይ የተጣራ አመታዊ ትርፍ (Net Profit)፦ ${overallYearlyProfit.toFixed(2)} ETB
-                • በአሁኑ ሰዓት በእጅ ያለ እቃ ካፒታል ዋጋ፡ ${currentStockValue.toFixed(2)} ETB
-                ----------------------------------------
-                • እርስዎ ያስገቡት የባንክ አካውንት መጠን፡ ${bankAmt.toFixed(2)} ETB
-                • በሰዎች ላይ ያለ ያልተሰበሰ ጠቅላላ ዕዳ፡ ${totalDebtRemaining.toFixed(2)} ETB
-                ----------------------------------------
-                💡 ማሳሰቢያ፦ አመታዊ ካፒታልዎ በትክክል እንዲያድግ ያለፉትን ወራት የካፒታል ታሪክ ማህደር መመልከትዎን ያረጋግጡ።
-                `;
+                let yearlySummary = `======= 📆 አመታዊ የካፒታልና ሂሳብ ማወራረጃ =======\n• ጠቅላላ የአመቱ የሱቅ ሽያጭ፡ ${overallYearlySales.toFixed(2)} ETB\n• ጠቅላላ የተመዘገቡ አመታዊ ወጪዎች፡ ${overallYearlyExpenses.toFixed(2)} ETB\n• አጠቃላይ የተጣራ አመታዊ ትርፍ (Net Profit)፦ ${overallYearlyProfit.toFixed(2)} ETB\n• በአሁኑ ሰዓት በእጅ ያለ እቃ ካፒታል ዋጋ፡ ${currentStockValue.toFixed(2)} ETB\n----------------------------------------\n• እርስዎ ያስገቡት የባንክ አካውንት መጠን፡ ${bankAmt.toFixed(2)} ETB\n• በሰዎች ላይ ያለ ያልተሰበሰ ጠቅላላ ዕዳ፡ ${totalDebtRemaining.toFixed(2)} ETB\n----------------------------------------\n💡 ማሳሰቢያ፦ አመታዊ ካፒታልዎ በትክክል እንዲያድግ ያለፉትን ወራት የካፒታል ታሪክ ማህደር መመልከትዎን ያረጋግጡ።`;
                 
                 showCustomAlert("📆 አመታዊ ማወራረጃ ማጠቃለያ", yearlySummary);
                 sendTelegramAlert(`📆 አመታዊ የሂሳብ ማወራረጃ ሪፖርት፦\n${yearlySummary}`);
@@ -1804,13 +1622,13 @@
         });
     }
 
+    // Fix 2: Telegram Token Settings for Employer
     function configureBank() {
         if(currentUserRole === "staff") {
-            showCustomAlert("🏦 የባንክ ሂሳብ መረጃ ማያያዣ", `የአሰሪው የባንክ ሂሳብ ቁጥር (CBE/Telebirr)፦ ${currentTenant.bankAccount || "ያልተገናኘ"}`);
-            return;
+            showCustomAlert("🏦 የባንክ ሂሳብ መረጃ", `የአሰሪው የባንክ ሂሳብ ቁጥር (CBE/Telebirr)፦ ${currentTenant.bankAccount || "ያልተገናኘ"}`); return;
         }
 
-        showFormModal("የባንክ እና የቴሌግራም አገናኝ መቼት", [
+        showFormModal("🏦 የባንክ እና የቴሌግራም አገናኝ መቼት", [
             { id: "telegramToken", label: "የቴሌግራም ቦት ቶከን (Telegram Bot Token)", type: "text", placeholder: "Token...", defaultValue: currentTenant.telegramToken || "" },
             { id: "telegramChatId", label: "የቴሌግራም ቻት ID (Telegram Chat ID)", type: "text", placeholder: "Chat ID...", defaultValue: currentTenant.telegramChatId || "" },
             { id: "bankAccountNumber", label: "የባንክ ሂሳብ ቁጥር (CBE/Telebirr)", type: "text", placeholder: "የባንክ ቁጥር...", defaultValue: currentTenant.bankAccount || "" }
@@ -1835,14 +1653,12 @@
                 let otherTenant = localDB.tenants[key];
                 if (otherTenant.username === u) { showCustomAlert("⚠️ ስህተት", "ይህ ዩዘርኔም አስቀድሞ በሌላ የሱቅ ባለቤት ተይዟል!"); return; }
                 if (otherTenant.username !== currentTenant.username && otherTenant.staffUser && otherTenant.staffUser === u) {
-                    showCustomAlert("⚠️ ስህተት", "ይህ ዩዘርኔም አስቀድሞ በሌላ ሱቅ ሰራተኛ ተይዟል!");
-                    return;
+                    showCustomAlert("⚠️ ስህተት", "ይህ ዩዘርኔም አስቀድሞ በሌላ ሱቅ ሰራተኛ ተይዟል!"); return;
                 }
             }
         }
 
-        currentTenant.staffUser = u;
-        currentTenant.staffPass = p; saveAndRefresh();
+        currentTenant.staffUser = u; currentTenant.staffPass = p; saveAndRefresh();
         showCustomAlert("ተገኝቷል", "የሰራተኛ አካውንት በተሳካ ሁኔታ ተቀይሯል!");
     }
 
@@ -1851,8 +1667,7 @@
         let session = d.sessionData || {};
         
         let sysSales = parseFloat(d.collectedCreditToday || 0);
-        let todayProfit = 0;
-        let inv = d.inventory || [];
+        let todayProfit = 0; let inv = d.inventory || [];
         
         inv.forEach(item => {
             sysSales += (item.price * item.sold);
@@ -1866,9 +1681,7 @@
             let tExp = 0; let tDraw = 0;
             let formattedDateToday = getTodayFormatted();
             
-            (d.expenses || []).forEach(e => {
-                if (e.date === formattedDateToday) tExp += parseFloat(e.amount) || 0;
-            });
+            (d.expenses || []).forEach(e => { if (e.date === formattedDateToday) tExp += parseFloat(e.amount) || 0; });
             (d.drawerLog || []).forEach(dr => tDraw += parseFloat(dr.amount) || 0);
 
             let creditSalesToday = 0;
@@ -1881,6 +1694,8 @@
             d.shiftClosed = true; d.reportedCash = reported; d.variance = variance; d.expectedCash = expectedCash;
 
             document.getElementById('shiftStatusAlert').classList.add('hidden');
+            let msg = `የዕለቱ ሂሳብ በተሳካ ሁኔታ ተዘጋጅቷል!\nሁኔታ፡ ${statusText}\nበሲስተሙ የሚጠበቅ ካሽ፡ ${expectedCash} ETB\nየቀረበው ካሽ፡ ${reported} ETB`;
+            showCustomAlert("ሪፖርት ቀርቧል", msg);
             
             if(!d.history) d.history = [];
             d.history.push({
@@ -1888,11 +1703,8 @@
                 profit: todayProfit - tExp, expenses: tExp, draws: tDraw, reportedCash: reported,
                 expectedCash: expectedCash, variance: variance, isMonthlyArchive: false
             });
-            
             currentTenant.data = d; saveAndRefresh();
-            
-            showCustomAlert("ሪፖርት ቀርቧል", `የዕለቱ ሂሳብ በተሳካ ሁኔታ ተዘጋጅቷል!\nሁኔታ፡ ${statusText}\nበሲስተሙ የሚጠበቅ ካሽ፡ ${expectedCash} ETB\nየቀረበው ካሽ፡ ${reported} ETB`);
-            sendTelegramAlert(`🔒 የዕለት ሂሳብ ተዘግቷል!\nሰራተኛ: ${session.employee}\nየዕለቱ ሽያጭ: ${sysSales} ETB\nወጪ: ${tExp} ETB\nበሲስተሙ የሚጠበቅ ካሽ፡ ${expectedCash} ETB\nየተጣራ ካሽ(ሪፖርት): ${reported} ETB\nልዩነት: ${variance} ETB`);
+            sendTelegramAlert(`🔒 የዕለት ሂሳብ ተዘግቷል (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'}):\n${msg}`);
         });
     }
 
@@ -1901,8 +1713,7 @@
         let d = currentTenant.data || {};
         
         if(d.sessionActive && !d.shiftClosed) {
-            showCustomAlert("ክልክል!", "መጀመሪያ የትላንቱን (ወይም የዛሬውን) የዕለት ሂሳብ 'የዕለት ሂሳብ ዝጋ' በሚለው ዘግተው ሪፖርት ማቅረብ አለብዎት!");
-            return;
+            showCustomAlert("ክልክል!", "መጀመሪያ የትላንቱን (ወይም የዛሬውን) የዕለት ሂሳብ 'የዕለት ሂሳብ ዝጋ' በሚለው ዘግተው ሪፖርት ማቅረብ አለብዎት!"); return;
         }
 
         showCustomConfirm("አዲስ ቀን መጀመር", "የዛሬውን ቀን ሂሳብ ሙሉ በሙሉ አጽድተው ለአዲስ ቀን ማዘጋጀት ይፈልጋሉ? (የወር ትርፍዎ አይጠፋም)", () => {
@@ -1915,13 +1726,14 @@
             d.sessionActive = false; d.shiftClosed = false; d.drawerLog = []; d.collectedCreditToday = 0;
             currentTenant.data = d; 
             saveAndRefresh(); checkMorningSession();
+            sendTelegramAlert(`🔄 አዲስ የሥራ ቀን በአሰሪ ተጀምሯል! የትላንትና ሂሳብ ተሰርዞ ወደ አዲስ ቀን ተሸጋግረዋል።`);
         });
     }
 
     function clearAllTenantData() {
         if(currentUserRole === "staff") return;
         showCustomConfirm("ሁሉንም ዳታ ማጽዳት", "ሁሉንም ዳታ ለማጥፋት እርግጠኛ ኖት?", () => {
-            currentTenant.data = { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], lastMonthlyResetDate: new Date().getTime() };
+            currentTenant.data = { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, lastMonthlyResetDate: new Date().getTime() };
             saveAndRefresh(); checkMorningSession();
         });
     }
@@ -1937,7 +1749,6 @@
             if(!filterValue) return true;
             return h.date === filterValue;
         });
-        
         if(filtered.length === 0) {
             historyBody.innerHTML += '<tr><td colspan="6" style="text-align:center; color:#94a3b8;">በተፈለገው ቀን ምንም ታሪክ የለም</td></tr>';
         } else {
@@ -1950,7 +1761,7 @@
                     <td style="color:var(--success-color)">${h.sales}</td>
                     <td style="color:var(--accent-color)"><b>${h.profit}</b></td>
                     <td>${h.reportedCash || 0}</td>
-                    <td style="color:${vColor}"><b>${h.variance || 0}</b></td>
+                    <td style="${rowStyle ? '' : 'color:'+vColor}"><b>${h.variance || 0}</b></td>
                 </tr>`;
             });
         }
@@ -1959,31 +1770,55 @@
     window.acceptDelivery = function(idx) {
         let ord = currentTenant.data.deliveryOrders[idx];
         let item = currentTenant.data.inventory[ord.itemIdx];
-        
         let neededMeters = item.isAdvanced && item.unitType !== 'kg' ? ord.qty * item.unitPerPack : ord.qty;
+        
         if(item.qty - item.sold < neededMeters) { showCustomAlert("ስህተት", "ይህንን ትዕዛዝ ለማስተናገድ በቂ ክምችት የሎትም!"); return; }
         
-        item.sold += neededMeters;
         ord.status = "accepted"; saveAndRefresh();
-        showCustomAlert("ተቀብለዋል", "ትዕዛዙ ተቀባይነት አግኝቷል! እቃው ከክምችትዎ ተቀንሷል።");
+        showCustomAlert("ተቀብለዋል", "ትዕዛዙ ተቀባይነት አግኝቷል! እቃው በመንገድ ላይ ነው ተብሎ ምልክት ተደርጎበታል። (ክፍያ ሲረከቡ ደረሰኝ ይቁረጡ)");
     };
-    
+
     window.completeDelivery = function(idx) {
         let ord = currentTenant.data.deliveryOrders[idx];
+        let item = currentTenant.data.inventory[ord.itemIdx];
+        let neededMeters = item.isAdvanced && item.unitType !== 'kg' ? ord.qty * item.unitPerPack : ord.qty;
+        
+        item.sold += neededMeters;
         ord.status = "completed";
-        generateDigitalReceipt(ord.itemName, ord.qty, ord.total, ord.orderId, null, true);
+        generateDigitalReceipt(ord.itemName, ord.qty, ord.total, ord.orderId, null, true, ord.buyerUser);
         saveAndRefresh();
     };
 
     window.returnDelivery = function(idx) {
          let ord = currentTenant.data.deliveryOrders[idx];
-         let item = currentTenant.data.inventory[ord.itemIdx];
-         let neededMeters = item.isAdvanced && item.unitType !== 'kg' ? ord.qty * item.unitPerPack : ord.qty;
-         item.sold -= neededMeters;
          ord.status = "returned"; saveAndRefresh();
-         showCustomAlert("ተመልሷል", "እቃው ወደ ክምችትዎ ተመልሷል!");
+         showCustomAlert("ተመልሷል", "እቃው ተመልሷል!");
     };
-    
+
+    window.handleRemoteCartCheckout = function(buyerUser) {
+        let t = currentTenant.data;
+        let remoteCart = t.remoteCarts[buyerUser];
+        if(!remoteCart || remoteCart.length === 0) return;
+
+        showCustomConfirm("ክፍያ መቀበያ (Remote Checkout)", `የ ${buyerUser} ትዕዛዝ ክፍያ ተቀብለዋል? ደረሰኝ ይቆረጥ?`, () => {
+            let grandTotal = 0;
+            let receiptItems = [];
+            remoteCart.forEach(c => {
+                let item = t.inventory[c.itemIdx];
+                let neededMeters = item.isAdvanced && item.unitType !== 'kg' ? c.qty * item.unitPerPack : c.qty;
+                item.sold += neededMeters;
+                grandTotal += c.total;
+                receiptItems.push({ name: c.itemName, count: c.qty, unitPrice: c.price, total: c.total });
+            });
+
+            delete t.remoteCarts[buyerUser];
+            let currentSeller = currentUserRole === 'staff' ? 'ሰራተኛ (Employee)' : 'ባለቤት (Employer)';
+            generateAdvancedReceipt(receiptItems, grandTotal, currentSeller, null, true, buyerUser);
+            saveAndRefresh();
+            sendTelegramAlert(`🛍️ የኦንላይን ሽያጭ (Remote Cart Checkout)፦\nየገዢ ስም: ${buyerUser}\nጠቅላላ ሂሳብ፡ ${grandTotal} ETB`);
+        });
+    };
+
     function renderApp() {
         let d = currentTenant.data || {};
         let session = d.sessionData || {};
@@ -2000,8 +1835,7 @@
 
         let tbody = document.getElementById('inventoryBody'); tbody.innerHTML = '';
         let collectedCredit = parseFloat(d.collectedCreditToday) || 0;
-        let tSales = collectedCredit; let todayProfit = 0; let tExp = 0; let tDraw = 0;
-        let currentTotalCapital = 0;
+        let tSales = collectedCredit; let todayProfit = 0; let tExp = 0; let tDraw = 0; let currentTotalCapital = 0;
         
         let expensesList = d.expenses || []; expensesList.forEach(e => tExp += parseFloat(e.amount) || 0);
         let drawsList = d.drawerLog || []; drawsList.forEach(dr => tDraw += parseFloat(dr.amount) || 0);
@@ -2011,7 +1845,6 @@
         let inv = d.inventory || [];
         inv.forEach((item, idx) => {
             let remaining = Math.max(0, item.qty - item.sold); 
-            
             let profit = (item.price - item.cost) * item.sold; 
             tSales += (item.price * item.sold); 
             todayProfit += profit; 
@@ -2022,7 +1855,6 @@
             let rowClass = remaining <= 3 ? 'low-stock-row' : '';
             let stockBadge = remaining <= 3 ? '<span class="low-stock-badge">⚠️</span>' : '';
             let itemModelText = item.model || "-";
-
             let wholesaleText = item.wholesalePrice ? ` / ${item.wholesalePrice}` : '';
             let priceDisplay = `${item.price}${wholesaleText}`;
             
@@ -2042,9 +1874,7 @@
 
             if(item.isAdvanced || item.unitType === 'kg') {
                 let uLabel = item.unitType === 'kg' ? ' ኪሎ' : ' ሜትር';
-                displayQty = `${item.qty}${uLabel}`;
-                displaySold = `${item.sold}${uLabel}`;
-                displayRem = `${remaining}${uLabel}`;
+                displayQty = `${item.qty}${uLabel}`; displaySold = `${item.sold}${uLabel}`; displayRem = `${remaining}${uLabel}`;
             }
 
             if (currentUserRole === "staff") {
@@ -2072,8 +1902,7 @@
         });
 
         let formattedDateToday = getTodayFormatted();
-        let todayExpensesTotal = 0;
-        let creditSalesToday = 0;
+        let todayExpensesTotal = 0; let creditSalesToday = 0;
         
         expensesList.forEach(e => { if (e.date === formattedDateToday) todayExpensesTotal += parseFloat(e.amount) || 0; });
         (d.debts || []).forEach(debt => { if (debt.date === formattedDateToday) creditSalesToday += debt.amount; });
@@ -2092,12 +1921,33 @@
             document.getElementById('monthlyNetProfit').innerText = monthlyProfit.toFixed(1) + " ETB";
             document.getElementById('monthlyExpenses').innerText = tExp.toFixed(1) + " ETB";
             document.getElementById('totalDraws').innerText = tDraw.toFixed(1) + " ETB";
-            
             if (myChart) {
                 myChart.data.datasets[0].data = [currentTotalCapital, tSales, todayProfit - todayExpensesTotal];
                 myChart.update();
             }
             renderHistoryTable();
+        }
+
+        // Render Remote Carts (Buyer's "Buy from me" button orders)
+        let remoteBody = document.getElementById('sellerRemoteCartsBody');
+        if(remoteBody) {
+            remoteBody.innerHTML = "";
+            let remoteCarts = d.remoteCarts || {};
+            let hasRemotes = false;
+            Object.keys(remoteCarts).forEach(bUser => {
+                let items = remoteCarts[bUser];
+                if(items && items.length > 0) {
+                    hasRemotes = true;
+                    let totalSum = 0; items.forEach(i => totalSum += i.total);
+                    remoteBody.innerHTML += `<tr>
+                        <td>👤 ${bUser}</td>
+                        <td>${items.length} ዕቃዎች</td>
+                        <td><b style="color:var(--success-color)">${totalSum} ETB</b></td>
+                        <td><button class="btn-sell btn-sm" onclick="handleRemoteCartCheckout('${bUser}')">✅ ክፍያ ተቀበል (Checkout)</button></td>
+                    </tr>`;
+                }
+            });
+            if(!hasRemotes) remoteBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">በአሁኑ ሰዓት የገዥዎች Cart ትዕዛዝ የለም።</td></tr>`;
         }
 
         let delBody = document.getElementById('sellerDeliveryBody');
@@ -2163,12 +2013,7 @@
                 let displayAmt = isReturn ? Math.abs(dr.amount) + " ETB (መለሰ)" : dr.amount + " ETB";
                 let displayColor = isReturn ? "var(--success-color)" : "var(--purple-color)";
                 let tbodyColor = `style="color:${displayColor}; font-weight:bold;"`;
-                
-                drawBody.innerHTML += `<tr>
-                    <td>${dr.reason}</td>
-                    <td ${tbodyColor}>${displayAmt}</td>
-                    <td>${dr.time}</td>
-                </tr>`;
+                drawBody.innerHTML += `<tr><td>${dr.reason}</td><td ${tbodyColor}>${displayAmt}</td><td>${dr.time}</td></tr>`;
             });
         }
 
@@ -2202,7 +2047,6 @@
                 });
             }
         }
-        
         renderMainCart();
     }
 
@@ -2215,17 +2059,11 @@
             type: 'bar',
             data: {
                 labels: ['ካፒታል', 'የዛሬ ሽያጭ', 'የዛሬ ትርፍ'],
-                datasets: [{
-                    label: 'የገንዘብ መጠን (ETB)',
-                    data: [0, 0, 0], backgroundColor: ['#38bdf8', '#4ade80', '#fbbf24'], borderRadius: 6
-                }]
+                datasets: [{ label: 'የገንዘብ መጠን (ETB)', data: [0, 0, 0], backgroundColor: ['#38bdf8', '#4ade80', '#fbbf24'], borderRadius: 6 }]
             },
             options: {
                 responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-                scales: {
-                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
-                    x: { ticks: { color: '#94a3b8' } }
-                }
+                scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } }
             }
         });
     }
@@ -2237,37 +2075,23 @@
                 { id: "employee", label: "የገቢ አድራጊው/ሰራተኛው ስም ያስገቡ፦", type: "text", placeholder: "ስም", defaultValue: currentUserRole === "staff" ? "ሰራተኛ" : "አሰሪ" },
                 { id: "initialFloat", label: "ጠዋት በካዝና/ሳጥን ውስጥ የተገኘ መነሻ ገንዘብ (Float)፦", type: "number", placeholder: "0.00", defaultValue: "0" }
             ], (res) => {
-                d.sessionData = {
-                    date: getTodayFormatted(),
-                    loginTime: new Date().toLocaleTimeString('en-GB'),
-                    employee: res.employee || "ሰራተኛ",
-                    initialFloat: parseFloat(res.initialFloat) || 0
-                };
+                d.sessionData = { date: getTodayFormatted(), loginTime: new Date().toLocaleTimeString('en-GB'), employee: res.employee || "ሰራተኛ", initialFloat: parseFloat(res.initialFloat) || 0 };
                 d.sessionActive = true; d.shiftClosed = false; d.expenses = d.expenses || []; 
                 d.drawerLog = []; d.debts = d.debts || []; d.receipts = d.receipts || [];
                 d.deliveryOrders = d.deliveryOrders || []; d.collectedCreditToday = 0;
-                currentTenant.data = d;
-                saveAndRefresh();
+                currentTenant.data = d; saveAndRefresh();
             });
         } else {
             renderApp();
         }
     }
 
-    function pushToFirebase() { 
-        if(isOnline) { db.ref('tirfe_system').set(localDB); }
-    }
-    
+    function pushToFirebase() { if(isOnline) { db.ref('tirfe_system').set(localDB); } }
     function openModalContainer() { document.getElementById('modalOverlay').classList.remove('hidden'); }
-    
-    function closeActiveModal() {
-        document.getElementById('modalOverlay').classList.add('hidden');
-        document.querySelectorAll('.modal-card').forEach(m => m.classList.add('hidden'));
-    }
+    function closeActiveModal() { document.getElementById('modalOverlay').classList.add('hidden'); document.querySelectorAll('.modal-card').forEach(m => m.classList.add('hidden')); }
 
     function showCustomAlert(title, message, callback) {
-        document.getElementById('alertTitle').innerText = title;
-        document.getElementById('alertMessage').innerText = message;
+        document.getElementById('alertTitle').innerText = title; document.getElementById('alertMessage').innerText = message;
         openModalContainer(); document.getElementById('alertModal').classList.remove('hidden');
         document.querySelector('#alertModal .btn-add').onclick = function() { closeActiveModal(); if(callback) callback(); };
     }
@@ -2288,67 +2112,52 @@
                     if (typeof opt === 'object' && opt !== null) { o.value = opt.value; o.innerText = opt.label; }
                     input.appendChild(o);
                 });
-            } else if(f.type === 'file') {
+            } else if (f.type === 'file') {
                 input = document.createElement('input');
                 input.type = 'file';
-                input.accept = "image/*";
+                input.accept = 'image/*';
             } else {
                 input = document.createElement('input');
                 input.type = f.type || 'text'; input.placeholder = f.placeholder || '';
                 if(f.defaultValue !== undefined) input.value = f.defaultValue;
             }
             input.id = 'formField_' + f.id;
-            body.appendChild(label);
-            body.appendChild(input);
+            body.appendChild(label); body.appendChild(input);
         });
         
         let footer = document.getElementById('formModalFooter'); footer.innerHTML = '';
         let cancelBtn = document.createElement('button'); cancelBtn.className = 'btn-config'; cancelBtn.innerText = 'ሰርዝ';
         cancelBtn.onclick = closeActiveModal;
         let submitBtn = document.createElement('button'); submitBtn.className = 'btn-sell'; submitBtn.innerText = 'አስገባ';
-        
         submitBtn.onclick = function() {
-            let data = {};
+            let data = {}; let fileInputObj = null;
             fields.forEach(f => { 
-                let el = document.getElementById('formField_' + f.id);
-                if(f.type === 'file') {
-                    data[f.id] = el.files.length > 0 ? el.files[0] : null;
-                } else {
-                    data[f.id] = el.value; 
-                }
+                if (f.type === 'file') { fileInputObj = document.getElementById('formField_' + f.id); }
+                else { data[f.id] = document.getElementById('formField_' + f.id).value; }
             });
-            closeActiveModal(); onSubmit(data);
+            closeActiveModal(); onSubmit(data, fileInputObj);
         };
-        
         footer.appendChild(cancelBtn); footer.appendChild(submitBtn);
         openModalContainer(); document.getElementById('formModal').classList.remove('hidden');
     }
 
     function showCustomConfirm(title, message, onConfirm) {
-        document.getElementById('confirmTitle').innerText = title;
-        document.getElementById('confirmMessage').innerText = message;
+        document.getElementById('confirmTitle').innerText = title; document.getElementById('confirmMessage').innerText = message;
         openModalContainer(); document.getElementById('confirmModal').classList.remove('hidden');
         document.getElementById('confirmYesBtn').onclick = function() { closeActiveModal(); if(onConfirm) onConfirm(); };
     }
 
-    function changeTheme(themeClass) {
-        document.body.className = themeClass;
-        if(currentTenant) { currentTenant.theme = themeClass; saveAndRefresh(); }
-    }
+    function changeTheme(themeClass) { document.body.className = themeClass; if(currentTenant) { currentTenant.theme = themeClass; saveAndRefresh(); } }
 
     function deleteInventoryItem(idx) { 
         if(currentUserRole === "staff") return;
-        showCustomConfirm("እቃ መሰረዣ", "ይህንን እቃ ማጥፋት ይፈልጋሉ?", () => {
-            currentTenant.data.inventory.splice(idx, 1); saveAndRefresh(); 
-        });
+        showCustomConfirm("እቃ መሰረዣ", "ይህንን እቃ ማጥፋት ይፈልጋሉ?", () => { currentTenant.data.inventory.splice(idx, 1); saveAndRefresh(); });
     }
 
     function downloadReceiptPDF(filename) {
         const element = document.getElementById('printableReceiptArea');
         const opt = { 
-            margin: [5,5,5,5], 
-            filename: filename + '.pdf', 
-            image: { type: 'jpeg', quality: 1.0 }, 
+            margin: [5,5,5,5], filename: filename + '.pdf', image: { type: 'jpeg', quality: 1.0 }, 
             html2canvas: { scale: 3, useCORS: true, letterRendering: true }, 
             jsPDF: { unit: 'mm', format: [80, 150], orientation: 'portrait' } 
         };
@@ -2370,20 +2179,14 @@
             ]}
         ], (res) => {
             if(res.regType === "standard") {
-                document.getElementById('itemName').focus();
-                showCustomAlert("መረጃ", "መደበኛ ዕቃዎችን ከታች ባለው 'የዕቃ ስም' በሚለው ፎርም ቀጥታ መመዝገብ ይችላሉ።");
-            } else if(res.regType === "advanced") {
-                openAdvancedRegistration();
-            }
+                document.getElementById('itemName').focus(); showCustomAlert("መረጃ", "መደበኛ ዕቃዎችን ከታች ባለው 'የዕቃ ስም' በሚለው ፎርም ቀጥታ መመዝገብ ይችላሉ።");
+            } else if(res.regType === "advanced") { openAdvancedRegistration(); }
         });
     }
 
     function openAdvancedRegistration() {
         showFormModal(`📏/⚖️ በጥቅል/ሜትር ወይም በኪሎግራም የሚለካ ዕቃ መዝግብ`, [
-            { id: "unitType", label: "የልኬት አይነት ይምረጡ", type: "select", options: [
-                {value: "meter", label: "📏 በሜትር (Meter)"},
-                {value: "kg", label: "⚖️ በኪሎግራም (KG)"}
-            ]},
+            { id: "unitType", label: "የልኬት አይነት ይምረጡ", type: "select", options: [{value: "meter", label: "📏 በሜትር (Meter)"}, {value: "kg", label: "⚖️ በኪሎግራም (KG)"}] },
             { id: "name", label: "የዕቃ ስም (ምሳሌ፡ የኤሌክትሪክ ገመድ/ስኳር)", type: "text", placeholder: `ስም` },
             { id: "model", label: "ሞዴል / አይነት", type: "text", placeholder: "-" },
             { id: "packCount", label: "ስንት ጥቅል (Package/Roll/Sack) ገባ?", type: "number", placeholder: "0" },
@@ -2392,41 +2195,22 @@
             { id: "retailPrice", label: "የ 1 ሜትር/ኪሎ መሸጫ ዋጋ (ችርቻሮ)", type: "number", placeholder: "0" },
             { id: "wholesalePrice", label: "በጅምላ (በጥቅል/ጆንያ) ሲሸጥ የአንድ ጥቅል መሸጫ ዋጋ", type: "number", placeholder: "0" }
         ], (res) => {
-            let name = res.name.trim();
-            let packCount = parseFloat(res.packCount) || 0;
-            let unitPerPack = parseFloat(res.unitPerPack) || 0;
-            let totalQtyInMeters = packCount * unitPerPack;
-            let totalCost = parseFloat(res.totalCost) || 0;
-            let retailPrice = parseFloat(res.retailPrice) || 0;
-            
-            if(!name || packCount <= 0 || unitPerPack <= 0 || totalCost <= 0 || retailPrice <= 0) {
-                showCustomAlert("ስህተት", "እባክዎ የተሟላ እና ትክክለኛ መረጃ ያስገቡ!");
-                return;
-            }
+            let name = res.name.trim(); let packCount = parseFloat(res.packCount) || 0; let unitPerPack = parseFloat(res.unitPerPack) || 0;
+            let totalQtyInMeters = packCount * unitPerPack; let totalCost = parseFloat(res.totalCost) || 0; let retailPrice = parseFloat(res.retailPrice) || 0;
+            if(!name || packCount <= 0 || unitPerPack <= 0 || totalCost <= 0 || retailPrice <= 0) { showCustomAlert("ስህተት", "እባክዎ የተሟላ እና ትክክለኛ መረጃ ያስገቡ!"); return; }
 
             let inv = currentTenant.data.inventory || [];
             let existingItem = inv.find(item => item.name.toLowerCase() === name.toLowerCase() && (!item.model || item.model.toLowerCase() === (res.model || "-").toLowerCase()));
             let unitCostPerMeter = totalCost / totalQtyInMeters;
 
             if (existingItem) {
-                existingItem.qty += totalQtyInMeters;
-                existingItem.cost = unitCostPerMeter;
-                existingItem.price = retailPrice;
-                existingItem.wholesalePrice = parseFloat(res.wholesalePrice) || 0;
-                existingItem.unitPerPack = unitPerPack;
+                existingItem.qty += totalQtyInMeters; existingItem.cost = unitCostPerMeter; existingItem.price = retailPrice; existingItem.wholesalePrice = parseFloat(res.wholesalePrice) || 0; existingItem.unitPerPack = unitPerPack;
                 showCustomAlert("🔄 ዕቃው ተሞልቷል", `"${name}" አስቀድሞ ስለነበረ አዲሱ ብዛት ተደምሮበታል። አጠቃላይ የነበረው፦ ${existingItem.qty}`);
             } else {
-                inv.push({
-                    name: name, model: res.model || "-", cost: unitCostPerMeter, price: retailPrice,
-                    qty: totalQtyInMeters, sold: 0, profit: 0, imgUrl: "",
-                    wholesalePrice: parseFloat(res.wholesalePrice) || 0,
-                    isAdvanced: true, unitType: res.unitType, unitPerPack: unitPerPack
-                });
+                inv.push({ name: name, model: res.model || "-", cost: unitCostPerMeter, price: retailPrice, qty: totalQtyInMeters, sold: 0, profit: 0, imgUrl: "", wholesalePrice: parseFloat(res.wholesalePrice) || 0, isAdvanced: true, unitType: res.unitType, unitPerPack: unitPerPack });
                 showCustomAlert("ተሳክቷል", `ዕቃው በተሳካ ሁኔታ ተመዝግቧል! አጠቃላይ ብዛት: ${totalQtyInMeters} ${res.unitType === 'kg' ? 'ኪሎ' : 'ሜትር'}`);
             }
-            
-            currentTenant.data.inventory = inv;
-            saveAndRefresh();
+            currentTenant.data.inventory = inv; saveAndRefresh();
         });
     }
 
@@ -2438,18 +2222,14 @@
     window.addToMainCart = function(idx) {
         if(currentTenant.data.shiftClosed) { showCustomAlert("ስህተት", "የዕለቱ ፈረቃ ተዘግቷል! ማሸጥ አይቻልም።"); return; }
         
-        let qtyInput = document.getElementById(`quickQty_${idx}`);
-        let qty = parseFloat(qtyInput.value) || 0;
-        let typeSelect = document.getElementById(`quickType_${idx}`);
-        let isWholesale = typeSelect && typeSelect.value === 'wholesale';
-        let item = currentTenant.data.inventory[idx];
-        let rem = item.qty - item.sold;
+        let qtyInput = document.getElementById(`quickQty_${idx}`); let qty = parseFloat(qtyInput.value) || 0;
+        let typeSelect = document.getElementById(`quickType_${idx}`); let isWholesale = typeSelect && typeSelect.value === 'wholesale';
+        let item = currentTenant.data.inventory[idx]; let rem = item.qty - item.sold;
         
         if(qty <= 0) { showCustomAlert("ስህተት", "የተሳሳተ ብዛት ነው!"); return; }
 
         let unitPriceToUse = (isWholesale && item.wholesalePrice > 0) ? item.wholesalePrice : item.price;
-        let neededMeters = qty;
-        if(isWholesale && item.isAdvanced) { neededMeters = qty * item.unitPerPack; }
+        let neededMeters = qty; if(isWholesale && item.isAdvanced) { neededMeters = qty * item.unitPerPack; }
 
         if(neededMeters > rem) { showCustomAlert("ስህተት", "ከክምችት በላይ ነው!"); return; }
 
@@ -2457,28 +2237,20 @@
         if(existIdx > -1) {
             let totalNeeded = mainCart[existIdx].deductedMeters + neededMeters;
             if(totalNeeded > rem) { showCustomAlert("ስህተት", "ከክምችት በላይ ነው!"); return; }
-            mainCart[existIdx].qty += qty;
-            mainCart[existIdx].deductedMeters += neededMeters;
-            mainCart[existIdx].total = mainCart[existIdx].qty * unitPriceToUse;
+            mainCart[existIdx].qty += qty; mainCart[existIdx].deductedMeters += neededMeters; mainCart[existIdx].total = mainCart[existIdx].qty * unitPriceToUse;
         } else {
             let nName = item.name + (isWholesale ? (item.isAdvanced ? " (በጥቅል)" : " (በጅምላ)") : "");
             mainCart.push({ index: idx, name: nName, qty: qty, deductedMeters: neededMeters, price: unitPriceToUse, total: qty * unitPriceToUse, isWholesale: isWholesale });
         }
         
-        qtyInput.value = '1';
-        renderMainCart();
+        qtyInput.value = '1'; renderMainCart();
     };
 
     window.renderMainCart = function() {
-        let container = document.getElementById('cartItemsList');
-        let totalEl = document.getElementById('cartTotalSum');
-        let emptyMsg = document.getElementById('emptyCartMsg');
+        let container = document.getElementById('cartItemsList'); let totalEl = document.getElementById('cartTotalSum'); let emptyMsg = document.getElementById('emptyCartMsg');
         
         if(!mainCart || mainCart.length === 0) {
-            container.innerHTML = "";
-            emptyMsg.style.display = "block";
-            totalEl.innerText = "0";
-            return;
+            container.innerHTML = ""; emptyMsg.style.display = "block"; totalEl.innerText = "0"; return;
         }
         
         emptyMsg.style.display = "none";
@@ -2494,9 +2266,7 @@
                 <td style="text-align:right;"><button class="btn-expense btn-sm" onclick="removeMainCartItem(${i})">❌</button></td>
             </tr>`;
         });
-        html += '</table>';
-        container.innerHTML = html;
-        totalEl.innerText = grandTotal;
+        html += '</table>'; container.innerHTML = html; totalEl.innerText = grandTotal;
     };
 
     window.removeMainCartItem = function(i) { mainCart.splice(i, 1); renderMainCart(); };
@@ -2504,27 +2274,25 @@
     window.checkoutMainCart = function() {
         if(!mainCart || mainCart.length === 0) { showCustomAlert("ስህተት", "እባክዎ መጀመሪያ ከቴብሉ እቃ ወደ ቅርጫቱ ያስገቡ!"); return; }
         
-        let grandTotal = 0;
-        let currentSeller = currentUserRole === 'staff' ? 'ሰራተኛ (Employee)' : 'ባለቤት (Employer)';
+        let grandTotal = 0; let currentSeller = currentUserRole === 'staff' ? 'ሰራተኛ (Employee)' : 'ባለቤት (Employer)';
         let receiptItems = [];
-        
         mainCart.forEach(c => {
             let item = currentTenant.data.inventory[c.index];
             item.sold += c.deductedMeters; 
             grandTotal += c.total;
             receiptItems.push({ name: c.name, count: c.qty, unitPrice: c.price, total: c.total });
         });
-        
         sendTelegramAlert(`🛍️ የሽያጭ ማስታወቂያ (${currentSeller})፦\nየሱቅ ስም: ${currentTenant.shopName}\nየተሸጡ ዕቃዎች፡ ${receiptItems.length} አይነት\nጠቅላላ ሂሳብ፡ ${grandTotal} ETB`);
 
         mainCart = []; saveAndRefresh(); renderMainCart(); generateAdvancedReceipt(receiptItems, grandTotal, currentSeller);
     };
 
-    function generateAdvancedReceipt(itemsArray, grandTotal, currentSeller, recId = null, saveToHistory = true) {
+    function generateAdvancedReceipt(itemsArray, grandTotal, currentSeller, recId = null, saveToHistory = true, givenShopName = null, givenBType = null) {
         if (!recId) recId = Math.floor(10000 + Math.random() * 90000);
         let dateStr = getTodayFormatted();
-        let bType = currentTenant.businessType || 'አጠቃላይ ንግድ';
-        let rawTextForShare = `======= ${currentTenant.shopName.toUpperCase()} =======\nየንግድ ዘርፍ: ${bType}\nደረሰኝ ቁጥር: #${recId}\nየሸጠው ሰው: ${currentSeller}\nቀን: ${dateStr}\n---------------------------\n`;
+        let shopName = givenShopName || currentTenant.shopName;
+        let bType = givenBType || currentTenant.businessType || 'አጠቃላይ ንግድ';
+        let rawTextForShare = `======= ${shopName.toUpperCase()} =======\nየንግድ ዘርፍ: ${bType}\nደረሰኝ ቁጥር: #${recId}\nየሸጠው ሰው: ${currentSeller}\nቀን: ${dateStr}\n---------------------------\n`;
 
         let tableRows = "";
         itemsArray.forEach(itm => {
@@ -2533,18 +2301,28 @@
         });
         rawTextForShare += `---------------------------\nጠቅላላ ሂሳብ: ${grandTotal} ETB\nእናመሰግናለን!`;
 
-        if (saveToHistory && !currentTenant.data.receipts) currentTenant.data.receipts = [];
         if (saveToHistory) {
+            if(!currentTenant.data.receipts) currentTenant.data.receipts = [];
             let mainName = itemsArray.length === 1 ? itemsArray[0].name : "የተለያዩ ዕቃዎች (" + itemsArray.length + ")";
             let mainCount = itemsArray.length === 1 ? itemsArray[0].count : "-";
-            currentTenant.data.receipts.push({ recId: recId, date: dateStr, itemName: mainName, count: mainCount, totalVal: grandTotal, seller: currentSeller, advancedItems: itemsArray });
+            let recObj = { recId: recId, date: dateStr, itemName: mainName, count: mainCount, totalVal: grandTotal, seller: currentSeller, advancedItems: itemsArray, shopName: shopName, bType: bType };
+            currentTenant.data.receipts.push(recObj);
+            
+            // Add receipt to Buyer if bought via Remote Cart (givenShopName acts as a flag that this is a remote buyer if we pass buyerUser)
+            if(arguments.length > 5 && typeof arguments[5] === 'string') {
+                let buyerUsername = arguments[5];
+                if(localDB.buyers && localDB.buyers[buyerUsername]) {
+                    if(!localDB.buyers[buyerUsername].receipts) localDB.buyers[buyerUsername].receipts = [];
+                    localDB.buyers[buyerUsername].receipts.push(recObj);
+                }
+            }
             saveAndRefresh();
         }
 
         let receiptHTML = `
         <div class="receipt-container" id="printableReceiptArea" style="background:#fff; color:#000; padding:15px; width:100%; max-width:350px; margin:0 auto;">
             <div class="receipt-header">
-                <h4>${currentTenant.shopName}</h4>
+                <h4>${shopName}</h4>
                 <p style="color:#565656; font-weight:bold; margin-bottom:5px;">[ ${bType} ]</p>
                 <p>ዲጂታል የሽያጭ ደረሰኝ</p>
                 <p><b>ቁጥር (No):</b> #${recId} | <b>ቀን:</b> ${dateStr}</p>
@@ -2574,20 +2352,14 @@
 
     function viewPastReceipt(idx) {
         let rec = currentTenant.data.receipts[idx];
-        if(rec.advancedItems) { generateAdvancedReceipt(rec.advancedItems, rec.totalVal, rec.seller, rec.recId, false); } 
-        else { generateAdvancedReceipt([{name: rec.itemName, count: rec.count, unitPrice: rec.totalVal/rec.count, total: rec.totalVal}], rec.totalVal, rec.seller, rec.recId, false); }
+        if(rec.advancedItems) { generateAdvancedReceipt(rec.advancedItems, rec.totalVal, rec.seller, rec.recId, false, rec.shopName, rec.bType); } 
+        else { generateAdvancedReceipt([{name: rec.itemName, count: rec.count, unitPrice: rec.totalVal/rec.count, total: rec.totalVal}], rec.totalVal, rec.seller, rec.recId, false, rec.shopName, rec.bType); }
     }
 
-    function generateDigitalReceipt(itemName, count, totalVal, recId = null, sellerRole = null, saveToHistory = true) {
+    function generateDigitalReceipt(itemName, count, totalVal, recId = null, sellerRole = null, saveToHistory = true, buyerUserForReceipt = null) {
         let items = [{name: itemName, count: count, unitPrice: totalVal/count, total: totalVal}];
         let currentSeller = sellerRole || (currentUserRole === 'staff' ? 'ሰራተኛ (Employee)' : 'ባለቤት (Employer)');
-        generateAdvancedReceipt(items, totalVal, currentSeller, recId, saveToHistory);
-    }
-    
-    // Service worker registration for PWA
-    if ('serviceWorker' in navigator) {
-        // Dummy registration wrapper to fulfill PWA requirements without external file
-        console.log("PWA Module Ready.");
+        generateAdvancedReceipt(items, totalVal, currentSeller, recId, saveToHistory, buyerUserForReceipt);
     }
 </script>
 </body>
