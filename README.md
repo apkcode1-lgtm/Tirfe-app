@@ -1,4 +1,3 @@
-tirfe app
 <!DOCTYPE html>
 <html lang="am">
 <head>
