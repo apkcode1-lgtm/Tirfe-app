@@ -1,4 +1,3 @@
-tirfe-app 
 <!DOCTYPE html>
 <html lang="am">
 <head>
@@ -33,8 +32,7 @@ tirfe-app
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
         
         html, body {
-            width: 100%;
-            min-height: 100vh; background-color: var(--bg-color); color: var(--text-color); 
+            width: 100%; min-height: 100vh; background-color: var(--bg-color); color: var(--text-color); 
             padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
             font-size: calc(12px + 0.4vw); -webkit-text-size-adjust: 100%;
         }
@@ -96,6 +94,7 @@ tirfe-app
         }
         button:hover { opacity: 0.9; transform: scale(0.98); }
         button:active { transform: scale(0.95); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .btn-block { width: 100%; }
         .btn-add { background-color: var(--accent-color); color: #000; }
         .btn-sell { background-color: var(--success-color); color: #000; }
@@ -143,14 +142,17 @@ tirfe-app
         .offline-tag { background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; animation: blink 1.5s infinite; }
         @keyframes blink { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
 
-        /* PDF Printing Adjustments */
-        .receipt-container { background-color: #ffffff !important; color: #111111 !important; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 100%; max-width: 100%; overflow-x: hidden; }
+        /* PDF Printing Adjustments (Fix for pure white receipt background) */
+        .receipt-container, .receipt-container * { background-color: transparent !important; color: #111111 !important; }
+        .receipt-container { background-color: #ffffff !important; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 100%; max-width: 100%; overflow-x: hidden; }
         .receipt-header { text-align: center; margin-bottom: 15px; border-bottom: 2px dashed #333; padding-bottom: 10px; }
         .receipt-header h4 { margin: 0; font-size: 1.3rem; color: #111; text-transform: uppercase; }
         .receipt-header p { margin: 4px 0; font-size: 0.85rem; color: #565656; }
-        .receipt-table { width: 100%; margin-top: 10px; border-collapse: collapse; }
-        .receipt-table th, .receipt-table td { color: #111111 !important; padding: 8px 5px; font-size: 0.85rem; border-bottom: 1px dashed #ddd; text-align: left; white-space: normal !important; word-break: break-word; }
-        .receipt-table th { background-color: #f5f5f5 !important; font-weight: bold; }
+        .receipt-table { width: 100%; margin-top: 10px; border-collapse: collapse; background: transparent !important;}
+        .receipt-table th, .receipt-table td { color: #111111 !important; padding: 8px 5px; font-size: 0.85rem; border-bottom: 1px dashed #ddd; text-align: left; white-space: normal !important; word-break: break-word; background: transparent !important; }
+        .receipt-table tr:nth-child(even) td { background-color: transparent !important; }
+        .receipt-table tr:hover td { background-color: transparent !important; }
+        .receipt-table th { background-color: transparent !important; font-weight: bold; border-bottom: 2px solid #333;}
         .receipt-summary { margin-top: 15px; border-top: 2px dashed #333; padding-top: 8px; text-align: right; font-size: 0.95rem; font-weight: bold; color: #111; }
         .receipt-footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: #777; font-style: italic; }
         .receipt-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
@@ -175,7 +177,7 @@ tirfe-app
         .category-btn:hover { background: rgba(56, 189, 248, 0.2); }
         .category-btn.active { background: var(--accent-color); color: #000; font-weight: bold; }
 
-        .critical-offline-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #0b0f19; z-index: 99999; display: flex; justify-content: center; align-items: center; padding: 20px; text-align: center; }
+        .critical-offline-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(11, 15, 25, 0.95); z-index: 99999; display: flex; justify-content: center; align-items: center; padding: 20px; text-align: center; }
         .offline-status-card { background-color: #151f32; border: 1px solid rgba(248, 113, 113, 0.3); padding: 35px 25px; border-radius: 16px; max-width: 460px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
         .offline-status-card .icon-zone { font-size: 3.5rem; margin-bottom: 15px; animation: pulse-glow 2s infinite ease-in-out; }
         .offline-status-card h2 { color: #f87171; font-size: 1.6rem; margin-bottom: 12px; font-weight: 800; }
@@ -389,7 +391,7 @@ tirfe-app
         </div>
 
         <div id="sessionDisplay" class="session-badge">የዕለቱ መፈላጊ መረጃ በመጠባበቅ ላይ...</div>
-        <div id="shiftStatusAlert" class="session-badge hidden" style="color:var(--danger-color); background:rgba(244,63,94,0.1); border-color:var(--danger-color);">⚠️ ትኩረት፦ የዛሬው የስራ ሰዓት አብቅቷል። እባክዎ የዕለቱን ሂሳብ መዝጊያ ሪፖርት ያቅርቡ!</div>
+        <div id="shiftStatusAlert" class="session-badge hidden" style="color:var(--danger-color); background:rgba(244,63,94,0.1); border-color:var(--danger-color); font-weight:bold; font-size: 1rem;">⚠️ ትኩረት፦ የዛሬው የስራ ሰዓት አብቅቷል። እባክዎ የዕለቱን ሂሳብ መዝጊያ ሪፖርት ያቅርቡ!</div>
 
         <div class="dashboard" id="ownerDashboard">
             <div class="card">
@@ -429,8 +431,8 @@ tirfe-app
             <button class="btn-add" id="btn_add_item" onclick="openItemRegistrationChoice()">📦 አዲስ ዕቃ መዝግብ</button>
             <button class="btn-sell" id="btn_main_sell" onclick="openSellChoiceModal()" style="font-size: 1.05rem; box-shadow: 0 0 10px rgba(74, 222, 128, 0.4);">🛒 ሸጥ (ወደ Cart ሂድ)</button>
             <button class="btn-expense" id="btn_expense" onclick="openExpenseModal()">📉 ወጪ መዝግብ</button>
-            <button class="btn-credit" onclick="openDebtModal()">💳 ዕዳ መዝግብ</button>
-            <button class="btn-draw" onclick="openDrawerModal()">💸 ከሳጥን ብር ማንሻ / መልስ</button>
+            <button class="btn-credit" id="btn_credit" onclick="openDebtModal()">💳 ዕዳ መዝግብ</button>
+            <button class="btn-draw" id="btn_draw" onclick="openDrawerModal()">💸 ከሳጥን ብር ማንሻ / መልስ</button>
             <button class="btn-config" id="btn_settlement" style="background-color: #22c55e; color: black;" onclick="openSettlementModal()">📊 ሂሳብ ማወራረጃ</button>
             <button class="btn-config" onclick="configureBank()">🏦 የባንክ / ቴሌግራም አፕ ማያያዣ</button>
             <button class="btn-next-day" id="btn_next_day" onclick="startNewDaySession()">🔄 አዲስ ቀን ጀምር</button>
@@ -718,7 +720,6 @@ tirfe-app
                 currentTenant = checkTenant;
                 renderApp();
             }
-           
             if(currentBuyer) {
                 let checkBuyer = localDB.buyers[currentBuyer.username];
                 if(checkBuyer) currentBuyer = checkBuyer;
@@ -752,20 +753,46 @@ tirfe-app
         }
     }
 
-    setInterval(() => {
-        let now = new Date();
-        let hours = now.getHours(); 
-        
-        if(hours >= 22 && currentTenant && currentTenant.data && currentTenant.data.sessionActive && !currentTenant.data.shiftClosed) {
-            document.getElementById('shiftStatusAlert').classList.remove('hidden');
-            document.getElementById('shiftStatusAlert').innerHTML = "⚠️ ማታ 4:00 (10:00 PM) ሆኗል! እባክዎ የዕለቱን ሂሳብ ወዲያውኑ ይዝጉ!";
-        }
+    // TIME LOCK CHECK FUNCTION
+    function checkTimeLock() {
+        if(!currentTenant || !currentTenant.data || currentUserRole === "staff") return;
+        let h = new Date().getHours();
+        let isLockTime = (h >= 22 || h < 6); // After 10:00 PM (22:00) and before 6:00 AM (06:00)
+        let d = currentTenant.data;
 
-        if(hours === 6 && now.getMinutes() === 0 && currentTenant && currentTenant.data && currentTenant.data.shiftClosed) {
-            currentTenant.data.sessionActive = false;
-            currentTenant.data.shiftClosed = false;
-            saveAndRefresh();
+        if (isLockTime) {
+            if (!d.shiftClosed) {
+                document.getElementById('shiftStatusAlert').classList.remove('hidden');
+                document.getElementById('shiftStatusAlert').innerHTML = "⚠️ ማታ 4:00 (10:00 PM) ሆኗል! ሲስተሙ ተቆልፏል፣ እባክዎ የዕለቱን ሂሳብ ወዲያውኑ ይዝጉ!";
+                disableAllActionsExceptClose();
+            } else {
+                document.getElementById('shiftStatusAlert').classList.remove('hidden');
+                document.getElementById('shiftStatusAlert').innerHTML = "🔒 ሲስተሙ የዕለት ሪፖርት ተቀብሎ ተቆልፏል። ጧት 12:00 (6:00 AM) ላይ ይከፈታል።";
+                disableAllActions();
+            }
+        } else {
+            document.getElementById('shiftStatusAlert').classList.add('hidden');
+            enableAllActions();
         }
+    }
+
+    function disableAllActionsExceptClose() {
+         const btns = ['btn_add_item', 'btn_main_sell', 'btn_expense', 'btn_credit', 'btn_draw', 'btn_settlement', 'btn_next_day'];
+         btns.forEach(id => { let b = document.getElementById(id); if(b) {b.disabled = true;} });
+    }
+    
+    function disableAllActions() {
+         const btns = ['btn_add_item', 'btn_main_sell', 'btn_expense', 'btn_credit', 'btn_draw', 'btn_settlement', 'btn_next_day', 'btn_close_shift'];
+         btns.forEach(id => { let b = document.getElementById(id); if(b) {b.disabled = true;} });
+    }
+
+    function enableAllActions() {
+         const btns = ['btn_add_item', 'btn_main_sell', 'btn_expense', 'btn_credit', 'btn_draw', 'btn_settlement', 'btn_next_day', 'btn_close_shift'];
+         btns.forEach(id => { let b = document.getElementById(id); if(b) {b.disabled = false;} });
+    }
+
+    setInterval(() => {
+        checkTimeLock();
     }, 60000);
 
     function switchView(targetId) {
@@ -795,8 +822,7 @@ tirfe-app
         if(!localDB.buyers) localDB.buyers = {};
         if(localDB.buyers[u]) {
             if(localDB.buyers[u].phone !== p) {
-                err.innerText = "❌ ይህ ዩዘርኔም አስቀድሞ በሌላ ሰው ተይዟል! እባክዎ ሌላ የተለየ ዩዘርኔም ይምረጡ።";
-                return;
+                err.innerText = "❌ ይህ ዩዘርኔም አስቀድሞ በሌላ ሰው ተይዟል! እባክዎ ሌላ የተለየ ዩዘርኔም ይምረጡ።"; return;
             }
         } else {
             localDB.buyers[u] = { username: u, phone: p, joinDate: new Date().getTime(), receipts: [] };
@@ -888,15 +914,12 @@ tirfe-app
                         ], (res) => {
                             let sp = res.securePass.trim();
                             if (!sp) { showCustomAlert("ስህተት", "የይለፍ ቃል ባዶ መሆን አይችልም!"); return; }
-    
                             tenant.password = sp; 
                             tenant.isActivated = true;
                             localDB.tenants[user] = tenant;
-         
                             pushToFirebase();
                             currentUserRole = "owner";
                             localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
-  
                             launchApp(tenant);
                         });
                         return;
@@ -1016,6 +1039,9 @@ tirfe-app
         document.getElementById('profShopName').innerText = tenant.shopName;
         document.getElementById('profExpiry').innerText = tenant.expiryDate ? `${tenant.expiryDate} (${tenant.contractType})` : "ያልተገደበ";
         
+        // Add Default date filter setting to fix receipt bug
+        document.getElementById('receiptDateFilter').value = getTodayFormatted();
+
         let activeTheme = tenant.theme || 'theme-deepblue';
         document.body.className = activeTheme;
         document.getElementById('themeSelector').value = activeTheme;
@@ -1150,8 +1176,7 @@ tirfe-app
 
     window.checkoutBuyerCart = function() {
         if(!window.buyerCartData || window.buyerCartData.length === 0) {
-            showCustomAlert("ስህተት", "ምንም ዕቃ አልመረጡም!");
-            return;
+            showCustomAlert("ስህተት", "ምንም ዕቃ አልመረጡም!"); return;
         }
         showCustomConfirm("ትዕዛዝ ማረጋገጫ", "ሁሉንም የቅርጫት ትዕዛዞች ወደየሱቆቹ መላክ ይፈልጋሉ?", () => {
             let shops = {};
@@ -1357,8 +1382,7 @@ tirfe-app
         }
 
         if (localDB.tenants && localDB.tenants[user]) {
-            showCustomAlert("⚠️ ምዝገባው አልተሳካም", `"${user}" የሚለው የተጠቃሚ ስም (Username) አስቀድሞ በሌላ ተከራይ ተወስዷል! እባክዎ የተለየ ስም ይጠቀሙ።`);
-            return;
+            showCustomAlert("⚠️ ምዝገባው አልተሳካም", `"${user}" የሚለው የተጠቃሚ ስም (Username) አስቀድሞ በሌላ ተከራይ ተወስዷል! እባክዎ የተለየ ስም ይጠቀሙ።`); return;
         }
 
         let fileInput = document.getElementById('newShopLogoFile');
@@ -1520,7 +1544,7 @@ tirfe-app
 
     function saveAndRefresh() { 
         localDB.tenants[currentTenant.username] = currentTenant; saveToLocalStorage(); pushToFirebase();
-        renderApp(); 
+        renderApp(); checkTimeLock();
     }
 
     function addItemDirectly() {
@@ -1610,7 +1634,7 @@ tirfe-app
         ], (res) => {
             let amt = parseFloat(res.amount) || 0;
             if(amt <= 0 || amt > remaining) { showCustomAlert("ስህተት", "የክፍያ መጠን ልክ አይደለም!"); return; }
-        
+            
             debt.paid += amt;
             currentTenant.data.collectedCreditToday = (parseFloat(currentTenant.data.collectedCreditToday) || 0) + amt;
             saveAndRefresh();
@@ -1647,79 +1671,59 @@ tirfe-app
     function openSettlementModal() {
         if(currentUserRole === "staff") return;
         showFormModal("📊 የሂሳብ ማወራረጃ ማዕከል", [
-            { id: "period", label: "የማወራረጃ ጊዜ ይምረጡ፦", type: "select", options: [
-                { value: "monthly", label: "📅 የዚህ ወር ሂሳብ ማወራረጃ" },
-                { value: "yearly", label: "📆 የአመታዊ ሂሳብ ማወራረጃ" }
+            { id: "periodType", label: "የማወራረጃ ዓይነት ይምረጡ፦", type: "select", options: [
+                { value: "monthly", label: "📅 የወር ሂሳብ (Monthly)" },
+                { value: "yearly", label: "📆 የአመት ሂሳብ (Yearly)" }
             ]},
-            { id: "bankBalance", label: "በአሁኑ ሰዓት በባንክ አካውንትዎ / ቴሌብር ላይ ያለ ጠቅላላ የገንዘብ መጠን (ETB)፦", type: "number", placeholder: "0.00" }
+            { id: "periodDate", label: "ወር / አመት ይምረጡ (ለወር: YYYY-MM, ለአመት: YYYY)፦", type: "text", placeholder: "ምሳሌ: 2026-06 ወይም 2026", defaultValue: getTodayFormatted().substring(0,7) },
+            { id: "bankBalance", label: "በባንክ / ቴሌብር ላይ ያለ ጠቅላላ ገንዘብ (ETB)፦", type: "number", placeholder: "0.00" }
         ], (res) => {
-            let period = res.period;
+            let type = res.periodType;
+            let periodStr = res.periodDate.trim();
             let bankAmt = parseFloat(res.bankBalance) || 0;
             let d = currentTenant.data || {};
-            
-            let totalSales = 0; let totalCost = 0; let totalExpenses = 0; let totalDraws = 0; let totalDebtRemaining = 0; let currentStockValue = 0;
 
-            let inv = d.inventory || [];
-            inv.forEach(item => {
-                let remaining = Math.max(0, item.qty - item.sold);
-                currentStockValue += (item.cost * remaining);
-                totalSales += (item.price * item.sold);
-                totalCost += (item.cost * item.sold);
+            let hist = d.history || [];
+            let tSales = 0, tProfit = 0, tExp = 0, tDraws = 0, tReported = 0;
+
+            let matchedEntries = hist.filter(h => {
+                if(type === "monthly") return h.date.startsWith(periodStr) && !h.isMonthlyArchive;
+                if(type === "yearly") return h.date.startsWith(periodStr) && !h.isMonthlyArchive;
+                return false;
             });
 
-            let debts = d.debts || [];
-            debts.forEach(debt => { totalDebtRemaining += (debt.amount - debt.paid); });
+            matchedEntries.forEach(h => {
+                tSales += parseFloat(h.sales) || 0;
+                tProfit += parseFloat(h.profit) || 0;
+                tExp += parseFloat(h.expenses) || 0;
+                tDraws += parseFloat(h.draws) || 0;
+                tReported += parseFloat(h.reportedCash) || 0;
+            });
 
-            if (period === "monthly") {
-                (d.expenses || []).forEach(e => totalExpenses += parseFloat(e.amount) || 0);
-                (d.drawerLog || []).forEach(dr => totalDraws += parseFloat(dr.amount) || 0);
-                
-                let grossProfit = totalSales - totalCost;
-                let netProfit = grossProfit - totalExpenses;
-                
-                let expectedBankBalance = totalSales - totalExpenses - totalDraws - totalDebtRemaining;
-                if(expectedBankBalance < 0) expectedBankBalance = 0;
+            let currentStockValue = 0;
+            (d.inventory || []).forEach(item => {
+                let remaining = Math.max(0, item.qty - item.sold);
+                currentStockValue += (item.cost * remaining);
+            });
 
-                let variance = bankAmt - expectedBankBalance;
-                let resultMessage = "";
-                if (variance === 0) { resultMessage = "✅ የባንክ ሂሳብዎ ከሲስተሙ ጋር በትክክል ይገጥማል! ካፒታልዎ ጤናማ ነው።"; }
-                else if (variance > 0) { resultMessage = `📈 ጥሩ ነው! ካፒታልዎ በ ${variance.toFixed(2)} ETB ጨምሯል (ትርፍ አሳይቷል)።`; }
-                else { resultMessage = `⚠️ ትኩረት፦ ካፒታልዎ በ ${Math.abs(variance).toFixed(2)} ETB ቀንሷል! እባክዎ ወጪዎችን ይፈትሹ።`; }
+            let totalDebtRemaining = 0;
+            (d.debts || []).forEach(debt => { totalDebtRemaining += (debt.amount - debt.paid); });
 
-                let AmharicSummary = `======= 📅 የወር ሂሳብ ማወራረጃ ሪፖርት =======\n• በሱቅ ውስጥ ያለ ዕቃ ካፒታል ዋጋ፡ ${currentStockValue.toFixed(2)} ETB\n• ጠቅላላ የተመዘገበ ሽያጭ፡ ${totalSales.toFixed(2)} ETB\n• የዚህ ወር ጠቅላላ ወጪዎች፡ ${totalExpenses.toFixed(2)} ETB\n• ከሳጥን የተነሳ ጠቅላላ ብር፡ ${totalDraws.toFixed(2)} ETB\n• በሰዎች ላይ ያለ ቀሪ ዕዳ፡ ${totalDebtRemaining.toFixed(2)} ETB\n----------------------------------------\n• በባንክ ሊኖር የሚገባው (Expected)፦ ${expectedBankBalance.toFixed(2)} ETB\n• እርስዎ ያስገቡት የባንክ መረጃ፦ ${bankAmt.toFixed(2)} ETB\n• የካፒታል ልዩነት ውጤት፦ ${variance.toFixed(2)} ETB\n----------------------------------------\nየሲስተም ማጠቃለያ ማስታወሻ፦\n${resultMessage}`;
-                showCustomAlert("📊 ወርሃዊ ማወራረጃ ማጠቃለያ", AmharicSummary);
-                sendTelegramAlert(`📊 የሂሳብ ማወራረጃ ሪፖርት ማጠቃለያ (የወር)፦\n${AmharicSummary}`);
-            } else if (period === "yearly") {
-                let archiveSales = 0;
-                let archiveProfit = 0; let archiveExpenses = 0;
-                let historyList = d.history || [];
-                historyList.forEach(h => {
-                    if (h.isMonthlyArchive) {
-                        archiveSales += parseFloat(h.sales) || 0;
-                        archiveProfit += parseFloat(h.profit) || 0;
-                        archiveExpenses += parseFloat(h.expenses) || 0;
-                    }
-                });
-                let currentGrossProfit = totalSales - totalCost;
-                let currentExpenses = 0;
-                (d.expenses || []).forEach(e => currentExpenses += parseFloat(e.amount) || 0);
-                let currentNetProfit = currentGrossProfit - currentExpenses;
+            let expectedBank = tSales - tExp - tDraws - totalDebtRemaining;
+            if(expectedBank < 0) expectedBank = 0;
 
-                let overallYearlySales = archiveSales + totalSales;
-                let overallYearlyProfit = archiveProfit + currentNetProfit;
-                let overallYearlyExpenses = archiveExpenses + currentExpenses;
+            let variance = bankAmt - expectedBank;
 
-                let yearlySummary = `======= 📆 አመታዊ የካፒታልና ሂሳብ ማወራረጃ =======\n• ጠቅላላ የአመቱ የሱቅ ሽያጭ፡ ${overallYearlySales.toFixed(2)} ETB\n• ጠቅላላ የተመዘገቡ አመታዊ ወጪዎች፡ ${overallYearlyExpenses.toFixed(2)} ETB\n• አጠቃላይ የተጣራ አመታዊ ትርፍ (Net Profit)፦ ${overallYearlyProfit.toFixed(2)} ETB\n• በአሁኑ ሰዓት በእጅ ያለ እቃ ካፒታል ዋጋ፡ ${currentStockValue.toFixed(2)} ETB\n----------------------------------------\n• እርስዎ ያስገቡት የባንክ አካውንት መጠን፡ ${bankAmt.toFixed(2)} ETB\n• በሰዎች ላይ ያለ ያልተሰበሰ ጠቅላላ ዕዳ፡ ${totalDebtRemaining.toFixed(2)} ETB\n----------------------------------------\n💡 ማሳሰቢያ፦ አመታዊ ካፒታልዎ በትክክል እንዲያድግ ያለፉትን ወራት የካፒታል ታሪክ ማህደር መመልከትዎን ያረጋግጡ።`;
-                showCustomAlert("📆 አመታዊ ማወራረጃ ማጠቃለያ", yearlySummary);
-                sendTelegramAlert(`📆 አመታዊ የሂሳብ ማወራረጃ ሪፖርት፦\n${yearlySummary}`);
-            }
+            let AmharicSummary = `======= 📊 ማወራረጃ (${periodStr}) =======\n• የተጣራ አጠቃላይ ሽያጭ፡ ${tSales.toFixed(2)} ETB\n• አጠቃላይ ወጪዎች፡ ${tExp.toFixed(2)} ETB\n• የተጣራ ትርፍ፡ ${tProfit.toFixed(2)} ETB\n• ከካዝና የተነሳ፡ ${tDraws.toFixed(2)} ETB\n• የተሰበሰበ ካሽ ሪፖርት፡ ${tReported.toFixed(2)} ETB\n----------------------------------------\n• በሱቅ ያለ ዕቃ ካፒታል፡ ${currentStockValue.toFixed(2)} ETB\n• ያልተሰበሰበ ቀሪ ዕዳ፡ ${totalDebtRemaining.toFixed(2)} ETB\n----------------------------------------\n• ሲስተሙ የሚጠብቀው ገንዘብ (Expected)፦ ${expectedBank.toFixed(2)} ETB\n• እርስዎ ያስገቡት የባንክ መጠን፦ ${bankAmt.toFixed(2)} ETB\n• ልዩነት (Variance)፦ ${variance.toFixed(2)} ETB\n`;
+
+            showCustomAlert("📊 ማወራረጃ ማጠቃለያ", AmharicSummary);
+            sendTelegramAlert(`📊 ሂሳብ ማወራረጃ ሪፖርት (${periodStr})፦\n${AmharicSummary}`);
         });
     }
 
     function configureBank() {
         if(currentUserRole === "staff") {
-            showCustomAlert("🏦 የባንክ ሂሳብ መረጃ", `የአሰሪው የባንክ ሂሳብ ቁጥር (CBE/Telebirr)፦ ${currentTenant.bankAccount || "ያልተገናኘ"}`);
-            return;
+            showCustomAlert("🏦 የባንክ ሂሳብ መረጃ", `የአሰሪው የባንክ ሂሳብ ቁጥር (CBE/Telebirr)፦ ${currentTenant.bankAccount || "ያልተገናኘ"}`); return;
         }
 
         showFormModal("🏦 የባንክ እና የቴሌግራም አገናኝ መቼት", [
@@ -1747,14 +1751,12 @@ tirfe-app
                 let otherTenant = localDB.tenants[key];
                 if (otherTenant.username === u) { showCustomAlert("⚠️ ስህተት", "ይህ ዩዘርኔም አስቀድሞ በሌላ የሱቅ ባለቤት ተይዟል!"); return; }
                 if (otherTenant.username !== currentTenant.username && otherTenant.staffUser && otherTenant.staffUser === u) {
-                    showCustomAlert("⚠️ ስህተት", "ይህ ዩዘርኔም አስቀድሞ በሌላ ሱቅ ሰራተኛ ተይዟል!");
-                    return;
+                    showCustomAlert("⚠️ ስህተት", "ይህ ዩዘርኔም አስቀድሞ በሌላ ሱቅ ሰራተኛ ተይዟል!"); return;
                 }
             }
         }
 
-        currentTenant.staffUser = u;
-        currentTenant.staffPass = p; saveAndRefresh();
+        currentTenant.staffUser = u; currentTenant.staffPass = p; saveAndRefresh();
         showCustomAlert("ተገኝቷል", "የሰራተኛ አካውንት በተሳካ ሁኔታ ተቀይሯል!");
     }
 
@@ -1786,11 +1788,13 @@ tirfe-app
             let expectedCash = ((parseFloat(session.initialFloat) || 0) + sysSales) - creditSalesToday - tExp - tDraw;
             let variance = reported - expectedCash;
             let statusText = variance === 0 ? "ትክክል (Balanced)" : `ልዩነት አለ (${variance} ETB)`;
+            
             d.shiftClosed = true; d.reportedCash = reported; d.variance = variance; d.expectedCash = expectedCash;
 
             document.getElementById('shiftStatusAlert').classList.add('hidden');
             let msg = `የዕለቱ ሂሳብ በተሳካ ሁኔታ ተዘጋጅቷል!\nሁኔታ፡ ${statusText}\nበሲስተሙ የሚጠበቅ ካሽ፡ ${expectedCash} ETB\nየቀረበው ካሽ፡ ${reported} ETB`;
             showCustomAlert("ሪፖርት ቀርቧል", msg);
+            
             if(!d.history) d.history = [];
             d.history.push({
                 date: formattedDateToday, employee: session.employee || "ሰራተኛ", sales: sysSales, 
@@ -1871,7 +1875,6 @@ tirfe-app
         ord.status = "accepted"; saveAndRefresh();
         showCustomAlert("ተቀብለዋል", "ትዕዛዙ ተቀባይነት አግኝቷል! እቃው በመንገድ ላይ ነው ተብሎ ምልክት ተደርጎበታል። (ክፍያ ሲረከቡ ደረሰኝ ይቁረጡ)");
     };
-
     window.completeDelivery = function(idx) {
         let ord = currentTenant.data.deliveryOrders[idx];
         let item = currentTenant.data.inventory[ord.itemIdx];
@@ -1882,7 +1885,6 @@ tirfe-app
         generateDigitalReceipt(ord.itemName, ord.qty, ord.total, ord.orderId, null, true, ord.buyerUser, ord.buyerPhone);
         saveAndRefresh();
     };
-
     window.returnDelivery = function(idx) {
          let ord = currentTenant.data.deliveryOrders[idx];
          ord.status = "returned"; saveAndRefresh();
@@ -2005,6 +2007,13 @@ tirfe-app
         (d.debts || []).forEach(debt => { if (debt.date === formattedDateToday) creditSalesToday += debt.amount; });
         
         let finalCashInHand = ((parseFloat(session.initialFloat) || 0) + tSales) - creditSalesToday - todayExpensesTotal - tDraw;
+        
+        // Zero out UI values if Shift is Closed
+        if (d.shiftClosed) {
+            todayProfit = 0;
+            finalCashInHand = 0;
+        }
+
         document.getElementById('totalInCash').innerText = finalCashInHand.toFixed(1) + " ETB";
 
         if (currentUserRole === "owner") {
@@ -2018,6 +2027,7 @@ tirfe-app
             document.getElementById('monthlyNetProfit').innerText = monthlyProfit.toFixed(1) + " ETB";
             document.getElementById('monthlyExpenses').innerText = tExp.toFixed(1) + " ETB";
             document.getElementById('totalDraws').innerText = tDraw.toFixed(1) + " ETB";
+            
             if (myChart) {
                 myChart.data.datasets[0].data = [currentTotalCapital, tSales, todayProfit - todayExpensesTotal];
                 myChart.update();
@@ -2144,6 +2154,7 @@ tirfe-app
             }
         }
         renderMainCart();
+        checkTimeLock();
     }
 
     function initChart() {
@@ -2175,7 +2186,9 @@ tirfe-app
                 d.sessionActive = true; d.shiftClosed = false; d.expenses = d.expenses || []; 
                 d.drawerLog = []; d.debts = d.debts || []; d.receipts = d.receipts || [];
                 d.deliveryOrders = d.deliveryOrders || []; d.collectedCreditToday = 0;
-                currentTenant.data = d; saveAndRefresh();
+                currentTenant.data = d; 
+                document.getElementById('receiptDateFilter').value = getTodayFormatted();
+                saveAndRefresh();
             });
         } else {
             renderApp();
@@ -2257,7 +2270,7 @@ tirfe-app
         const element = document.getElementById('printableReceiptArea');
         const opt = { 
             margin: [5,5,5,5], filename: filename + '.pdf', image: { type: 'jpeg', quality: 1.0 }, 
-            html2canvas: { scale: 3, useCORS: true, letterRendering: true }, 
+            html2canvas: { scale: 3, useCORS: true, letterRendering: true, backgroundColor: "#ffffff" }, 
             jsPDF: { unit: 'mm', format: [80, 150], orientation: 'portrait' } 
         };
         html2pdf().set(opt).from(element).save();
@@ -2386,7 +2399,6 @@ tirfe-app
     };
 
     window.removeMainCartItem = function(i) { mainCart.splice(i, 1); renderMainCart(); };
-
     window.checkoutMainCart = function() {
         if(!mainCart || mainCart.length === 0) { showCustomAlert("ስህተት", "እባክዎ መጀመሪያ ከቴብሉ እቃ ወደ ቅርጫቱ ያስገቡ!"); return; }
         
@@ -2412,7 +2424,6 @@ tirfe-app
         let ownerName = currentTenant.fullName || "ያልተመዘገበ";
         let ownerPhone = currentTenant.phone || "ያልተመዘገበ";
         let shopLogo = currentTenant.shopLogo || "https://cdn-icons-png.flaticon.com/512/869/869636.png";
-
         let displayBuyerName = buyerName;
         let displayBuyerPhone = buyerPhone;
         if (buyerName && localDB.buyers && localDB.buyers[buyerName] && !buyerPhone) {
@@ -2423,7 +2434,6 @@ tirfe-app
         }
 
         let rawTextForShare = `======= ${shopName.toUpperCase()} =======\nየንግድ ዘርፍ: ${bType}\nደረሰኝ ቁጥር: #${recId}\nየሸጠው ሰው: ${currentSeller}\nቀን: ${dateStr}\n---------------------------\n`;
-
         let tableRows = "";
         itemsArray.forEach(itm => {
             rawTextForShare += `ዕቃ: ${itm.name} | ብዛት: ${itm.count} | ዋጋ: ${itm.total} ETB\n`;
@@ -2434,7 +2444,6 @@ tirfe-app
              rawTextForShare += `ገዥ: ${displayBuyerName} | ስልክ: ${displayBuyerPhone || ''}\n`;
         }
         rawTextForShare += `እናመሰግናለን!`;
-
         if (saveToHistory) {
             if(!currentTenant.data.receipts) currentTenant.data.receipts = [];
             let mainName = itemsArray.length === 1 ? itemsArray[0].name : "የተለያዩ ዕቃዎች (" + itemsArray.length + ")";
@@ -2467,7 +2476,7 @@ tirfe-app
                 <p style="margin: 2px 0; font-size: 0.85rem;"><b>ስልክ:</b> ${ownerPhone}</p>
                 <div style="border-bottom: 2px dashed #333; width: 100%; margin: 10px 0;"></div>
                 <p style="margin: 2px 0; font-size: 0.85rem; font-weight:bold;">ዲጂታል የሽያጭ ደረሰኝ</p>
-                <p style="margin: 2px 0; font-size: 0.85rem;"><b>ቁጥር (No):</b> #${recId} | <b>ቀን:</b> ${dateStr}</p>
+                <p style="margin: 2px 0; font-size: 0.85rem;"><b>ቁጥር (No):</b> #${recId} | ቀን: ${dateStr}</p>
                 <p style="margin: 2px 0; font-size: 0.85rem;"><b>የሻጭ ማንነት:</b> ${currentSeller}</p>
             </div>
             <table class="receipt-table" style="color:#000; width:100%; margin-top: 10px; border-collapse: collapse;">
