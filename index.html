@@ -142,7 +142,6 @@
         .offline-tag { background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; animation: blink 1.5s infinite; }
         @keyframes blink { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
 
-        /* PDF Printing Adjustments (Fix for pure white receipt background) */
         .receipt-container, .receipt-container * { background-color: transparent !important; color: #111111 !important; }
         .receipt-container { background-color: #ffffff !important; padding: 20px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 100%; max-width: 100%; overflow-x: hidden; }
         .receipt-header { text-align: center; margin-bottom: 15px; border-bottom: 2px dashed #333; padding-bottom: 10px; }
@@ -279,7 +278,14 @@
                 </table>
             </div>
             
-            <h3 style="margin-top: 20px; font-size: 1rem; color: var(--success-color);">🧾 የተቆረጡ ደረሰኞች (My Receipts)</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="font-size: 1rem; color: var(--success-color); margin: 0;">🧾 የተቆረጡ ደረሰኞች (My Receipts)</h3>
+                <div style="display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <label style="font-size:0.8rem; color:var(--accent-color); margin:0;">ቀን ምረጥ፦</label>
+                    <input type="date" id="buyerReceiptDateFilter" onchange="renderBuyerCatalog()" style="padding: 4px; margin: 0; width: auto; font-size: 0.8rem; background: transparent; border: 1px solid #3a506b; color: white;">
+                    <button class="btn-expense btn-sm" onclick="document.getElementById('buyerReceiptDateFilter').value=''; renderBuyerCatalog();" style="padding: 4px 8px;">ሁሉንም እይ</button>
+                </div>
+            </div>
             <div class="table-responsive" style="margin-top: 10px;">
                 <table>
                     <thead><tr><th>ደረሰኝ ID</th><th>ቀን</th><th>ዕቃ (ብዛት)</th><th>የተከፈለ</th><th>እርምጃ</th></tr></thead>
@@ -321,6 +327,17 @@
             <div class="card" style="border-left: 4px solid var(--purple-color);">
                 <h3>የገዥዎች ቆጠራ (Buyers)</h3>
                 <p id="adminTotalBuyers">0</p>
+                <button class="btn-config btn-sm" style="margin-top:8px; width:100%; font-size:0.8rem;" onclick="document.getElementById('adminBuyersSection').classList.toggle('hidden'); renderAdminBuyers();">ገዦችን በዝርዝር እይ</button>
+            </div>
+        </div>
+
+        <div class="section-box hidden" id="adminBuyersSection" style="border-color: var(--purple-color);">
+            <h2 style="color: var(--purple-color);">👥 የገዥዎች ዝርዝር እና መቆጣጠሪያ</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>ገዥ (Username)</th><th>ስልክ ቁጥር</th><th>ሁኔታ</th><th>እርምጃ</th></tr></thead>
+                    <tbody id="adminBuyersTableBody"></tbody>
+                </table>
             </div>
         </div>
 
@@ -414,6 +431,10 @@
                 <h3>ከሳጥን የተነሳ</h3>
                 <p id="totalDraws" style="color: var(--purple-color);">0.00</p>
             </div>
+            <div class="card" style="border-left: 4px solid #a855f7;">
+                <h3>የተመዘገቡ ገዥዎች</h3>
+                <p id="sellerTotalBuyers" style="color: #a855f7;">0</p>
+            </div>
         </div>
 
         <div class="dashboard" style="margin-top:-10px;">
@@ -444,7 +465,7 @@
             <h2 style="color:var(--warning-color);">🛒 የገዥዎች Cart (Online Orders)</h2>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>ገዥ (Username)</th><th>የዕቃዎች ብዛት</th><th>የሚጠበቅ ሂሳብ</th><th>እርምጃ</th></tr></thead>
+                    <thead><tr><th>ገዥ (Username)</th><th>የታዘዙ ዕቃዎች (አይነት፣ ሞዴል፣ ብዛት)</th><th>የሚጠበቅ ሂሳብ</th><th>እርምጃ</th></tr></thead>
                     <tbody id="sellerRemoteCartsBody"></tbody>
                 </table>
             </div>
@@ -454,7 +475,7 @@
             <h2>🚚 የዴሊቨሪ ትዕዛዞች (Delivery Orders)</h2>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>ገዥ (ስልክ)</th><th>አድራሻ/ማፕ</th><th>የታዘዘ ዕቃና ብዛት</th><th>የታሰበ ሂሳብ</th><th>ሁኔታ</th><th>እርምጃ</th></tr></thead>
+                    <thead><tr><th>ገዥ (ስልክ)</th><th>አድራሻ/ማፕ</th><th>የታዘዘ ዕቃ (ሞዴል እና ብዛት)</th><th>የታሰበ ሂሳብ</th><th>ሁኔታ</th><th>እርምጃ</th></tr></thead>
                     <tbody id="sellerDeliveryBody"></tbody>
                 </table>
             </div>
@@ -625,7 +646,6 @@
 
     window.addEventListener('online', handleOnlineStatus);
     window.addEventListener('offline', handleOnlineStatus);
-
     function processImageUpload(file, callback) {
         if(!file) { callback(""); return; }
         let reader = new FileReader();
@@ -637,8 +657,7 @@
                 let width = img.width; let height = img.height;
                 if(width > height) { if(width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } }
                 else { if(height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
-                canvas.width = width;
-                canvas.height = height;
+                canvas.width = width; canvas.height = height;
                 let ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
                 callback(canvas.toDataURL('image/jpeg', 0.6));
@@ -720,6 +739,7 @@
                 currentTenant = checkTenant;
                 renderApp();
             }
+           
             if(currentBuyer) {
                 let checkBuyer = localDB.buyers[currentBuyer.username];
                 if(checkBuyer) currentBuyer = checkBuyer;
@@ -743,8 +763,12 @@
             if (session.role === 'admin') {
                 setTimeout(() => { switchView('adminPage'); renderAdminPanel(); }, 300);
             } else if (session.role === 'buyer' && localDB.buyers && localDB.buyers[session.username]) {
-                currentBuyer = localDB.buyers[session.username];
-                setTimeout(() => { switchView('buyerPage'); }, 300);
+                if(localDB.buyers[session.username].status === "blocked") {
+                    localStorage.removeItem('tirfe_active_session');
+                } else {
+                    currentBuyer = localDB.buyers[session.username];
+                    setTimeout(() => { switchView('buyerPage'); }, 300);
+                }
             } else if (localDB.tenants && localDB.tenants[session.username]) {
                 let t = localDB.tenants[session.username];
                 currentTenant = t;
@@ -753,13 +777,11 @@
         }
     }
 
-    // TIME LOCK CHECK FUNCTION
     function checkTimeLock() {
         if(!currentTenant || !currentTenant.data || currentUserRole === "staff") return;
         let h = new Date().getHours();
-        let isLockTime = (h >= 22 || h < 6); // After 10:00 PM (22:00) and before 6:00 AM (06:00)
+        let isLockTime = (h >= 22 || h < 6);
         let d = currentTenant.data;
-
         if (isLockTime) {
             if (!d.shiftClosed) {
                 document.getElementById('shiftStatusAlert').classList.remove('hidden');
@@ -791,9 +813,7 @@
          btns.forEach(id => { let b = document.getElementById(id); if(b) {b.disabled = false;} });
     }
 
-    setInterval(() => {
-        checkTimeLock();
-    }, 60000);
+    setInterval(() => { checkTimeLock(); }, 60000);
 
     function switchView(targetId) {
         document.getElementById('welcomeGateway').classList.add('hidden');
@@ -802,7 +822,6 @@
         document.getElementById('buyerPage').classList.add('hidden');
         document.getElementById('adminPage').classList.add('hidden');
         document.getElementById('appPage').classList.add('hidden');
-
         document.getElementById(targetId).classList.remove('hidden');
         if (targetId === 'buyerPage') renderBuyerCatalog();
     }
@@ -821,11 +840,16 @@
 
         if(!localDB.buyers) localDB.buyers = {};
         if(localDB.buyers[u]) {
+            if(localDB.buyers[u].status === "blocked") {
+                err.innerText = "❌ አካውንትዎ በአስተዳዳሪ ታግዷል (Blocked)!";
+                return;
+            }
             if(localDB.buyers[u].phone !== p) {
-                err.innerText = "❌ ይህ ዩዘርኔም አስቀድሞ በሌላ ሰው ተይዟል! እባክዎ ሌላ የተለየ ዩዘርኔም ይምረጡ።"; return;
+                err.innerText = "❌ ይህ ዩዘርኔም አስቀድሞ በሌላ ሰው ተይዟል! እባክዎ ሌላ የተለየ ዩዘርኔም ይምረጡ።";
+                return;
             }
         } else {
-            localDB.buyers[u] = { username: u, phone: p, joinDate: new Date().getTime(), receipts: [] };
+            localDB.buyers[u] = { username: u, phone: p, joinDate: new Date().getTime(), receipts: [], status: "active" };
             pushToFirebase();
         }
 
@@ -1008,23 +1032,15 @@
             let formattedPeriod = `${lastResetObj.toLocaleDateString('en-GB')} - ${now.toLocaleDateString('en-GB')}`;
             
             d.history.push({
-                date: "የወር ማጠቃለያ",
-                employee: formattedPeriod,
-                sales: totalMonthlySales,
-                profit: finalMonthlyNetProfit,
-                expenses: totalMonthlyExp,
-                draws: 0,
-                reportedCash: d.reportedCash || 0,
-                expectedCash: d.expectedCash || 0,
-                variance: d.variance || 0,
-                isMonthlyArchive: true
+                date: "የወር ማጠቃለያ", employee: formattedPeriod, sales: totalMonthlySales, profit: finalMonthlyNetProfit,
+                expenses: totalMonthlyExp, draws: 0, reportedCash: d.reportedCash || 0, expectedCash: d.expectedCash || 0,
+                variance: d.variance || 0, isMonthlyArchive: true
             });
             d.expenses = [];
             d.lastMonthlyResetDate = currentTimestamp; 
             
             localDB.tenants[currentTenant.username] = currentTenant;
-            saveToLocalStorage();
-            pushToFirebase();
+            saveToLocalStorage(); pushToFirebase();
             showCustomAlert("📅 አዲስ ወር ጀምሯል", `ያለፈው 30 ቀናት የሱቅ ወጪና የሂሳብ መረጃዎች ተጠቅልለው ማህደር (Archive) ውስጥ ገብተዋል። ለአዲሱ ወር ወጪው ከ 0 ተጀምሯል።`);
         }
     }
@@ -1038,15 +1054,12 @@
         document.getElementById('roleSubTitle').innerText = currentUserRole === "staff" ? "🛠️ የተገደበ የሰራተኛ መሸጫ እና መመዝገቢያ ሞድ" : "👑 ሙሉ የሱቅና የኪራይ መቆጣጠሪያ ፓነል";
         document.getElementById('profShopName').innerText = tenant.shopName;
         document.getElementById('profExpiry').innerText = tenant.expiryDate ? `${tenant.expiryDate} (${tenant.contractType})` : "ያልተገደበ";
-        
-        // Add Default date filter setting to fix receipt bug
         document.getElementById('receiptDateFilter').value = getTodayFormatted();
-
         let activeTheme = tenant.theme || 'theme-deepblue';
         document.body.className = activeTheme;
         document.getElementById('themeSelector').value = activeTheme;
         document.getElementById('inventorySearchInput').value = "";
-
+        
         if (currentUserRole === "staff") {
             document.getElementById('ownerDashboard').classList.add('hidden');
             document.getElementById('chartContainer').classList.add('hidden');
@@ -1199,8 +1212,7 @@
             }
             
             window.buyerCartData = []; 
-            renderBuyerCart();
-            pushToFirebase();
+            renderBuyerCart(); pushToFirebase();
             showCustomAlert("✅ ተሳክቷል", "ትዕዛዞችዎ በተሳካ ሁኔታ ተልከዋል! ሻጮች ሲያረጋግጡ የ'ተቆረጡ ደረሰኞች' ቦታ ላይ ይደርስዎታል።");
         });
     };
@@ -1218,6 +1230,7 @@
         let hasData = false;
         let query = document.getElementById('buyerSearchInput') ? document.getElementById('buyerSearchInput').value.trim().toLowerCase() : "";
         let categories = new Set();
+        
         if (localDB.tenants) {
             Object.values(localDB.tenants).forEach(t => {
                 if (t.status === "active") {
@@ -1238,9 +1251,15 @@
 
         let myOrdersHTML = "";
         let myReceiptsHTML = "";
-        if(currentBuyer && currentBuyer.receipts) {
-            let reversed = [...currentBuyer.receipts].reverse();
+        
+        // Fix receipt bug: Get fresh currentBuyer from DB
+        let liveBuyer = (currentBuyer && localDB.buyers) ? localDB.buyers[currentBuyer.username] : currentBuyer;
+
+        if(liveBuyer && liveBuyer.receipts) {
+            let reversed = [...liveBuyer.receipts].reverse();
+            let filterDate = document.getElementById('buyerReceiptDateFilter') ? document.getElementById('buyerReceiptDateFilter').value : "";
             reversed.forEach(rec => {
+                if (filterDate && rec.date !== filterDate) return;
                 myReceiptsHTML += `<tr>
                     <td><b>#${rec.recId}</b></td>
                     <td>${rec.date}</td>
@@ -1271,6 +1290,7 @@
 
                     let shopLogo = t.shopLogo || "https://cdn-icons-png.flaticon.com/512/869/869636.png";
                     let tgLink = t.telegram && t.telegram !== "-" ? (t.telegram.startsWith('@') ? t.telegram.substring(1) : t.telegram) : "";
+                    
                     let shopCardHTML = `
                     <div class="shop-card">
                         <div class="shop-card-header">
@@ -1282,12 +1302,13 @@
                         </div>
                         <div style="margin-top:5px; font-size:0.85rem; color:#94a3b8; font-weight:bold;">📦 ዕቃዎች ዝርዝር፦</div>
                         <div class="shop-items-list">`;
+                        
                     if (matchingItems.length === 0) {
                         shopCardHTML += `<p style="font-size:0.8rem; color:#64748b; padding:5px 0;">በአሁኑ ሰዓት የተመዘገበ ዕቃ የለም።</p>`;
                     } else {
                         matchingItems.forEach(item => {
                             let itemImg = item.imgUrl || "https://cdn-icons-png.flaticon.com/512/3342/3342137.png";
-                            let modelDisplay = item.model ? `<br><small style="color:var(--accent-color)">ሞዴል: ${item.model}</small>` : '';
+                            let modelDisplay = item.model && item.model !== "-" ? `<br><small style="color:var(--accent-color)">ሞዴል: ${item.model}</small>` : '';
                             let unitLabel = item.unitType === 'kg' ? 'ኪሎ' : (item.isAdvanced ? 'ሜትር' : 'ፍሬ');
                             let rem = item.qty - item.sold;
 
@@ -1316,9 +1337,9 @@
                     </div>`;
                     container.innerHTML += shopCardHTML;
 
-                    if(currentBuyer && t.data && t.data.deliveryOrders) {
+                    if(liveBuyer && t.data && t.data.deliveryOrders) {
                         t.data.deliveryOrders.forEach(ord => {
-                            if(ord.buyerUser === currentBuyer.username) {
+                            if(ord.buyerUser === liveBuyer.username) {
                                 let st = ord.status;
                                 let badge = st === "pending" ? "በመጠባበቅ ላይ" : (st === "accepted" ? "በመንገድ ላይ" : (st === "completed" ? "ተረክበዋል" : "ተመልሷል"));
                                 let cl = st === "pending" ? "text-warning" : (st === "accepted" ? "text-success" : "text-danger");
@@ -1353,13 +1374,25 @@
         }
     }
 
+    // Fix applied here for invoice opening
     window.viewBuyerReceipt = function(recId) {
-        let rec = currentBuyer.receipts.find(r => r.recId === parseInt(recId) || r.recId === recId);
-        if(!rec) return;
-        let bName = currentBuyer.username;
-        let bPhone = currentBuyer.phone;
-        if(rec.advancedItems) { generateAdvancedReceipt(rec.advancedItems, rec.totalVal, rec.seller, rec.recId, false, rec.shopName, rec.bType, bName, bPhone); } 
-        else { generateAdvancedReceipt([{name: rec.itemName, count: rec.count, unitPrice: rec.totalVal/rec.count, total: rec.totalVal}], rec.totalVal, rec.seller, rec.recId, false, rec.shopName, rec.bType, bName, bPhone); }
+        if (!currentBuyer || !localDB.buyers[currentBuyer.username]) return;
+        let latestBuyerData = localDB.buyers[currentBuyer.username];
+        if (!latestBuyerData.receipts) return;
+
+        let rec = latestBuyerData.receipts.find(r => r.recId === parseInt(recId) || r.recId == recId);
+        if(!rec) {
+            showCustomAlert("ስህተት", "ይህ ደረሰኝ አልተገኘም!");
+            return;
+        }
+        
+        let bName = latestBuyerData.username;
+        let bPhone = latestBuyerData.phone;
+        if(rec.advancedItems) { 
+            generateAdvancedReceipt(rec.advancedItems, rec.totalVal, rec.seller, rec.recId, false, rec.shopName, rec.bType, bName, bPhone);
+        } else { 
+            generateAdvancedReceipt([{name: rec.itemName, count: rec.count, unitPrice: rec.totalVal/rec.count, total: rec.totalVal}], rec.totalVal, rec.seller, rec.recId, false, rec.shopName, rec.bType, bName, bPhone);
+        }
     };
 
     function generateRandomCode() { return Math.floor(100000 + Math.random() * 900000).toString(); }
@@ -1382,7 +1415,8 @@
         }
 
         if (localDB.tenants && localDB.tenants[user]) {
-            showCustomAlert("⚠️ ምዝገባው አልተሳካም", `"${user}" የሚለው የተጠቃሚ ስም (Username) አስቀድሞ በሌላ ተከራይ ተወስዷል! እባክዎ የተለየ ስም ይጠቀሙ።`); return;
+            showCustomAlert("⚠️ ምዝገባው አልተሳካም", `"${user}" የሚለው የተጠቃሚ ስም (Username) አስቀድሞ በሌላ ተከራይ ተወስዷል! እባክዎ የተለየ ስም ይጠቀሙ።`);
+            return;
         }
 
         let fileInput = document.getElementById('newShopLogoFile');
@@ -1516,7 +1550,39 @@
         document.getElementById('adminActiveTenants').innerText = activeTenants;
         document.getElementById('adminTotalFees').innerText = totalFeesCollected.toFixed(1) + " ETB";
         document.getElementById('adminTotalBuyers').innerText = Object.keys(localDB.buyers || {}).length;
+        
+        renderAdminBuyers(); // Update buyers table for admin
     }
+
+    // Admin action for modifying buyer status
+    function renderAdminBuyers() {
+        let tbody = document.getElementById('adminBuyersTableBody');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        if(!localDB.buyers) return;
+        
+        Object.values(localDB.buyers).forEach(b => {
+            let status = b.status === "blocked" ? '<span class="badge-danger">Blocked / ታግዷል</span>' : '<span class="badge-success">Active / ይሰራል</span>';
+            let actionText = b.status === "blocked" ? "Unblock አድርግ" : "Block አድርግ";
+            let actionClass = b.status === "blocked" ? "btn-add" : "btn-expense";
+            tbody.innerHTML += `<tr>
+                <td>👤 ${b.username}</td>
+                <td>📞 ${b.phone}</td>
+                <td>${status}</td>
+                <td><button class="${actionClass} btn-sm" onclick="toggleBuyerStatus('${b.username}')">🚫 ${actionText}</button></td>
+            </tr>`;
+        });
+    }
+
+    window.toggleBuyerStatus = function(username) {
+        if(localDB.buyers && localDB.buyers[username]) {
+            let b = localDB.buyers[username];
+            b.status = b.status === "blocked" ? "active" : "blocked";
+            pushToFirebase();
+            renderAdminBuyers();
+            showCustomAlert("ተስተካክሏል", "የገዥው መረጃ ሁኔታ ተቀይሯል።");
+        }
+    };
 
     function regenerateTenantCode(user) {
         let t = localDB.tenants[user];
@@ -1634,7 +1700,6 @@
         ], (res) => {
             let amt = parseFloat(res.amount) || 0;
             if(amt <= 0 || amt > remaining) { showCustomAlert("ስህተት", "የክፍያ መጠን ልክ አይደለም!"); return; }
-            
             debt.paid += amt;
             currentTenant.data.collectedCreditToday = (parseFloat(currentTenant.data.collectedCreditToday) || 0) + amt;
             saveAndRefresh();
@@ -1691,7 +1756,6 @@
                 if(type === "yearly") return h.date.startsWith(periodStr) && !h.isMonthlyArchive;
                 return false;
             });
-
             matchedEntries.forEach(h => {
                 tSales += parseFloat(h.sales) || 0;
                 tProfit += parseFloat(h.profit) || 0;
@@ -1705,17 +1769,13 @@
                 let remaining = Math.max(0, item.qty - item.sold);
                 currentStockValue += (item.cost * remaining);
             });
-
             let totalDebtRemaining = 0;
             (d.debts || []).forEach(debt => { totalDebtRemaining += (debt.amount - debt.paid); });
-
             let expectedBank = tSales - tExp - tDraws - totalDebtRemaining;
             if(expectedBank < 0) expectedBank = 0;
-
             let variance = bankAmt - expectedBank;
 
             let AmharicSummary = `======= 📊 ማወራረጃ (${periodStr}) =======\n• የተጣራ አጠቃላይ ሽያጭ፡ ${tSales.toFixed(2)} ETB\n• አጠቃላይ ወጪዎች፡ ${tExp.toFixed(2)} ETB\n• የተጣራ ትርፍ፡ ${tProfit.toFixed(2)} ETB\n• ከካዝና የተነሳ፡ ${tDraws.toFixed(2)} ETB\n• የተሰበሰበ ካሽ ሪፖርት፡ ${tReported.toFixed(2)} ETB\n----------------------------------------\n• በሱቅ ያለ ዕቃ ካፒታል፡ ${currentStockValue.toFixed(2)} ETB\n• ያልተሰበሰበ ቀሪ ዕዳ፡ ${totalDebtRemaining.toFixed(2)} ETB\n----------------------------------------\n• ሲስተሙ የሚጠብቀው ገንዘብ (Expected)፦ ${expectedBank.toFixed(2)} ETB\n• እርስዎ ያስገቡት የባንክ መጠን፦ ${bankAmt.toFixed(2)} ETB\n• ልዩነት (Variance)፦ ${variance.toFixed(2)} ETB\n`;
-
             showCustomAlert("📊 ማወራረጃ ማጠቃለያ", AmharicSummary);
             sendTelegramAlert(`📊 ሂሳብ ማወራረጃ ሪፖርት (${periodStr})፦\n${AmharicSummary}`);
         });
@@ -1723,7 +1783,8 @@
 
     function configureBank() {
         if(currentUserRole === "staff") {
-            showCustomAlert("🏦 የባንክ ሂሳብ መረጃ", `የአሰሪው የባንክ ሂሳብ ቁጥር (CBE/Telebirr)፦ ${currentTenant.bankAccount || "ያልተገናኘ"}`); return;
+            showCustomAlert("🏦 የባንክ ሂሳብ መረጃ", `የአሰሪው የባንክ ሂሳብ ቁጥር (CBE/Telebirr)፦ ${currentTenant.bankAccount || "ያልተገናኘ"}`);
+            return;
         }
 
         showFormModal("🏦 የባንክ እና የቴሌግራም አገናኝ መቼት", [
@@ -1751,12 +1812,14 @@
                 let otherTenant = localDB.tenants[key];
                 if (otherTenant.username === u) { showCustomAlert("⚠️ ስህተት", "ይህ ዩዘርኔም አስቀድሞ በሌላ የሱቅ ባለቤት ተይዟል!"); return; }
                 if (otherTenant.username !== currentTenant.username && otherTenant.staffUser && otherTenant.staffUser === u) {
-                    showCustomAlert("⚠️ ስህተት", "ይህ ዩዘርኔም አስቀድሞ በሌላ ሱቅ ሰራተኛ ተይዟል!"); return;
+                    showCustomAlert("⚠️ ስህተት", "ይህ ዩዘርኔም አስቀድሞ በሌላ ሱቅ ሰራተኛ ተይዟል!");
+                    return;
                 }
             }
         }
 
-        currentTenant.staffUser = u; currentTenant.staffPass = p; saveAndRefresh();
+        currentTenant.staffUser = u;
+        currentTenant.staffPass = p; saveAndRefresh();
         showCustomAlert("ተገኝቷል", "የሰራተኛ አካውንት በተሳካ ሁኔታ ተቀይሯል!");
     }
 
@@ -1788,13 +1851,11 @@
             let expectedCash = ((parseFloat(session.initialFloat) || 0) + sysSales) - creditSalesToday - tExp - tDraw;
             let variance = reported - expectedCash;
             let statusText = variance === 0 ? "ትክክል (Balanced)" : `ልዩነት አለ (${variance} ETB)`;
-            
             d.shiftClosed = true; d.reportedCash = reported; d.variance = variance; d.expectedCash = expectedCash;
 
             document.getElementById('shiftStatusAlert').classList.add('hidden');
             let msg = `የዕለቱ ሂሳብ በተሳካ ሁኔታ ተዘጋጅቷል!\nሁኔታ፡ ${statusText}\nበሲስተሙ የሚጠበቅ ካሽ፡ ${expectedCash} ETB\nየቀረበው ካሽ፡ ${reported} ETB`;
             showCustomAlert("ሪፖርት ቀርቧል", msg);
-            
             if(!d.history) d.history = [];
             d.history.push({
                 date: formattedDateToday, employee: session.employee || "ሰራተኛ", sales: sysSales, 
@@ -1875,6 +1936,7 @@
         ord.status = "accepted"; saveAndRefresh();
         showCustomAlert("ተቀብለዋል", "ትዕዛዙ ተቀባይነት አግኝቷል! እቃው በመንገድ ላይ ነው ተብሎ ምልክት ተደርጎበታል። (ክፍያ ሲረከቡ ደረሰኝ ይቁረጡ)");
     };
+
     window.completeDelivery = function(idx) {
         let ord = currentTenant.data.deliveryOrders[idx];
         let item = currentTenant.data.inventory[ord.itemIdx];
@@ -1885,6 +1947,7 @@
         generateDigitalReceipt(ord.itemName, ord.qty, ord.total, ord.orderId, null, true, ord.buyerUser, ord.buyerPhone);
         saveAndRefresh();
     };
+
     window.returnDelivery = function(idx) {
          let ord = currentTenant.data.deliveryOrders[idx];
          ord.status = "returned"; saveAndRefresh();
@@ -2007,14 +2070,16 @@
         (d.debts || []).forEach(debt => { if (debt.date === formattedDateToday) creditSalesToday += debt.amount; });
         
         let finalCashInHand = ((parseFloat(session.initialFloat) || 0) + tSales) - creditSalesToday - todayExpensesTotal - tDraw;
-        
-        // Zero out UI values if Shift is Closed
         if (d.shiftClosed) {
             todayProfit = 0;
             finalCashInHand = 0;
         }
 
         document.getElementById('totalInCash').innerText = finalCashInHand.toFixed(1) + " ETB";
+        
+        let totalBuyersCount = localDB.buyers ? Object.keys(localDB.buyers).length : 0;
+        let sellerTotalBuyersEl = document.getElementById('sellerTotalBuyers');
+        if(sellerTotalBuyersEl) sellerTotalBuyersEl.innerText = totalBuyersCount;
 
         if (currentUserRole === "owner") {
             let monthlyProfit = todayProfit - todayExpensesTotal;
@@ -2027,7 +2092,6 @@
             document.getElementById('monthlyNetProfit').innerText = monthlyProfit.toFixed(1) + " ETB";
             document.getElementById('monthlyExpenses').innerText = tExp.toFixed(1) + " ETB";
             document.getElementById('totalDraws').innerText = tDraw.toFixed(1) + " ETB";
-            
             if (myChart) {
                 myChart.data.datasets[0].data = [currentTotalCapital, tSales, todayProfit - todayExpensesTotal];
                 myChart.update();
@@ -2044,10 +2108,18 @@
                 let items = remoteCarts[bUser];
                 if(items && items.length > 0) {
                     hasRemotes = true;
-                    let totalSum = 0; items.forEach(i => totalSum += i.total);
+                    let totalSum = 0;
+                    let detailsHTML = "";
+                    items.forEach(i => {
+                        totalSum += i.total;
+                        let invItem = d.inventory[i.itemIdx];
+                        let modelTxt = (invItem && invItem.model && invItem.model !== "-") ? `(ሞዴል: ${invItem.model})` : "";
+                        detailsHTML += `<div style="font-size:0.8rem; margin-bottom:2px; color: var(--accent-color);">▪ ${i.itemName} ${modelTxt} - ብዛት: ${i.qty}</div>`;
+                    });
+                    
                     remoteBody.innerHTML += `<tr>
                         <td>👤 ${bUser}</td>
-                        <td>${items.length} ዕቃዎች</td>
+                        <td>${detailsHTML}</td>
                         <td><b style="color:var(--success-color)">${totalSum} ETB</b></td>
                         <td><button class="btn-sell btn-sm" onclick="handleRemoteCartCheckout('${bUser}')">✅ ክፍያ ተቀበል (Checkout)</button></td>
                     </tr>`;
@@ -2075,11 +2147,14 @@
                         <button class="btn-expense btn-sm" style="margin-top:4px;" onclick="returnDelivery(${idx})">እቃው ተመለሰ</button>
                     `;
                 }
+                
+                let invItem = d.inventory[ord.itemIdx];
+                let modelTxt = (invItem && invItem.model && invItem.model !== "-") ? `(ሞዴል: ${invItem.model})` : "";
 
                 delBody.innerHTML += `<tr>
                     <td>👤 ${ord.buyerUser}<br>📞 ${ord.buyerPhone}</td>
                     <td>📍 ${ord.address} <br> ${ord.mapLink ? `<a href="${ord.mapLink}" target="_blank" style="color:var(--accent-color);">Map Link</a>` : ''}</td>
-                    <td>📦 ${ord.itemName}<br>ብዛት: ${ord.qty}</td>
+                    <td>📦 <b style="color:var(--accent-color);">${ord.itemName}</b> <br> ${modelTxt} <br> ብዛት: ${ord.qty}</td>
                     <td>${ord.total} ETB</td>
                     <td>${statusBadge}</td>
                     <td>${actions}</td>
@@ -2426,6 +2501,7 @@
         let shopLogo = currentTenant.shopLogo || "https://cdn-icons-png.flaticon.com/512/869/869636.png";
         let displayBuyerName = buyerName;
         let displayBuyerPhone = buyerPhone;
+        
         if (buyerName && localDB.buyers && localDB.buyers[buyerName] && !buyerPhone) {
             displayBuyerPhone = localDB.buyers[buyerName].phone;
         } else if (currentBuyer && !buyerName) {
@@ -2444,11 +2520,12 @@
              rawTextForShare += `ገዥ: ${displayBuyerName} | ስልክ: ${displayBuyerPhone || ''}\n`;
         }
         rawTextForShare += `እናመሰግናለን!`;
+        
         if (saveToHistory) {
             if(!currentTenant.data.receipts) currentTenant.data.receipts = [];
             let mainName = itemsArray.length === 1 ? itemsArray[0].name : "የተለያዩ ዕቃዎች (" + itemsArray.length + ")";
             let mainCount = itemsArray.length === 1 ? itemsArray[0].count : "-";
-            let recObj = { recId: recId, date: dateStr, itemName: mainName, count: mainCount, totalVal: grandTotal, seller: currentSeller, advancedItems: itemsArray, shopName: shopName, bType: bType };
+            let recObj = { recId: recId, date: dateStr, itemName: mainName, count: mainCount, totalVal: grandTotal, seller: currentSeller, advancedItems: itemsArray, shopName: shopName, bType: bType, buyerName: displayBuyerName, buyerPhone: displayBuyerPhone };
             currentTenant.data.receipts.push(recObj);
             
             if(displayBuyerName && localDB.buyers && localDB.buyers[displayBuyerName]) {
@@ -2504,8 +2581,8 @@
 
     function viewPastReceipt(idx) {
         let rec = currentTenant.data.receipts[idx];
-        if(rec.advancedItems) { generateAdvancedReceipt(rec.advancedItems, rec.totalVal, rec.seller, rec.recId, false, rec.shopName, rec.bType); } 
-        else { generateAdvancedReceipt([{name: rec.itemName, count: rec.count, unitPrice: rec.totalVal/rec.count, total: rec.totalVal}], rec.totalVal, rec.seller, rec.recId, false, rec.shopName, rec.bType); }
+        if(rec.advancedItems) { generateAdvancedReceipt(rec.advancedItems, rec.totalVal, rec.seller, rec.recId, false, rec.shopName, rec.bType, rec.buyerName, rec.buyerPhone); } 
+        else { generateAdvancedReceipt([{name: rec.itemName, count: rec.count, unitPrice: rec.totalVal/rec.count, total: rec.totalVal}], rec.totalVal, rec.seller, rec.recId, false, rec.shopName, rec.bType, rec.buyerName, rec.buyerPhone); }
     }
 
     function generateDigitalReceipt(itemName, count, totalVal, recId = null, sellerRole = null, saveToHistory = true, buyerUserForReceipt = null, buyerPhoneForReceipt = null) {
