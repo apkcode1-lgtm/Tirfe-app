@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Tirfe%20App%22%2C%22short_name%22%3A%22Tirfe%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230b0f19%22%2C%22theme_color%22%3A%22%2338bdf8%22%7D">
     
-    <title>ትርፌ የሱቅ መቆጣጠሪያ አፕሊኬሽን - Ultimate v12.1</title>
+    <title>ትርፌ የሱቅ መቆጣጠሪያ አፕሊኬሽን - Ultimate v12.0</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -409,7 +409,6 @@
         </div>
 
         <div id="sessionDisplay" class="session-badge">የዕለቱ መፈላጊ መረጃ በመጠባበቅ ላይ...</div>
-        
         <div id="shiftStatusAlert" class="session-badge hidden" style="color:var(--danger-color); background:rgba(244,63,94,0.1); border-color:var(--danger-color); font-weight:bold; font-size: 1rem;">⚠️ ትኩረት፦ የዛሬው የስራ ሰዓት አብቅቷል። እባክዎ የዕለቱን ሂሳብ መዝጊያ ሪፖርት ያቅርቡ!</div>
 
         <div class="dashboard" id="ownerDashboard">
@@ -630,16 +629,7 @@
 </div>
 
 <script>
-    // USER PROVIDED FIREBASE CONFIG (Updated with the new keys)
-    const firebaseConfig = {
-        apiKey: "AIzaSyBgXU6N4cMV2q-d3XeFzvgFT98gJ1GM7Ws",
-        authDomain: "tirfe-app.firebaseapp.com",
-        databaseURL: "https://tirfe-app-default-rtdb.firebaseio.com",
-        projectId: "tirfe-app",
-        storageBucket: "tirfe-app.firebasestorage.app",
-        messagingSenderId: "228622358915",
-        appId: "1:228622358915:web:c9ff3039a6d6cf66613eb6"
-    };
+    const firebaseConfig = { databaseURL: "https://tirfe-app-v2-300c2-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -657,7 +647,6 @@
 
     window.addEventListener('online', handleOnlineStatus);
     window.addEventListener('offline', handleOnlineStatus);
-
     function processImageUpload(file, callback) {
         if(!file) { callback(""); return; }
         let reader = new FileReader();
@@ -738,55 +727,32 @@
     checkAutomaticLogin();
     handleOnlineStatus();
 
-    // TARGETED SYNC FIX: Admin and Buyer specific listeners.
-    function listenToAdminData() {
-        db.ref('tirfe_system').on('value', (snapshot) => {
-            if(snapshot.exists()) {
-                localDB = snapshot.val();
-                if(!localDB.tenants) localDB.tenants = {};
-                if(!localDB.buyers) localDB.buyers = {};
-                saveToLocalStorage();
-                renderAdminPanel();
-            }
-        });
-    }
-
-    function listenToBuyerCatalog() {
-        db.ref('tirfe_system/tenants').on('value', (snapshot) => {
-            if(snapshot.exists()) {
-                localDB.tenants = snapshot.val();
-                saveToLocalStorage();
-                renderBuyerCatalog();
-            }
-        });
-        if(currentBuyer) {
-            db.ref('tirfe_system/buyers/' + currentBuyer.username).on('value', (snapshot) => {
-                if(snapshot.exists()) {
-                    currentBuyer = snapshot.val();
-                    localDB.buyers[currentBuyer.username] = currentBuyer;
-                    saveToLocalStorage();
-                    renderBuyerCatalog();
-                }
-            });
-        }
-    }
-
-    function listenToMyTenantData(username) {
-        db.ref('tirfe_system/tenants/' + username).on('value', (snapshot) => {
-            if(snapshot.exists()) {
-                let checkTenant = snapshot.val();
-                if(checkTenant.status === "blocked") { logout(); return; }
+    db.ref('tirfe_system').on('value', (snapshot) => {
+        if(snapshot.exists()) {
+            localDB = snapshot.val();
+            if(!localDB.tenants) localDB.tenants = {};
+            if(!localDB.buyers) localDB.buyers = {};
+            saveToLocalStorage();
+            
+            if(currentTenant) {
+                let checkTenant = localDB.tenants[currentTenant.username];
+                if(!checkTenant || checkTenant.status === "blocked") { logout(); return; }
                 currentTenant = checkTenant;
-                localDB.tenants[username] = currentTenant;
-                saveToLocalStorage();
                 renderApp();
             }
-        });
-        // We also need buyers data for total count, let's just fetch once
-        db.ref('tirfe_system/buyers').once('value').then(snap => {
-            if(snap.exists()) localDB.buyers = snap.val();
-        });
-    }
+           
+            if(currentBuyer) {
+                let checkBuyer = localDB.buyers[currentBuyer.username];
+                if(checkBuyer) currentBuyer = checkBuyer;
+            }
+            renderBuyerCatalog();
+            if(!document.getElementById('adminPage').classList.contains('hidden')) { renderAdminPanel(); }
+        }
+    }, (error) => {
+        console.log("Firebase Error, running offline mode.");
+        isOnline = false;
+        handleOnlineStatus();
+    });
 
     function checkAutomaticLogin() {
         let savedSession = localStorage.getItem('tirfe_active_session');
@@ -796,18 +762,18 @@
             currentLoginMode = session.loginMode;
             
             if (session.role === 'admin') {
-                setTimeout(() => { switchView('adminPage'); listenToAdminData(); }, 300);
+                setTimeout(() => { switchView('adminPage'); renderAdminPanel(); }, 300);
             } else if (session.role === 'buyer' && localDB.buyers && localDB.buyers[session.username]) {
                 if(localDB.buyers[session.username].status === "blocked") {
                     localStorage.removeItem('tirfe_active_session');
                 } else {
                     currentBuyer = localDB.buyers[session.username];
-                    setTimeout(() => { switchView('buyerPage'); listenToBuyerCatalog(); }, 300);
+                    setTimeout(() => { switchView('buyerPage'); }, 300);
                 }
             } else if (localDB.tenants && localDB.tenants[session.username]) {
                 let t = localDB.tenants[session.username];
                 currentTenant = t;
-                setTimeout(() => { launchApp(t); listenToMyTenantData(t.username); }, 300);
+                setTimeout(() => { launchApp(t); }, 300);
             }
         }
     }
@@ -873,32 +839,30 @@
         
         if(!u || !p) { err.innerText = "❌ እባክዎ ዩዘርኔም እና ስልክ ቁጥር በትክክል ያስገቡ!"; return; }
 
-        db.ref('tirfe_system/buyers/' + u).once('value').then(snap => {
-            if(snap.exists()) {
-                let existingBuyer = snap.val();
-                if(existingBuyer.status === "blocked") {
-                    err.innerText = "❌ አካውንትዎ በአስተዳዳሪ ታግዷል (Blocked)!"; return;
-                }
-                if(existingBuyer.phone !== p) {
-                    err.innerText = "❌ ይህ ዩዘርኔም አስቀድሞ በሌላ ሰው ተይዟል! እባክዎ ሌላ የተለየ ዩዘርኔም ይምረጡ።"; return;
-                }
-                currentBuyer = existingBuyer;
-            } else {
-                currentBuyer = { username: u, phone: p, joinDate: new Date().getTime(), receipts: [], status: "active" };
-                db.ref('tirfe_system/buyers/' + u).set(currentBuyer);
+        if(!localDB.buyers) localDB.buyers = {};
+        if(localDB.buyers[u]) {
+            if(localDB.buyers[u].status === "blocked") {
+                err.innerText = "❌ አካውንትዎ በአስተዳዳሪ ታግዷል (Blocked)!";
+                return;
             }
-            localDB.buyers[u] = currentBuyer;
-            localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: u }));
-            err.innerText = "";
-            switchView('buyerPage');
-            listenToBuyerCatalog();
-        });
+            if(localDB.buyers[u].phone !== p) {
+                err.innerText = "❌ ይህ ዩዘርኔም አስቀድሞ በሌላ ሰው ተይዟል! እባክዎ ሌላ የተለየ ዩዘርኔም ይምረጡ።";
+                return;
+            }
+        } else {
+            localDB.buyers[u] = { username: u, phone: p, joinDate: new Date().getTime(), receipts: [], status: "active" };
+            pushToFirebase();
+        }
+
+        currentBuyer = localDB.buyers[u];
+        localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: u }));
+        err.innerText = "";
+        switchView('buyerPage');
     }
 
     function logoutBuyer() {
         currentBuyer = null;
         localStorage.removeItem('tirfe_active_session');
-        db.ref('tirfe_system').off(); 
         switchView('welcomeGateway');
     }
 
@@ -950,84 +914,73 @@
             if(user === "admin" && pass === "admin123") {
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'admin', loginMode: 'admin', username: 'admin' }));
                 switchView('adminPage');
-                listenToAdminData();
+                renderAdminPanel();
             } else {
                 error.innerText = "❌ የተሳሳተ የአስተዳዳሪ (Admin) ስም ወይም ይለፍ ቃል ነው!";
             }
             return;
         }
 
-        db.ref('tirfe_system/tenants').once('value').then(snap => {
-            if(snap.exists()) {
-                localDB.tenants = snap.val();
-                let tenant = localDB.tenants[user];
-
-                if (currentLoginMode === 'merchant') {
-                    if (tenant) {
-                        if (isTenantExpired(tenant, error)) return;
-                        if (!tenant.isActivated) {
-                            if (tenant.activationCode === pass) {
-                                let now = new Date().getTime();
-                                let twentyFourHours = 24 * 60 * 60 * 1000;
-                                if ((now - tenant.codeCreatedAt) > twentyFourHours) {
-                                    error.innerText = "❌ ይህ ጊዜያዊ ኮድ ከ24 ሰዓት በላይ ስለቆየ ጊዜው አልፏል! እባክዎ አከራዩን አዲስ ኮድ ይጠይቁ።";
-                                    return;
-                                }
-                                
-                                showFormModal("🔒 የፕራይቬሲ ፓስዎርድ ማቀናበሪያ", [
-                                    { id: "securePass", label: "ለእርስዎ ብቻ የሚሆን ጠንካራ ምስጢራዊ ፓስዎርድ ይፍጠሩ (አከራዩ ማየት አይችልም)፦", type: "password", placeholder: "አዲስ ፓስዎርድ" }
-                                ], (res) => {
-                                    let sp = res.securePass.trim();
-                                    if (!sp) { showCustomAlert("ስህተት", "የይለፍ ቃል ባዶ መሆን አይችልም!"); return; }
-            
-                                    tenant.password = sp; 
-                                    tenant.isActivated = true;
-                                    localDB.tenants[user] = tenant;
-                                    
-                                    db.ref('tirfe_system/tenants/' + user).set(tenant);
-                                    currentUserRole = "owner";
-                                    localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
-                                    listenToMyTenantData(user);
-                                    launchApp(tenant);
-                                });
-                                return;
-                            } else {
-                                error.innerText = "❌ የተሳሳተ ጊዜያዊ መግቢያ ኮድ ነው!";
-                                return;
-                            }
-                        } else {
-                            if (String(tenant.password).trim() === pass) {
-                                currentUserRole = "owner";
-                                localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
-                                listenToMyTenantData(user);
-                                launchApp(tenant);
-                                return;
-                            }
-                        }
-                    }
-                    error.innerText = "❌ የተሳሳተ የሱቅ ባለቤት ስም ወይም የይለፍ ቃል! (ወይም ገና አልነቃም)";
-                    return;
-                }
-
-                if (currentLoginMode === 'staff') {
-                    for (let tKey in localDB.tenants) {
-                        let t = localDB.tenants[tKey];
-                        if (t.staffUser && t.staffUser === user && String(t.staffPass).trim() === pass) {
-                            if (isTenantExpired(t, error)) return;
-                            currentUserRole = "staff";
-                            localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: t.username }));
-                            listenToMyTenantData(t.username);
-                            launchApp(t);
+        let tenant = localDB.tenants ? localDB.tenants[user] : null;
+        if (currentLoginMode === 'merchant') {
+            if (tenant) {
+                if (isTenantExpired(tenant, error)) return;
+                if (!tenant.isActivated) {
+                    if (tenant.activationCode === pass) {
+                        let now = new Date().getTime();
+                        let twentyFourHours = 24 * 60 * 60 * 1000;
+                        if ((now - tenant.codeCreatedAt) > twentyFourHours) {
+                            error.innerText = "❌ ይህ ጊዜያዊ ኮድ ከ24 ሰዓት በላይ ስለቆየ ጊዜው አልፏል! እባክዎ አከራዩን አዲስ ኮድ ይጠይቁ።";
                             return;
                         }
+                        
+                        showFormModal("🔒 የፕራይቬሲ ፓስዎርድ ማቀናበሪያ", [
+                            { id: "securePass", label: "ለእርስዎ ብቻ የሚሆን ጠንካራ ምስጢራዊ ፓስዎርድ ይፍጠሩ (አከራዩ ማየት አይችልም)፦", type: "password", placeholder: "አዲስ ፓስዎርድ" }
+                        ], (res) => {
+                            let sp = res.securePass.trim();
+                            if (!sp) { showCustomAlert("ስህተት", "የይለፍ ቃል ባዶ መሆን አይችልም!"); return; }
+                            tenant.password = sp; 
+                            tenant.isActivated = true;
+                            localDB.tenants[user] = tenant;
+                            pushToFirebase();
+                            currentUserRole = "owner";
+                            localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
+                            launchApp(tenant);
+                        });
+                        return;
+                    } else {
+                        error.innerText = "❌ የተሳሳተ ጊዜያዊ መግቢያ ኮድ ነው!";
+                        return;
                     }
-                    error.innerText = "❌ የሰራተኛ ስም ወይም የይለፍ ቃል ስህተት ነው!";
-                    return;
+                } else {
+                    if (String(tenant.password).trim() === pass) {
+                        currentUserRole = "owner";
+                        localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
+                        launchApp(tenant);
+                        return;
+                    }
                 }
-            } else {
-                error.innerText = "❌ ምንም አይነት የተመዘገበ ሱቅ የለም!";
             }
-        });
+            error.innerText = "❌ የተሳሳተ የሱቅ ባለቤት ስም ወይም የይለፍ ቃል! (ወይም ገና አልነቃም)";
+            return;
+        }
+
+        if (currentLoginMode === 'staff') {
+            if(localDB.tenants) {
+                for (let tKey in localDB.tenants) {
+                    let t = localDB.tenants[tKey];
+                    if (t.staffUser && t.staffUser === user && String(t.staffPass).trim() === pass) {
+                        if (isTenantExpired(t, error)) return;
+                        currentUserRole = "staff";
+                        localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: t.username }));
+                        launchApp(t);
+                        return;
+                    }
+                }
+            }
+            error.innerText = "❌ የሰራተኛ ስም ወይም የይለፍ ቃል ስህተት ነው!";
+            return;
+        }
     }
 
     function isTenantExpired(tenant, errorElement) {
@@ -1038,7 +991,7 @@
             if(today > expiry) {
                 tenant.status = "blocked";
                 localDB.tenants[tenant.username] = tenant;
-                db.ref('tirfe_system/tenants/' + tenant.username).set(tenant);
+                pushToFirebase();
                 errorElement.innerText = "🔒 የኪራይ ውልዎ ጊዜ አልቋል! እባክዎ ባለቤቱን ያነጋግሩ።";
                 return true;
             }
@@ -1167,8 +1120,7 @@
                 address: res.address, mapLink: res.mapLink, itemIdx: itemIdx, itemName: itemName,
                 qty: qty, price: price, total: qty * price, status: "pending", date: getTodayFormatted()
             });
-            localDB.tenants[shopKey] = t; 
-            db.ref('tirfe_system/tenants/' + shopKey + '/data/deliveryOrders').set(t.data.deliveryOrders);
+            localDB.tenants[shopKey] = t; pushToFirebase();
             showCustomAlert("ተሳክቷል", "ትዕዛዝዎ ለሻጩ ተልኳል። ሻጩ ሲቀበለው በገጽዎ ላይ 'በመንገድ ላይ ነው' የሚል ምልክት ያያሉ።");
             renderBuyerCatalog();
         });
@@ -1238,8 +1190,7 @@
 
     window.checkoutBuyerCart = function() {
         if(!window.buyerCartData || window.buyerCartData.length === 0) {
-            showCustomAlert("ስህተት", "ምንም ዕቃ አልመረጡም!");
-            return;
+            showCustomAlert("ስህተት", "ምንም ዕቃ አልመረጡም!"); return;
         }
         showCustomConfirm("ትዕዛዝ ማረጋገጫ", "ሁሉንም የቅርጫት ትዕዛዞች ወደየሱቆቹ መላክ ይፈልጋሉ?", () => {
             let shops = {};
@@ -1259,11 +1210,10 @@
                     });
                 });
                 localDB.tenants[sKey] = t;
-                db.ref('tirfe_system/tenants/' + sKey + '/data/remoteCarts').set(t.data.remoteCarts);
             }
             
             window.buyerCartData = []; 
-            renderBuyerCart();
+            renderBuyerCart(); pushToFirebase();
             showCustomAlert("✅ ተሳክቷል", "ትዕዛዞችዎ በተሳካ ሁኔታ ተልከዋል! ሻጮች ሲያረጋግጡ የ'ተቆረጡ ደረሰኞች' ቦታ ላይ ይደርስዎታል።");
         });
     };
@@ -1281,6 +1231,7 @@
         let hasData = false;
         let query = document.getElementById('buyerSearchInput') ? document.getElementById('buyerSearchInput').value.trim().toLowerCase() : "";
         let categories = new Set();
+        
         if (localDB.tenants) {
             Object.values(localDB.tenants).forEach(t => {
                 if (t.status === "active") {
@@ -1301,6 +1252,8 @@
 
         let myOrdersHTML = "";
         let myReceiptsHTML = "";
+        
+        // Fix receipt bug: Get fresh currentBuyer from DB
         let liveBuyer = (currentBuyer && localDB.buyers) ? localDB.buyers[currentBuyer.username] : currentBuyer;
 
         if(liveBuyer && liveBuyer.receipts) {
@@ -1338,6 +1291,7 @@
 
                     let shopLogo = t.shopLogo || "https://cdn-icons-png.flaticon.com/512/869/869636.png";
                     let tgLink = t.telegram && t.telegram !== "-" ? (t.telegram.startsWith('@') ? t.telegram.substring(1) : t.telegram) : "";
+                    
                     let shopCardHTML = `
                     <div class="shop-card">
                         <div class="shop-card-header">
@@ -1349,6 +1303,7 @@
                         </div>
                         <div style="margin-top:5px; font-size:0.85rem; color:#94a3b8; font-weight:bold;">📦 ዕቃዎች ዝርዝር፦</div>
                         <div class="shop-items-list">`;
+                        
                     if (matchingItems.length === 0) {
                         shopCardHTML += `<p style="font-size:0.8rem; color:#64748b; padding:5px 0;">በአሁኑ ሰዓት የተመዘገበ ዕቃ የለም።</p>`;
                     } else {
@@ -1420,6 +1375,7 @@
         }
     }
 
+    // Fix applied here for invoice opening
     window.viewBuyerReceipt = function(recId) {
         if (!currentBuyer || !localDB.buyers[currentBuyer.username]) return;
         let latestBuyerData = localDB.buyers[currentBuyer.username];
@@ -1456,8 +1412,7 @@
         let expiryDate = document.getElementById('newExpiryDate').value;
         
         if(!shop || !user || !expiryDate || !fullName || !phone) { 
-            showCustomAlert("ስህተት", "እባክዎ መሠረታዊ መፈላጊ መረጃዎችን ያሟሉ!");
-            return; 
+            showCustomAlert("ስህተት", "እባክዎ መሠረታዊ መፈላጊ መረጃዎችን ያሟሉ!"); return; 
         }
 
         if (localDB.tenants && localDB.tenants[user]) {
@@ -1470,7 +1425,7 @@
         let proceedRegistration = function(shopLogoBase64) {
             let genCode = generateRandomCode();
             let timestampNow = new Date().getTime();
-            let newTenant = { 
+            localDB.tenants[user] = { 
                 shopName: shop, fullName: fullName, phone: phone, telegram: telegram || "-", address: address || "-",
                 businessType: businessType, googleMapsLink: mapsLink || "", shopLogo: shopLogoBase64 || "",
                 username: user, password: genCode, activationCode: genCode, codeCreatedAt: timestampNow,
@@ -1478,10 +1433,7 @@
                 status: "active", theme: "theme-deepblue", staffUser: "", staffPass: "",
                 data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, lastMonthlyResetDate: timestampNow } 
             };
-            
-            localDB.tenants[user] = newTenant;
-            db.ref('tirfe_system/tenants/' + user).set(newTenant);
-            renderAdminPanel();
+            pushToFirebase(); renderAdminPanel();
             
             document.getElementById('newShopName').value = ''; document.getElementById('newFullName').value = '';
             document.getElementById('newUsername').value = ''; document.getElementById('newPhone').value = ''; 
@@ -1516,9 +1468,7 @@
             t.businessType = res.businessType.trim();
             t.registrationFee = parseFloat(res.registrationFee) || 0;
             t.expiryDate = res.expiryDate;
-            localDB.tenants[user] = t; 
-            db.ref('tirfe_system/tenants/' + user).set(t);
-            renderAdminPanel();
+            localDB.tenants[user] = t; pushToFirebase(); renderAdminPanel();
             showCustomAlert("ተሳክቷል", "የተከራዩ መረጃ በተሳካ ሁኔታ ተሻሽሏል!");
         });
     }
@@ -1602,9 +1552,10 @@
         document.getElementById('adminTotalFees').innerText = totalFeesCollected.toFixed(1) + " ETB";
         document.getElementById('adminTotalBuyers').innerText = Object.keys(localDB.buyers || {}).length;
         
-        renderAdminBuyers();
+        renderAdminBuyers(); // Update buyers table for admin
     }
 
+    // Admin action for modifying buyer status
     function renderAdminBuyers() {
         let tbody = document.getElementById('adminBuyersTableBody');
         if(!tbody) return;
@@ -1628,7 +1579,7 @@
         if(localDB.buyers && localDB.buyers[username]) {
             let b = localDB.buyers[username];
             b.status = b.status === "blocked" ? "active" : "blocked";
-            db.ref('tirfe_system/buyers/' + username).set(b);
+            pushToFirebase();
             renderAdminBuyers();
             showCustomAlert("ተስተካክሏል", "የገዥው መረጃ ሁኔታ ተቀይሯል።");
         }
@@ -1639,48 +1590,27 @@
         let newCode = generateRandomCode();
         t.activationCode = newCode; t.password = newCode; t.codeCreatedAt = new Date().getTime(); t.isActivated = false; 
         localDB.tenants[user] = t;
-        db.ref('tirfe_system/tenants/' + user).set(t);
-        renderAdminPanel();
+        pushToFirebase(); renderAdminPanel();
         showCustomAlert("ኮድ ተለውጧል", `ለተከራዩ አዲስ ኮድ ተፈጥሯል፦ ${newCode}`);
     }
 
     function toggleTenantStatus(user) {
         let t = localDB.tenants[user];
-        t.status = t.status === "active" ? "blocked" : "active"; 
-        db.ref('tirfe_system/tenants/' + user).set(t);
-        renderAdminPanel();
+        t.status = t.status === "active" ? "blocked" : "active"; pushToFirebase(); renderAdminPanel();
     }
 
     function deleteTenant(user) { 
         showCustomConfirm("ተከራይ ማጥፊያ", "ይህንን ተከራይ ሙሉ በሙሉ ለማጥፋት እርግጠኛ ኖት?", () => {
-            delete localDB.tenants[user]; 
-            db.ref('tirfe_system/tenants/' + user).remove();
-            renderAdminPanel(); 
+            delete localDB.tenants[user]; pushToFirebase(); renderAdminPanel(); 
         });
     }
 
     function logout() { 
-        currentTenant = null; 
-        localStorage.removeItem('tirfe_active_session'); 
-        db.ref('tirfe_system').off();
-        switchView('welcomeGateway');
-    }
-
-    // THIS FUNCTION IS CRITICAL: Targetted Sync explicitly for the current active user
-    function pushToFirebase() {
-        if(!isOnline) return;
-        
-        if (currentUserRole !== 'admin' && currentUserRole !== 'buyer' && currentTenant) {
-            db.ref('tirfe_system/tenants/' + currentTenant.username).set(currentTenant);
-        } else if (currentUserRole === 'buyer' && currentBuyer) {
-            db.ref('tirfe_system/buyers/' + currentBuyer.username).set(currentBuyer);
-        }
+        currentTenant = null; localStorage.removeItem('tirfe_active_session'); switchView('welcomeGateway');
     }
 
     function saveAndRefresh() { 
-        localDB.tenants[currentTenant.username] = currentTenant; 
-        saveToLocalStorage(); 
-        pushToFirebase();
+        localDB.tenants[currentTenant.username] = currentTenant; saveToLocalStorage(); pushToFirebase();
         renderApp(); checkTimeLock();
     }
 
@@ -1771,7 +1701,6 @@
         ], (res) => {
             let amt = parseFloat(res.amount) || 0;
             if(amt <= 0 || amt > remaining) { showCustomAlert("ስህተት", "የክፍያ መጠን ልክ አይደለም!"); return; }
-        
             debt.paid += amt;
             currentTenant.data.collectedCreditToday = (parseFloat(currentTenant.data.collectedCreditToday) || 0) + amt;
             saveAndRefresh();
@@ -2042,6 +1971,7 @@
             });
 
             delete t.remoteCarts[buyerUser];
+         
             let currentSeller = currentUserRole === 'staff' ? 'ሰራተኛ (Employee)' : 'ባለቤት (Employer)';
             let bPhone = localDB.buyers[buyerUser] ? localDB.buyers[buyerUser].phone : "";
             generateAdvancedReceipt(receiptItems, grandTotal, currentSeller, null, true, null, null, buyerUser, bPhone);
@@ -2151,7 +2081,7 @@
         let totalBuyersCount = localDB.buyers ? Object.keys(localDB.buyers).length : 0;
         let sellerTotalBuyersEl = document.getElementById('sellerTotalBuyers');
         if(sellerTotalBuyersEl) sellerTotalBuyersEl.innerText = totalBuyersCount;
-        
+
         if (currentUserRole === "owner") {
             let monthlyProfit = todayProfit - todayExpensesTotal;
             let historyList = d.history || []; 
@@ -2341,6 +2271,7 @@
         }
     }
 
+    function pushToFirebase() { if(isOnline) { db.ref('tirfe_system').set(localDB); } }
     function openModalContainer() { document.getElementById('modalOverlay').classList.remove('hidden'); }
     function closeActiveModal() { document.getElementById('modalOverlay').classList.add('hidden'); document.querySelectorAll('.modal-card').forEach(m => m.classList.add('hidden')); }
 
@@ -2590,6 +2521,7 @@
              rawTextForShare += `ገዥ: ${displayBuyerName} | ስልክ: ${displayBuyerPhone || ''}\n`;
         }
         rawTextForShare += `እናመሰግናለን!`;
+        
         if (saveToHistory) {
             if(!currentTenant.data.receipts) currentTenant.data.receipts = [];
             let mainName = itemsArray.length === 1 ? itemsArray[0].name : "የተለያዩ ዕቃዎች (" + itemsArray.length + ")";
@@ -2600,7 +2532,6 @@
             if(displayBuyerName && localDB.buyers && localDB.buyers[displayBuyerName]) {
                 if(!localDB.buyers[displayBuyerName].receipts) localDB.buyers[displayBuyerName].receipts = [];
                 localDB.buyers[displayBuyerName].receipts.push(recObj);
-                db.ref('tirfe_system/buyers/' + displayBuyerName).set(localDB.buyers[displayBuyerName]);
             }
             saveAndRefresh();
         }
