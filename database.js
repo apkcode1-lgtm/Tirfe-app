@@ -11,7 +11,7 @@ function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
-    
+
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -52,16 +52,46 @@ function sendAdminTelegramAlert(message) {
     if (!localDB.adminSettings || !localDB.adminSettings.tgToken || !localDB.adminSettings.tgChatId) return;
     const token = localDB.adminSettings.tgToken;
     const chatId = localDB.adminSettings.tgChatId;
-    const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
-    fetch(url).catch(err => console.log("Admin Telegram Error: ", err));
+    
+    // የተስተካከለ የቴሌግራም API (POST Method)
+    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            chat_id: chatId,
+            text: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.ok) console.log("Admin Telegram Error: ", data.description);
+    })
+    .catch(err => console.log("Admin Telegram Network Error: ", err));
 }
 
 function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant || !currentTenant.telegramToken || !currentTenant.telegramChatId) return;
     const token = currentTenant.telegramToken;
     const chatId = currentTenant.telegramChatId;
-    const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
-    fetch(url).catch(err => console.log("Telegram Error: ", err));
+    
+    // የተስተካከለ የቴሌግራም API (POST Method)
+    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            chat_id: chatId,
+            text: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.ok) console.log("Telegram Error: ", data.description);
+    })
+    .catch(err => console.log("Telegram Network Error: ", err));
 }
 
 if(typeof db !== 'undefined') {
@@ -107,4 +137,3 @@ if(typeof db !== 'undefined') {
         handleOnlineStatus();
     });
 }
-
