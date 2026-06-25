@@ -11,7 +11,6 @@ function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
-
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -30,7 +29,6 @@ function loadLocalStorageBackup() {
         if(!localDB.revenueAuthorities) localDB.revenueAuthorities = {};
         if(!localDB.tariffs) localDB.tariffs = { low: 500, medium: 1000, high: 2000 };
         if(!localDB.adminSettings) localDB.adminSettings = { tgToken: '', tgChatId: '', bankAccount: '', vatRate: 0, adminEmail: '', adminAppPass: '' };
-        
         // ዳታው ሲጫን የክልል/ዞን ምርጫዎችን አፕዴት ያድርግ
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
     }
@@ -48,50 +46,30 @@ function pushToFirebase() {
     } 
 }
 
+// የተስተካከለ፡ የአከራይ (Admin) ቴሌግራም መላኪያ ሞተር
 function sendAdminTelegramAlert(message) {
     if (!localDB.adminSettings || !localDB.adminSettings.tgToken || !localDB.adminSettings.tgChatId) return;
-    const token = localDB.adminSettings.tgToken;
-    const chatId = localDB.adminSettings.tgChatId;
+    const token = localDB.adminSettings.tgToken.trim();
+    const chatId = localDB.adminSettings.tgChatId.trim();
     
-    // የተስተካከለ የቴሌግራም API (POST Method)
     fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            chat_id: chatId,
-            text: message
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (!data.ok) console.log("Admin Telegram Error: ", data.description);
-    })
-    .catch(err => console.log("Admin Telegram Network Error: ", err));
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: message })
+    }).catch(err => console.log("Admin Telegram Error: ", err));
 }
 
+// የተስተካከለ፡ የተከራይ (Tenant) የዕለት ሂሳብና እንቅስቃሴ መላኪያ ሞተር
 function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant || !currentTenant.telegramToken || !currentTenant.telegramChatId) return;
-    const token = currentTenant.telegramToken;
-    const chatId = currentTenant.telegramChatId;
+    const token = currentTenant.telegramToken.trim();
+    const chatId = currentTenant.telegramChatId.trim();
     
-    // የተስተካከለ የቴሌግራም API (POST Method)
     fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            chat_id: chatId,
-            text: message
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (!data.ok) console.log("Telegram Error: ", data.description);
-    })
-    .catch(err => console.log("Telegram Network Error: ", err));
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: message })
+    }).catch(err => console.log("Telegram Error: ", err));
 }
 
 if(typeof db !== 'undefined') {
@@ -121,7 +99,6 @@ if(typeof db !== 'undefined') {
                 if(checkBuyer) currentBuyer = checkBuyer;
             }
             if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-            
             if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
                 if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
             }
