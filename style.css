@@ -58,8 +58,7 @@ input, select, input[type="file"] {
 input:focus, select:focus { border-color: var(--accent-color); box-shadow: 0 0 8px rgba(56, 189, 248, 0.3); }
 
 select {
-    cursor: pointer;
-    background-image: linear-gradient(45deg, transparent 50%, var(--accent-color) 50%), linear-gradient(135deg, var(--accent-color) 50%, transparent 50%);
+    cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--accent-color) 50%), linear-gradient(135deg, var(--accent-color) 50%, transparent 50%);
     background-position: calc(100% - 20px) calc(1em + 2px), calc(100% - 15px) calc(1em + 2px);
     background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; appearance: none;
 }
@@ -160,9 +159,6 @@ tr:hover td { background-color: var(--hover-color) !important; }
 .receipt-summary { margin-top: 15px; border-top: 2px dashed #333; padding-top: 8px; text-align: right; font-size: 0.95rem; font-weight: bold; color: #111; }
 .receipt-footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: #777; font-style: italic; }
 .receipt-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-
-/* VAT Receipt specific styling */
-.vat-receipt { border: 2px solid #ef4444; padding: 20px; background: #fff; color: #000; font-family: sans-serif; }
 
 .shops-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 15px; }
 .shop-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; transition: transform 0.2s; }
