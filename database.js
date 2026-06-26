@@ -11,6 +11,7 @@ function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
+
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -46,26 +47,28 @@ function pushToFirebase() {
     } 
 }
 
-// የተስተካከለ፡ የአከራይ (Admin) ቴሌግራም መላኪያ ሞተር
+// ቴሌግራም መልእክት አላላክ - የ URL ርዝመት ችግርን ለመፍታት ወደ POST ተቀይሯል
 function sendAdminTelegramAlert(message) {
     if (!localDB.adminSettings || !localDB.adminSettings.tgToken || !localDB.adminSettings.tgChatId) return;
-    const token = localDB.adminSettings.tgToken.trim();
-    const chatId = localDB.adminSettings.tgChatId.trim();
+    const token = String(localDB.adminSettings.tgToken).trim();
+    const chatId = String(localDB.adminSettings.tgChatId).trim();
+    const url = `https://api.telegram.org/bot${token}/sendMessage`;
     
-    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: chatId, text: message })
     }).catch(err => console.log("Admin Telegram Error: ", err));
 }
 
-// የተስተካከለ፡ የተከራይ (Tenant) የዕለት ሂሳብና እንቅስቃሴ መላኪያ ሞተር
+// የተከራይ ቴሌግራም መልእክት አላላክ - ረጅም የዕለት ሪፖርትም ሆነ ሂሳብ አሁን አይቋረጥም
 function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant || !currentTenant.telegramToken || !currentTenant.telegramChatId) return;
-    const token = currentTenant.telegramToken.trim();
-    const chatId = currentTenant.telegramChatId.trim();
+    const token = String(currentTenant.telegramToken).trim();
+    const chatId = String(currentTenant.telegramChatId).trim();
+    const url = `https://api.telegram.org/bot${token}/sendMessage`;
     
-    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: chatId, text: message })
@@ -99,6 +102,7 @@ if(typeof db !== 'undefined') {
                 if(checkBuyer) currentBuyer = checkBuyer;
             }
             if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
+            
             if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
                 if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
             }
