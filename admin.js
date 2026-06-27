@@ -87,10 +87,9 @@ window.renderBizTypesList = function() {
     let container = document.getElementById('bizTypeListContainer');
     if(!container) return;
     if(!localDB.businessTypes) localDB.businessTypes = ["አጠቃላይ ንግድ"];
-    
     container.innerHTML = '';
-    let sortedBizTypes = [...localDB.businessTypes].sort((a, b) => a.localeCompare(b));
     
+    let sortedBizTypes = [...localDB.businessTypes].sort((a, b) => a.localeCompare(b));
     if(sortedBizTypes.length === 0) {
         container.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:0.9rem;">ምንም የተመዘገበ የንግድ ዘርፍ የለም።</p>';
         return;
@@ -109,7 +108,6 @@ window.renderBizTypesList = function() {
 window.addNewBizType = function() {
     let inputField = document.getElementById('newBizTypeName');
     let newType = inputField.value.trim();
-    
     if(!newType) {
         showCustomAlert("ስህተት", "እባክዎ የንግድ ዘርፍ ስም ያስገቡ!");
         return;
@@ -144,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ፔጁ ሲከፈት የንግድ ዘርፎችን ወደ dropdowns ይጫናል
     setTimeout(populateAllBizTypeDropdowns, 1000); 
 });
+
 /* -------------------------------------------------------- */
 
 function autoFillCapitalFee() {
@@ -157,7 +156,8 @@ function autoFillCapitalFee() {
     else feeInput.value = '';
 }
 
-function registerTenant() {
+// ስህተቱ የነበረው እዚህ ነው: ፋንክሽኑ Async መሆን ነበረበት
+async function registerTenant() {
     let shop = document.getElementById('newShopName').value.trim();
     let fullName = document.getElementById('newFullName').value.trim();
     let user = document.getElementById('newUsername').value.trim().toLowerCase();
@@ -183,7 +183,8 @@ function registerTenant() {
         return; 
     }
 
-    let checkUser = isSystemDataTaken(user, phone, "", "");
+    // ከ await ጋር እንዲሰራ ተስተካክሏል
+    let checkUser = await isSystemDataTaken(user, phone, "", "");
     if (checkUser) { showCustomAlert("⚠️ ምዝገባው አልተሳካም", checkUser); return; }
 
     pendingRegType = 'admin_tenant';
@@ -205,6 +206,7 @@ function registerTenant() {
                 status: "active", theme: "theme-deepblue", staffAccounts: [],
                 data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, accumulatedVat: 0, lastMonthlyResetDate: timestampNow } 
             };
+            
             pushToFirebase(); renderAdminPanel();
             
             document.getElementById('newShopName').value = ''; document.getElementById('newFullName').value = '';
@@ -227,10 +229,9 @@ function registerTenant() {
 
 function openAdminTenantEditor(user) {
     let t = localDB.tenants[user];
-    
     // Dynamic Select options for business type
     let bizOptions = (localDB.businessTypes || ["አጠቃላይ ንግድ"]).map(b => ({ value: b, label: b }));
-
+    
     showFormModal(`✍️ የተከራይ መረጃ ማሻሻያ (${t.shopName})`, [
         { id: "shopName", label: "የሱቅ ስም", type: "text", defaultValue: t.shopName },
         { id: "fullName", label: "የተከራይ ሙሉ ስም", type: "text", defaultValue: t.fullName },
@@ -242,10 +243,12 @@ function openAdminTenantEditor(user) {
         { id: "registrationFee", label: "የመመዝገቢያ/ኪራይ ክፍያ (ETB)", type: "number", defaultValue: t.registrationFee || 0 },
         { id: "expiryDate", label: "የውል ማብቂያ ቀን", type: "date", defaultValue: t.expiryDate }
     ], (res) => {
-        t.shopName = res.shopName.trim(); t.fullName = res.fullName.trim();
+        t.shopName = res.shopName.trim();
+        t.fullName = res.fullName.trim();
         t.phone = res.phone.trim(); t.telegram = res.telegram.trim();
         t.googleMapsLink = res.mapsLink.trim(); t.address = res.address.trim();
-        t.businessType = res.businessType.trim(); t.registrationFee = parseFloat(res.registrationFee) || 0;
+        t.businessType = res.businessType.trim();
+        t.registrationFee = parseFloat(res.registrationFee) || 0;
         t.expiryDate = res.expiryDate;
         
         localDB.tenants[user] = t; pushToFirebase(); renderAdminPanel();
@@ -255,7 +258,8 @@ function openAdminTenantEditor(user) {
 
 window.toggleAdminBuyersView = function() {
     let main = document.getElementById('adminDashboardMain'); let section = document.getElementById('adminBuyersSection');
-    if(main && section) { main.classList.toggle('hidden'); section.classList.toggle('hidden'); renderAdminBuyers(); }
+    if(main && section) { main.classList.toggle('hidden');
+    section.classList.toggle('hidden'); renderAdminBuyers(); }
 };
 
 window.toggleTenantListView = function() {
@@ -343,6 +347,7 @@ window.renderAdminRevenueList = function() {
             </td>
         </tr>`;
     });
+    
     if(!hasData) {
         tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">ምንም የተመዘገበ የገቢዎች ባለስልጣን የለም።</td></tr>`;
     }
@@ -365,10 +370,12 @@ window.deleteRevenueAuth = function(key) {
 
 function renderAdminPanel() {
     if(localDB.adminSettings) {
-        let tk = document.getElementById('adminTgToken'); if(tk && tk.value==='') tk.value = localDB.adminSettings.tgToken || "";
+        let tk = document.getElementById('adminTgToken');
+        if(tk && tk.value==='') tk.value = localDB.adminSettings.tgToken || "";
         let ci = document.getElementById('adminTgChatId'); if(ci && ci.value==='') ci.value = localDB.adminSettings.tgChatId || "";
         let bi = document.getElementById('adminBankInfo'); if(bi && bi.value==='') bi.value = localDB.adminSettings.bankAccount || "";
-        let ae = document.getElementById('adminEmailConfig'); if(ae && ae.value==='') ae.value = localDB.adminSettings.adminEmail || "";
+        let ae = document.getElementById('adminEmailConfig');
+        if(ae && ae.value==='') ae.value = localDB.adminSettings.adminEmail || "";
         let ap = document.getElementById('adminAppPassConfig'); if(ap && ap.value==='') ap.value = localDB.adminSettings.adminAppPass || "";
     }
     
@@ -401,8 +408,10 @@ function renderAdminPanel() {
         }
 
         if (query !== "" && !t.username.toLowerCase().includes(query)) return;
+        
         let statusBadge = t.status === "active" ? `<span class="badge-success">Active</span>` : `<span class="badge-danger">Blocked</span>`;
         let profileInfo = `👤 <b>${t.fullName || '-'}</b><br>📞 ${t.phone || '-'}<br>📍 ${t.address || '-'}<br>✈️ ${t.telegram || '-'}`;
+        
         let codeDisplay = "";
         if (!t.isActivated) { 
             codeDisplay = `⏱️ ጊዜያዊ ኮድ: <b class="text-warning" style="font-size:1.1rem; background:rgba(0,0,0,0.4); padding:2px 6px; border-radius:4px;">${t.activationCode}</b>`;
@@ -414,6 +423,7 @@ function renderAdminPanel() {
         let loginInfo = `👤 አባል ስም: <code>${t.username}</code><br>${codeDisplay}<br>🛠️ ሰራተኛ: <code>${staffCnt} የተመዘገቡ</code>`;
         let contractDisplay = `<span>${t.contractType || 'በወር'}</span><br><b class="text-warning">${t.registrationFee || 0} ETB</b>`;
         let bType = t.businessType || 'አጠቃላይ ንግድ';
+        
         tbody.innerHTML += `<tr>
             <td><b>${t.shopName}</b><br><span style="color:var(--accent-color); font-size:0.8rem;">[${bType}]</span></td>
             <td>${profileInfo}</td><td>${loginInfo}</td><td>${contractDisplay}</td>
@@ -445,6 +455,7 @@ window.deleteBuyer = function(username) {
 function renderAdminBuyers() {
     let tbody = document.getElementById('adminBuyersTableBody'); if(!tbody) return;
     tbody.innerHTML = ''; if(!localDB.buyers) return;
+    
     Object.values(localDB.buyers).forEach(b => {
         let status = b.status === "blocked" ? '<span class="badge-danger">Blocked / ታግዷል</span>' : '<span class="badge-success">Active / ይሰራል</span>';
         let actionText = b.status === "blocked" ? "Unblock" : "Block";
