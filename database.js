@@ -21,7 +21,7 @@ function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
-    
+
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -79,10 +79,10 @@ function pushToFirebase() {
     } 
 }
 
-// የደህንነት ማሻሻያ፡ ቴሌግራም መልእክት አላላክ ወደ Backend API ተቀይሯል
+// የደህንነት ማሻሻያ፡ ቴሌግራም መልእክት አላላክ ወደ Vercel Backend API ተቀይሯል
 function sendAdminTelegramAlert(message) {
-    // Cloud Functions URL (ከፋየርቤዝ የሚሰጥህን እዚህ ጋር ቀይረው)
-    const backendAPIUrl = "https://us-central1-tirfe-app.cloudfunctions.net/sendAdminTelegram"; 
+    // ማሳሰቢያ፡ ይህንን ሊንክ Vercel ላይ ዴፕሎይ ካደረግክ በኋላ በሚሰጥህ ትክክለኛ ሊንክ ቀይረው
+    const backendAPIUrl = "https://YOUR_VERCEL_URL.vercel.app/api/sendAdminTelegram";
     
     fetch(backendAPIUrl, {
         method: 'POST',
@@ -95,7 +95,8 @@ function sendAdminTelegramAlert(message) {
 function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant) return;
     
-    const backendAPIUrl = "https://us-central1-tirfe-app.cloudfunctions.net/sendTenantTelegram"; 
+    // ማሳሰቢያ፡ ይህንን ሊንክ Vercel ላይ ዴፕሎይ ካደረግክ በኋላ በሚሰጥህ ትክክለኛ ሊንክ ቀይረው
+    const backendAPIUrl = "https://YOUR_VERCEL_URL.vercel.app/api/sendTenantTelegram"; 
 
     fetch(backendAPIUrl, {
         method: 'POST',
@@ -159,7 +160,7 @@ if(typeof db !== 'undefined') {
 
     // ሎካል ስቶሬጅ ላይ ከዚህ በፊት ሎግ-ኢን ያደረገ ሰው ካለ ቼክ እንዲያደርግ
     setupSecureUserListeners();
-    
+
     // የ UI ሪፍሬሽ ሎጂክ በየቦታው እንዳይደገም በአንድ ፈንክሽን ተሰብስቧል
     function triggerUIRefresh() {
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
