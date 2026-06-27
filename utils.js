@@ -291,4 +291,3 @@ function clearQRFilter() {
     
     if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
 }
-
