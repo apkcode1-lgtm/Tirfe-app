@@ -21,7 +21,6 @@ function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
-
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -59,31 +58,44 @@ function pushToFirebase() {
     // ማንኛውም ዳታ ሲገባ ሁልጊዜ በመጀመሪያ ሎካል ስቶሬጅ ላይ ሴቭ እንዲያደርግ ተደርጓል
     saveToLocalStorage();
     if(isOnline && typeof db !== 'undefined') { 
-        // የደህንነት ማሻሻያ፡ ሙሉ ዳታቤዙን overwrite ከማድረግ ይልቅ ተጠቃሚው የራሱን ዳታ ብቻ ሴቭ እንዲያደርግ ተቀይሯል
-        if(typeof currentTenant !== 'undefined' && currentTenant) {
-            db.ref(`tirfe_system/tenants/${currentTenant.username}`).set(localDB.tenants[currentTenant.username]);
-        }
-        if(typeof currentBuyer !== 'undefined' && currentBuyer) {
-            db.ref(`tirfe_system/buyers/${currentBuyer.username}`).set(localDB.buyers[currentBuyer.username]);
-        }
-        if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
-            db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).set(localDB.revenueAuthorities[currentRevenueOfficer.username]);
-        }
         
-        // የጋራ ዳታዎችን Update ማድረግ እንጂ Set አናደርግም (የሌላውን ዳታ ላለማጥፋት)
-        db.ref('tirfe_system').update({
-            taxReceipts: localDB.taxReceipts,
-            tariffs: localDB.tariffs,
-            businessTypes: localDB.businessTypes
-        });
+        // አድሚን ሲሆን ሁሉንም ዳታዎች ወደ ፋየርቤዝ እንዲጭን ተስተካክሏል
+        if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
+            db.ref('tirfe_system').update({
+                tenants: localDB.tenants,
+                buyers: localDB.buyers,
+                revenueAuthorities: localDB.revenueAuthorities,
+                taxReceipts: localDB.taxReceipts,
+                tariffs: localDB.tariffs,
+                businessTypes: localDB.businessTypes,
+                adminSettings: localDB.adminSettings
+            });
+        } else {
+            // የደህንነት ማሻሻያ፡ ሙሉ ዳታቤዙን overwrite ከማድረግ ይልቅ ተጠቃሚው የራሱን ዳታ ብቻ ሴቭ እንዲያደርግ ተቀይሯል
+            if(typeof currentTenant !== 'undefined' && currentTenant) {
+                db.ref(`tirfe_system/tenants/${currentTenant.username}`).set(localDB.tenants[currentTenant.username]);
+            }
+            if(typeof currentBuyer !== 'undefined' && currentBuyer) {
+                db.ref(`tirfe_system/buyers/${currentBuyer.username}`).set(localDB.buyers[currentBuyer.username]);
+            }
+            if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
+                db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).set(localDB.revenueAuthorities[currentRevenueOfficer.username]);
+            }
+            
+            // የጋራ ዳታዎችን Update ማድረግ እንጂ Set አናደርግም (የሌላውን ዳታ ላለማጥፋት)
+            db.ref('tirfe_system').update({
+                taxReceipts: localDB.taxReceipts,
+                tariffs: localDB.tariffs,
+                businessTypes: localDB.businessTypes
+            });
+        }
     } 
 }
 
 // የደህንነት ማሻሻያ፡ ቴሌግራም መልእክት አላላክ ወደ Vercel Backend API ተቀይሯል
 function sendAdminTelegramAlert(message) {
     // ማሳሰቢያ፡ ይህንን ሊንክ Vercel ላይ ዴፕሎይ ካደረግክ በኋላ በሚሰጥህ ትክክለኛ ሊንክ ቀይረው
-    const backendAPIUrl = "[https://tirfe-app.vercel.app/api/sendAdminTelegram](https://tirfe-app.vercel.app/api/sendAdminTelegram)";
-    
+    const backendAPIUrl = "https://tirfe-app.vercel.app/api/sendAdminTelegram";
     fetch(backendAPIUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,10 +106,8 @@ function sendAdminTelegramAlert(message) {
 // የተከራይ ቴሌግራም መልእክት አላላክ
 function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant) return;
-    
     // ማሳሰቢያ፡ ይህንን ሊንክ Vercel ላይ ዴፕሎይ ካደረግክ በኋላ በሚሰጥህ ትክክለኛ ሊንክ ቀይረው
-    const backendAPIUrl = "[https://tirfe-app.vercel.app/api/sendTenantTelegram](https://tirfe-app.vercel.app/api/sendTenantTelegram)"; 
-
+    const backendAPIUrl = "https://tirfe-app.vercel.app/api/sendTenantTelegram";
     fetch(backendAPIUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -182,7 +192,7 @@ if(typeof db !== 'undefined') {
             if(checkBuyer) currentBuyer = checkBuyer;
         }
         if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-        
+
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
