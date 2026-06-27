@@ -96,7 +96,7 @@ function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant) return;
     
     // ማሳሰቢያ፡ ይህንን ሊንክ Vercel ላይ ዴፕሎይ ካደረግክ በኋላ በሚሰጥህ ትክክለኛ ሊንክ ቀይረው
-    const backendAPIUrl = "https://YOUR_VERCEL_URL.vercel.app/api/sendTenantTelegram"; 
+    const backendAPIUrl = "[https://tirfe-app.vercel.app/api/sendTenantTelegram](https://tirfe-app.vercel.app/api/sendTenantTelegram)"; 
 
     fetch(backendAPIUrl, {
         method: 'POST',
