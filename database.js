@@ -21,7 +21,7 @@ function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
-
+    
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -58,7 +58,6 @@ function saveToLocalStorage() {
 function pushToFirebase() { 
     // ማንኛውም ዳታ ሲገባ ሁልጊዜ በመጀመሪያ ሎካል ስቶሬጅ ላይ ሴቭ እንዲያደርግ ተደርጓል
     saveToLocalStorage();
-    
     if(isOnline && typeof db !== 'undefined') { 
         // የደህንነት ማሻሻያ፡ ሙሉ ዳታቤዙን overwrite ከማድረግ ይልቅ ተጠቃሚው የራሱን ዳታ ብቻ ሴቭ እንዲያደርግ ተቀይሯል
         if(typeof currentTenant !== 'undefined' && currentTenant) {
@@ -80,10 +79,10 @@ function pushToFirebase() {
     } 
 }
 
-// የደህንነት ማሻሻያ፡ ቴሌግራም መልእክት አላላክ ወደ Backend API ተቀይሯል (Client-side ላይ ቶከን እንዳይቀመጥ)
+// የደህንነት ማሻሻያ፡ ቴሌግራም መልእክት አላላክ ወደ Backend API ተቀይሯል
 function sendAdminTelegramAlert(message) {
-    // ይህ የ Backend URL በ Cloud Functions ወይም በራስዎ ሰርቨር መተካት አለበት
-    const backendAPIUrl = "https://your-secure-backend.com/api/send-admin-telegram"; 
+    // Cloud Functions URL (ከፋየርቤዝ የሚሰጥህን እዚህ ጋር ቀይረው)
+    const backendAPIUrl = "https://us-central1-tirfe-app.cloudfunctions.net/sendAdminTelegram"; 
     
     fetch(backendAPIUrl, {
         method: 'POST',
@@ -96,7 +95,7 @@ function sendAdminTelegramAlert(message) {
 function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant) return;
     
-    const backendAPIUrl = "https://your-secure-backend.com/api/send-tenant-telegram";
+    const backendAPIUrl = "https://us-central1-tirfe-app.cloudfunctions.net/sendTenantTelegram"; 
 
     fetch(backendAPIUrl, {
         method: 'POST',
@@ -108,12 +107,12 @@ function sendTelegramAlert(message) {
     }).catch(err => console.log("Telegram API Error: ", err));
 }
 
-// የደህንነት ማሻሻያ፡ ሙሉ ዳታቤዝ በአንድ ጊዜ ከማውረድ ይልቅ እያንዳንዱን ኖድ በተናጠል ማውረድ (ለ Firebase Rules እንዲመች)
+// የደህንነት ማሻሻያ፡ ሙሉ ዳታቤዝ በአንድ ጊዜ ከማውረድ ይልቅ ደህንነቱ በተጠበቀ ሁኔታ መከፋፈል
 if(typeof db !== 'undefined') {
     
-    const dbNodes = ['tenants', 'buyers', 'revenueAuthorities', 'taxReceipts', 'tariffs', 'businessTypes', 'adminSettings'];
-    
-    dbNodes.forEach(node => {
+    // 1. የጋራ (Public) የሆኑትን ብቻ ሲስተሙ ሲነሳ ይጎትታል
+    const publicNodes = ['tariffs', 'businessTypes', 'adminSettings'];
+    publicNodes.forEach(node => {
         db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
             if(snapshot.exists()) {
                 localDB[node] = snapshot.val();
@@ -127,6 +126,40 @@ if(typeof db !== 'undefined') {
         });
     });
 
+    // 2. የተጠቃሚዎችን የግል ዳታ በየራሳቸው (Secure Fetching) የሚጎትት ፈንክሽን
+    window.setupSecureUserListeners = function() {
+        if(typeof currentTenant !== 'undefined' && currentTenant) {
+            db.ref(`tirfe_system/tenants/${currentTenant.username}`).on('value', (snapshot) => {
+                if(snapshot.exists()) {
+                    localDB.tenants[currentTenant.username] = snapshot.val();
+                    saveToLocalStorage();
+                    triggerUIRefresh();
+                }
+            });
+        }
+        if(typeof currentBuyer !== 'undefined' && currentBuyer) {
+            db.ref(`tirfe_system/buyers/${currentBuyer.username}`).on('value', (snapshot) => {
+                if(snapshot.exists()) {
+                    localDB.buyers[currentBuyer.username] = snapshot.val();
+                    saveToLocalStorage();
+                    triggerUIRefresh();
+                }
+            });
+        }
+        if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
+            db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).on('value', (snapshot) => {
+                if(snapshot.exists()) {
+                    localDB.revenueAuthorities[currentRevenueOfficer.username] = snapshot.val();
+                    saveToLocalStorage();
+                    triggerUIRefresh();
+                }
+            });
+        }
+    };
+
+    // ሎካል ስቶሬጅ ላይ ከዚህ በፊት ሎግ-ኢን ያደረገ ሰው ካለ ቼክ እንዲያደርግ
+    setupSecureUserListeners();
+    
     // የ UI ሪፍሬሽ ሎጂክ በየቦታው እንዳይደገም በአንድ ፈንክሽን ተሰብስቧል
     function triggerUIRefresh() {
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
@@ -135,7 +168,7 @@ if(typeof db !== 'undefined') {
         if(typeof currentTenant !== 'undefined' && currentTenant) {
             let checkTenant = localDB.tenants[currentTenant.username];
             if(!checkTenant || checkTenant.status === "blocked") { 
-                if(typeof logout === 'function') logout(); 
+                if(typeof logout === 'function') logout();
                 return; 
             }
             currentTenant = checkTenant;
@@ -148,7 +181,7 @@ if(typeof db !== 'undefined') {
             if(checkBuyer) currentBuyer = checkBuyer;
         }
         if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-
+        
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
