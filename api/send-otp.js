@@ -24,8 +24,8 @@ module.exports = async function handler(req, res) {
 
     // =====================================================================
     // ማሳሰቢያ፡ እዚህ ጋር የራስህን ትክክለኛ ጂሜይል እና App Password አስገባ
-    const GMAIL_USER = "እዚህ_ጋር_የአንተን_ጂሜይል_ጻፍ@gmail.com"; 
-    const GMAIL_APP_PASSWORD = "እዚህ_ጋር_16_ዲጂት_የጂሜይል_አፕ_ፓስዎርድ";
+    const GMAIL_USER = "apkcode1@gmail.com"; 
+    const GMAIL_APP_PASSWORD = "murd taeb akai axzh";
     // =====================================================================
 
     const transporter = nodemailer.createTransport({
