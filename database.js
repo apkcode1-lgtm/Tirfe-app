@@ -82,7 +82,7 @@ function pushToFirebase() {
 // የደህንነት ማሻሻያ፡ ቴሌግራም መልእክት አላላክ ወደ Vercel Backend API ተቀይሯል
 function sendAdminTelegramAlert(message) {
     // ማሳሰቢያ፡ ይህንን ሊንክ Vercel ላይ ዴፕሎይ ካደረግክ በኋላ በሚሰጥህ ትክክለኛ ሊንክ ቀይረው
-    const backendAPIUrl = "https://YOUR_VERCEL_URL.vercel.app/api/sendAdminTelegram";
+    const backendAPIUrl = "[https://tirfe-app.vercel.app/api/sendAdminTelegram](https://tirfe-app.vercel.app/api/sendAdminTelegram)";
     
     fetch(backendAPIUrl, {
         method: 'POST',
