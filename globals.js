@@ -30,7 +30,6 @@ function getAvailableLocations() {
     // የገቢዎች ባለስልጣን ከተመዘገበበት ዳታ ላይ ክልል፣ ዞን እና ወረዳዎችን ማውጣት
     for (let key in localDB.revenueAuthorities) {
         let rev = localDB.revenueAuthorities[key];
-        
         // የገቢዎች ዳታ ላይ ያሉት የክልል ስሞች authRegion, authZone, authWoreda ስለሆኑ ይህንን አስተካክለናል
         let rRegion = rev.authRegion || rev.region; 
         let rZone = rev.authZone || rev.zone;
@@ -166,4 +165,3 @@ function updateAllLocationDropdowns() {
         }
     }
 }
-
