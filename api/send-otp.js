@@ -16,53 +16,60 @@ module.exports = async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method Not Allowed' });
     }
 
-    const { email, code } = req.body;
-
-    if (!email || !code) {
-        return res.status(400).json({ success: false, error: 'ኢሜል እና ኮድ ያስፈልጋል' });
-    }
-
-    // =====================================================================
-    // ማሳሰቢያ፡ እዚህ ጋር የራስህን ትክክለኛ ጂሜይል እና App Password አስገባ
-    const GMAIL_USER = "apkcode1@gmail.com"; 
-    const GMAIL_APP_PASSWORD = "murdtaebakaiaxzh";
-    // =====================================================================
-
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: GMAIL_USER,
-            pass: GMAIL_APP_PASSWORD,
-        }
-    });
-
-    const mailOptions = {
-        from: `"Tirfe Shop Security" <${GMAIL_USER}>`,
-        to: email,
-        subject: 'የማረጋገጫ ኮድ (Tirfe Verification Code)',
-        html: `
-            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #ffffff;">
-                <div style="text-align: center; padding-bottom: 15px; border-bottom: 2px solid #082f49;">
-                    <h2 style="color: #082f49; margin: 0;">ትርፌ ሲስተም (Tirfe Shop)</h2>
-                </div>
-                <div style="padding: 20px 0; text-align: center;">
-                    <p style="font-size: 16px; color: #333333;">ሰላም! የአካውንት ማረጋገጫ ሚስጥራዊ ኮድዎ የሚከተለው ነው፦</p>
-                    <div style="margin: 25px 0;">
-                        <span style="font-size: 32px; font-weight: bold; background-color: #082f49; color: #ffffff; padding: 12px 30px; border-radius: 8px; letter-spacing: 6px;">${code}</span>
-                    </div>
-                    <p style="font-size: 13px; color: #ef4444; font-weight: bold;">ይህን ኮድ ለማንም አሳልፈው አይስጡ!</p>
-                    <p style="font-size: 14px; color: #666666;">ኮዱ የሚያገለግለው ለ 5 ደቂቃ ብቻ ነው።</p>
-                </div>
-            </div>
-        `
-    };
-
     try {
+        // ማሻሻያ፡ ሪኩዌስቱ በ string መልክ ከመጣ ወደ JSON Object እንዲቀየር ተደርጓል
+        let body = req.body;
+        if (typeof body === 'string') {
+            body = JSON.parse(body);
+        }
+
+        const { email, code } = body;
+
+        if (!email || !code) {
+            return res.status(400).json({ success: false, error: 'ኢሜል እና ኮድ ያስፈልጋል' });
+        }
+
+        // =====================================================================
+        // ማሳሰቢያ፡ እዚህ ጋር የራስህን ትክክለኛ ጂሜይል እና App Password አስገባ
+        const GMAIL_USER = "apkcode1@gmail.com";
+        const GMAIL_APP_PASSWORD = "murdtaebakaiaxzh";
+        // =====================================================================
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: GMAIL_USER,
+                pass: GMAIL_APP_PASSWORD,
+            }
+        });
+
+        const mailOptions = {
+            from: `"Tirfe Shop Security" <${GMAIL_USER}>`,
+            to: email,
+            subject: 'የማረጋገጫ ኮድ (Tirfe Verification Code)',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #ffffff;">
+                    <div style="text-align: center; padding-bottom: 15px; border-bottom: 2px solid #082f49;">
+                        <h2 style="color: #082f49; margin: 0;">ትርፌ ሲስተም (Tirfe Shop)</h2>
+                    </div>
+                    <div style="padding: 20px 0; text-align: center;">
+                        <p style="font-size: 16px; color: #333333;">ሰላም!</p>
+                        <p style="font-size: 16px; color: #333333;">የአካውንት ማረጋገጫ ሚስጥራዊ ኮድዎ የሚከተለው ነው፦</p>
+                        <div style="margin: 25px 0;">
+                            <span style="font-size: 32px; font-weight: bold; background-color: #082f49; color: #ffffff; padding: 12px 30px; border-radius: 8px; letter-spacing: 6px;">${code}</span>
+                        </div>
+                        <p style="font-size: 13px; color: #ef4444; font-weight: bold;">ይህን ኮድ ለማንም አሳልፈው አይስጡ!</p>
+                        <p style="font-size: 14px; color: #666666;">ኮዱ የሚያገለግለው ለ 5 ደቂቃ ብቻ ነው።</p>
+                    </div>
+                </div>
+            `
+        };
+
         await transporter.sendMail(mailOptions);
         return res.status(200).json({ success: true, message: 'OTP ተልኳል' });
+
     } catch (error) {
         console.error("Mail Send Error:", error);
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: error.message || "Internal Server Error" });
     }
 };
-
