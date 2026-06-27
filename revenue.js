@@ -37,11 +37,13 @@ function renderRevenuePanel() {
                t.zone === currentRevenueOfficer.authZone &&
                t.woreda === currentRevenueOfficer.authWoreda) {
             
+       
                 count++;
                 let accumulatedVat = (t.data && t.data.accumulatedVat) ? parseFloat(t.data.accumulatedVat) : 0;
                 let businessTypeDisplay = t.businessType || 'አጠቃላይ ንግድ';
                 let gmailDisplay = t.gmail || 'አልገባም';
                 
+       
                 tbody.innerHTML += `<tr>
                     <td><b>${t.fullName}</b><br><small style="color:var(--accent-color)">${t.shopName} | ${businessTypeDisplay}</small></td>
                     <td>📞 ${t.phone}<br>📧 ${gmailDisplay}</td>
@@ -80,12 +82,39 @@ window.payTenantVat = function(username) {
         let targetUser = currentRevenueOfficer.authUser || currentRevenueOfficer.username;
         localDB.revenueAuthorities[targetUser] = currentRevenueOfficer;
 
+        // --- አዲሱ የግብር ደረሰኝ (Tax Receipt) ሎጂክ እዚህ ይገባል ---
+        let recId = Math.floor(100000 + Math.random() * 900000);
+        let todayDate = typeof getTodayFormatted === 'function' ? getTodayFormatted() : new Date().toISOString().split('T')[0];
+        
+        let newTaxReceipt = {
+            recId: recId,
+            date: todayDate,
+            amount: vatToPay,
+            officerName: currentRevenueOfficer.authName || "ያልተመዘገበ",
+            officerPhone: currentRevenueOfficer.authPhone || "-",
+            officerRegion: currentRevenueOfficer.authRegion || "-",
+            officerZone: currentRevenueOfficer.authZone || "-",
+            officerWoreda: currentRevenueOfficer.authWoreda || "-",
+            tenantName: t.fullName || "-",
+            tenantShop: t.shopName || "-",
+            tenantPhone: t.phone || "-",
+            tenantTin: t.tinNumber || "-",
+            reason: "የቫት (VAT) ግብር ክፍያ"
+        };
+
+        if(!t.data.taxReceipts) t.data.taxReceipts = [];
+        t.data.taxReceipts.push(newTaxReceipt);
+
+        if(!localDB.taxReceipts) localDB.taxReceipts = [];
+        localDB.taxReceipts.push(newTaxReceipt);
+        // ----------------------------------------------------
+
         t.data.accumulatedVat = 0;
         localDB.tenants[username] = t;
     
         pushToFirebase();
         renderRevenuePanel();
-        showCustomAlert("ተሳክቷል", "ክፍያው በተሳካ ሁኔታ ተሰብስቧል! የነጋዴው የተሰበሰበ ቫት 0.00 ሆኗል።");
+        showCustomAlert("ተሳክቷል", "ክፍያው በተሳካ ሁኔታ ተሰብስቧል! የነጋዴው የተሰበሰበ ቫት 0.00 ሆኗል፤ እንዲሁም የግብር ደረሰኝ አውቶማቲክ ወደ ተከራዩ ተልኳል።");
     });
 };
 
@@ -105,4 +134,3 @@ window.closeRevenueBudgetAnnual = function() {
         }
     });
 };
-
