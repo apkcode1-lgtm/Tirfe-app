@@ -1,10 +1,20 @@
-let localDB = { tenants: {}, buyers: {}, revenueAuthorities: {}, adminSettings: { tgToken: '', tgChatId: '', bankAccount: '', vatRate: 0, adminEmail: '', adminAppPass: '' }, tariffs: { low: 500, medium: 1000, high: 2000 } };
+let localDB = { 
+    tenants: {}, 
+    buyers: {}, 
+    revenueAuthorities: {}, 
+    taxReceipts: [], 
+    // የደህንነት ማሻሻያ፡ adminAppPass እና tgToken ከዚህ ላይ ሙሉ በሙሉ ጠፍተዋል
+    adminSettings: { bankAccount: '', vatRate: 0 }, 
+    tariffs: { low: 500, medium: 1000, high: 2000 }, 
+    businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"] 
+};
+
 let isOnline = true;
 
 window.addEventListener('online', handleOnlineStatus);
 window.addEventListener('offline', handleOnlineStatus);
 
-// መፍትሄ 1፦ ፔጁ ሪፍሬሽ ሲደረግ ዳታው ወዲያውኑ እንዲጫን ይህ ፈንክሽን መጀመሪያ ላይ መጠራት አለበት
+// ፔጁ ሪፍሬሽ ሲደረግ ዳታው ወዲያውኑ እንዲጫን ይህ ፈንክሽን መጀመሪያ ላይ መጠራት አለበት
 loadLocalStorageBackup();
 
 function handleOnlineStatus() {
@@ -25,13 +35,19 @@ function handleOnlineStatus() {
 function loadLocalStorageBackup() {
     let backup = localStorage.getItem('tirfe_local_db');
     if(backup) {
-        localDB = JSON.parse(backup);
-        if(!localDB.buyers) localDB.buyers = {};
-        if(!localDB.revenueAuthorities) localDB.revenueAuthorities = {};
-        if(!localDB.tariffs) localDB.tariffs = { low: 500, medium: 1000, high: 2000 };
-        if(!localDB.adminSettings) localDB.adminSettings = { tgToken: '', tgChatId: '', bankAccount: '', vatRate: 0, adminEmail: '', adminAppPass: '' };
-        // ዳታው ሲጫን የክልል/ዞን ምርጫዎችን አፕዴት ያድርግ
+        let parsedBackup = JSON.parse(backup);
+        
+        if(parsedBackup.tenants) localDB.tenants = parsedBackup.tenants;
+        if(parsedBackup.buyers) localDB.buyers = parsedBackup.buyers;
+        if(parsedBackup.revenueAuthorities) localDB.revenueAuthorities = parsedBackup.revenueAuthorities;
+        if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
+        if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
+        if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
+        if(parsedBackup.adminSettings) localDB.adminSettings = parsedBackup.adminSettings;
+
+        // ዳታው ሲጫን የክልል/ዞን እና የንግድ ዘርፍ ምርጫዎችን አፕዴት ያድርግ
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
+        if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
     }
 }
 
@@ -40,81 +56,106 @@ function saveToLocalStorage() {
 }
 
 function pushToFirebase() { 
-    // መፍትሄ 2፦ ማንኛውም ዳታ ሲገባ ሁልጊዜ በመጀመሪያ ሎካል ስቶሬጅ ላይ ሴቭ እንዲያደርግ ተደርጓል
+    // ማንኛውም ዳታ ሲገባ ሁልጊዜ በመጀመሪያ ሎካል ስቶሬጅ ላይ ሴቭ እንዲያደርግ ተደርጓል
     saveToLocalStorage();
-    if(isOnline) { 
-        if(typeof db !== 'undefined') db.ref('tirfe_system').set(localDB);
+    
+    if(isOnline && typeof db !== 'undefined') { 
+        // የደህንነት ማሻሻያ፡ ሙሉ ዳታቤዙን overwrite ከማድረግ ይልቅ ተጠቃሚው የራሱን ዳታ ብቻ ሴቭ እንዲያደርግ ተቀይሯል
+        if(typeof currentTenant !== 'undefined' && currentTenant) {
+            db.ref(`tirfe_system/tenants/${currentTenant.username}`).set(localDB.tenants[currentTenant.username]);
+        }
+        if(typeof currentBuyer !== 'undefined' && currentBuyer) {
+            db.ref(`tirfe_system/buyers/${currentBuyer.username}`).set(localDB.buyers[currentBuyer.username]);
+        }
+        if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
+            db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).set(localDB.revenueAuthorities[currentRevenueOfficer.username]);
+        }
+        
+        // የጋራ ዳታዎችን Update ማድረግ እንጂ Set አናደርግም (የሌላውን ዳታ ላለማጥፋት)
+        db.ref('tirfe_system').update({
+            taxReceipts: localDB.taxReceipts,
+            tariffs: localDB.tariffs,
+            businessTypes: localDB.businessTypes
+        });
     } 
 }
 
-// ቴሌግራም መልእክት አላላክ - የ URL ርዝመት ችግርን ለመፍታት ወደ POST ተቀይሯል
+// የደህንነት ማሻሻያ፡ ቴሌግራም መልእክት አላላክ ወደ Backend API ተቀይሯል (Client-side ላይ ቶከን እንዳይቀመጥ)
 function sendAdminTelegramAlert(message) {
-    if (!localDB.adminSettings || !localDB.adminSettings.tgToken || !localDB.adminSettings.tgChatId) return;
-    const token = String(localDB.adminSettings.tgToken).trim();
-    const chatId = String(localDB.adminSettings.tgChatId).trim();
-    const url = `https://api.telegram.org/bot${token}/sendMessage`;
+    // ይህ የ Backend URL በ Cloud Functions ወይም በራስዎ ሰርቨር መተካት አለበት
+    const backendAPIUrl = "https://your-secure-backend.com/api/send-admin-telegram"; 
     
-    fetch(url, {
+    fetch(backendAPIUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: message })
-    }).catch(err => console.log("Admin Telegram Error: ", err));
+        body: JSON.stringify({ text: message })
+    }).catch(err => console.log("Admin Telegram API Alert Error: ", err));
 }
 
-// የተከራይ ቴሌግራም መልእክት አላላክ - ረጅም የዕለት ሪፖርትም ሆነ ሂሳብ አሁን አይቋረጥም
+// የተከራይ ቴሌግራም መልእክት አላላክ
 function sendTelegramAlert(message) {
-    if (typeof currentTenant === 'undefined' || !currentTenant || !currentTenant.telegramToken || !currentTenant.telegramChatId) return;
-    const token = String(currentTenant.telegramToken).trim();
-    const chatId = String(currentTenant.telegramChatId).trim();
-    const url = `https://api.telegram.org/bot${token}/sendMessage`;
+    if (typeof currentTenant === 'undefined' || !currentTenant) return;
     
-    fetch(url, {
+    const backendAPIUrl = "https://your-secure-backend.com/api/send-tenant-telegram";
+
+    fetch(backendAPIUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: message })
-    }).catch(err => console.log("Telegram Error: ", err));
+        body: JSON.stringify({ 
+            username: currentTenant.username, 
+            text: message 
+        })
+    }).catch(err => console.log("Telegram API Error: ", err));
 }
 
+// የደህንነት ማሻሻያ፡ ሙሉ ዳታቤዝ በአንድ ጊዜ ከማውረድ ይልቅ እያንዳንዱን ኖድ በተናጠል ማውረድ (ለ Firebase Rules እንዲመች)
 if(typeof db !== 'undefined') {
-    db.ref('tirfe_system').on('value', (snapshot) => {
-        if(snapshot.exists()) {
-            localDB = snapshot.val();
-            if(!localDB.tenants) localDB.tenants = {};
-            if(!localDB.buyers) localDB.buyers = {};
-            if(!localDB.revenueAuthorities) localDB.revenueAuthorities = {};
-            if(!localDB.tariffs) localDB.tariffs = { low: 500, medium: 1000, high: 2000 };
-            if(!localDB.adminSettings) localDB.adminSettings = { tgToken: '', tgChatId: '', bankAccount: '', vatRate: 0, adminEmail: '', adminAppPass: '' };
-            
-            saveToLocalStorage();
-            
-            // የገቢዎች ዳታ ከፋየርቤዝ አዲስ ሲገባ የክልል/ዞን ምርጫዎችም በራሳቸው አፕዴት ይሁኑ
-            if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
-            
-            if(typeof currentTenant !== 'undefined' && currentTenant) {
-                let checkTenant = localDB.tenants[currentTenant.username];
-                if(!checkTenant || checkTenant.status === "blocked") { logout(); return; }
-                currentTenant = checkTenant;
-                if(typeof renderApp === 'function') renderApp();
+    
+    const dbNodes = ['tenants', 'buyers', 'revenueAuthorities', 'taxReceipts', 'tariffs', 'businessTypes', 'adminSettings'];
+    
+    dbNodes.forEach(node => {
+        db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
+            if(snapshot.exists()) {
+                localDB[node] = snapshot.val();
+                saveToLocalStorage();
+                triggerUIRefresh();
             }
-         
-            if(typeof currentBuyer !== 'undefined' && currentBuyer) {
-                let checkBuyer = localDB.buyers[currentBuyer.username];
-                if(checkBuyer) currentBuyer = checkBuyer;
-            }
-            if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-            
-            if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
-                if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
-            }
-            
-            let adminPage = document.getElementById('adminPage');
-            if(adminPage && !adminPage.classList.contains('hidden')) { 
-                if(typeof renderAdminPanel === 'function') renderAdminPanel();
-            }
-        }
-    }, (error) => {
-        console.log("Firebase Error, running offline mode.");
-        isOnline = false;
-        handleOnlineStatus();
+        }, (error) => {
+            console.log(`Firebase Error on ${node}, running offline mode.`);
+            isOnline = false;
+            handleOnlineStatus();
+        });
     });
+
+    // የ UI ሪፍሬሽ ሎጂክ በየቦታው እንዳይደገም በአንድ ፈንክሽን ተሰብስቧል
+    function triggerUIRefresh() {
+        if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
+        if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
+        
+        if(typeof currentTenant !== 'undefined' && currentTenant) {
+            let checkTenant = localDB.tenants[currentTenant.username];
+            if(!checkTenant || checkTenant.status === "blocked") { 
+                if(typeof logout === 'function') logout(); 
+                return; 
+            }
+            currentTenant = checkTenant;
+            if(typeof renderApp === 'function') renderApp();
+            if(typeof renderTenantTaxReceipts === 'function') renderTenantTaxReceipts();
+        }
+     
+        if(typeof currentBuyer !== 'undefined' && currentBuyer) {
+            let checkBuyer = localDB.buyers[currentBuyer.username];
+            if(checkBuyer) currentBuyer = checkBuyer;
+        }
+        if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
+
+        if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
+            if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
+        }
+        
+        let adminPage = document.getElementById('adminPage');
+        if(adminPage && !adminPage.classList.contains('hidden')) { 
+            if(typeof renderAdminPanel === 'function') renderAdminPanel();
+        }
+    }
 }
