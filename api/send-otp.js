@@ -2,7 +2,7 @@ const { Resend } = require('resend');
 
 // =====================================================================
 // ማሳሰቢያ፡ እዚህ ጋር ከ Resend.com ያገኘኸውን ትክክለኛ API Key አስገባ
-const resend = new Resend('re_bzQSou6D_AeiYPMxjrAnU4PRUJTUSqJtF');
+const resend = new Resend('re_4KWXjQTD_EBTsPNqGhJRzXibV9nsE7Ksr');
 // =====================================================================
 
 module.exports = async function handler(req, res) {
