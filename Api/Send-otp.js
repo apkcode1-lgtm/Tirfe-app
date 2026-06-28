@@ -17,14 +17,13 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        // ማሻሻያ፡ ሪኩዌስቱ በ string መልክ ከመጣ ወደ JSON Object እንዲቀየር ተደርጓል
-        let body = req.body;
+        // ማሻሻያ፡ ሪኩዌስቱ ባዶ ከሆነ ወይም string ከሆነ እንዳይክራሽ ተስተካክሏል
+        let body = req.body || {};
         if (typeof body === 'string') {
-            body = JSON.parse(body);
+            try { body = JSON.parse(body); } catch(e) { body = {}; }
         }
 
         const { email, code } = body;
-
         if (!email || !code) {
             return res.status(400).json({ success: false, error: 'ኢሜል እና ኮድ ያስፈልጋል' });
         }
@@ -65,7 +64,18 @@ module.exports = async function handler(req, res) {
             `
         };
 
-        await transporter.sendMail(mailOptions);
+        // Vercel Serverless ተግባር ኢሜሉ ተልኮ እስኪያልቅ ጠብቆ እንዲዘጋ በ Promise ተጠቅልሏል
+        await new Promise((resolve, reject) => {
+            transporter.sendMail(mailOptions, (err, info) => {
+                if (err) {
+                    console.error("Nodemailer Error:", err);
+                    reject(err);
+                } else {
+                    resolve(info);
+                }
+            });
+        });
+
         return res.status(200).json({ success: true, message: 'OTP ተልኳል' });
 
     } catch (error) {
