@@ -1,4 +1,9 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+
+// =====================================================================
+// ማሳሰቢያ፡ እዚህ ጋር ከ Resend.com ያገኘኸውን ትክክለኛ API Key አስገባ
+const resend = new Resend('re_bzQSou6D_AeiYPMxjrAnU4PRUJTUSqJtF');
+// =====================================================================
 
 module.exports = async function handler(req, res) {
     // የ CORS ችግር እንዳይፈጠር የሚረዳ
@@ -17,33 +22,21 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        // ማሻሻያ፡ ሪኩዌስቱ ባዶ ከሆነ ወይም string ከሆነ እንዳይክራሽ ተስተካክሏል
-        let body = req.body || {};
+        // ሪኩዌስቱ በ string መልክ ከመጣ ወደ JSON Object እንዲቀየር ተደርጓል
+        let body = req.body;
         if (typeof body === 'string') {
-            try { body = JSON.parse(body); } catch(e) { body = {}; }
+            body = JSON.parse(body);
         }
 
         const { email, code } = body;
+
         if (!email || !code) {
             return res.status(400).json({ success: false, error: 'ኢሜል እና ኮድ ያስፈልጋል' });
         }
 
-        // =====================================================================
-        // ማሳሰቢያ፡ እዚህ ጋር የራስህን ትክክለኛ ጂሜይል እና App Password አስገባ
-        const GMAIL_USER = "apkcode1@gmail.com";
-        const GMAIL_APP_PASSWORD = "saosqwnxmsagfvjd";
-        // =====================================================================
-
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: GMAIL_USER,
-                pass: GMAIL_APP_PASSWORD,
-            }
-        });
-
-        const mailOptions = {
-            from: `"Tirfe Shop Security" <${GMAIL_USER}>`,
+        const { data, error } = await resend.emails.send({
+            // የራስህ ዶሜይን (Domain) Verify ካላደረግህ 'onboarding@resend.dev' የሚለውን አትቀይረው
+            from: 'Tirfe Shop Security <onboarding@resend.dev>',
             to: email,
             subject: 'የማረጋገጫ ኮድ (Tirfe Verification Code)',
             html: `
@@ -62,25 +55,17 @@ module.exports = async function handler(req, res) {
                     </div>
                 </div>
             `
-        };
-
-        // Vercel Serverless ተግባር ኢሜሉ ተልኮ እስኪያልቅ ጠብቆ እንዲዘጋ በ Promise ተጠቅልሏል
-        await new Promise((resolve, reject) => {
-            transporter.sendMail(mailOptions, (err, info) => {
-                if (err) {
-                    console.error("Nodemailer Error:", err);
-                    reject(err);
-                } else {
-                    resolve(info);
-                }
-            });
         });
 
-        return res.status(200).json({ success: true, message: 'OTP ተልኳል' });
+        if (error) {
+            console.error("Resend API Error:", error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        return res.status(200).json({ success: true, message: 'OTP ተልኳል', data });
 
     } catch (error) {
-        console.error("Mail Send Error:", error);
+        console.error("Server Error:", error);
         return res.status(500).json({ success: false, error: error.message || "Internal Server Error" });
     }
 };
-
