@@ -1,4 +1,4 @@
-// ትክክለኛው እና የተስተካከለው የ Firebase Config
+// True 
 const firebaseConfig = {
   apiKey: "AIzaSyBgXU6N4cMV2q-d3XeFzvgFT98gJ1GM7Ws",
   authDomain: "tirfe-app.firebaseapp.com",
