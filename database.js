@@ -9,7 +9,8 @@ let localDB = {
     businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"] 
 };
 
-let isOnline = true;
+// ማስተካከያ፡ ከመነሻው ትክክለኛውን የኢንተርኔት ሁኔታ እንዲያነብ ተደርጓል
+let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
 
 window.addEventListener('online', handleOnlineStatus);
 window.addEventListener('offline', handleOnlineStatus);
@@ -57,37 +58,57 @@ function saveToLocalStorage() {
 function pushToFirebase() { 
     // ማንኛውም ዳታ ሲገባ ሁልጊዜ በመጀመሪያ ሎካል ስቶሬጅ ላይ ሴቭ እንዲያደርግ ተደርጓል
     saveToLocalStorage();
+
     if(isOnline && typeof db !== 'undefined') { 
         
+        // ማስተካከያ፡ የዳታ ማጽጃ (Sanitizer)። ፋየርቤዝ undefined ዳታ ካገኘ ድምጽ ሳያሰማ ሴቭ ማድረጉን ያቋርጣል (Silent Error)።
+        // ይሄ ፈንክሽን ማናቸውንም undefined የሆኑ ክፍተቶች አጽድቶ ንፁህ ዳታ ለፋየርቤዝ ያቀርባል።
+        const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
+
         // አድሚን ሲሆን ሁሉንም ዳታዎች ወደ ፋየርቤዝ እንዲጭን ተስተካክሏል
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
             db.ref('tirfe_system').update({
-                tenants: localDB.tenants,
-                buyers: localDB.buyers,
-                revenueAuthorities: localDB.revenueAuthorities,
-                taxReceipts: localDB.taxReceipts,
-                tariffs: localDB.tariffs,
-                businessTypes: localDB.businessTypes,
-                adminSettings: localDB.adminSettings
-            });
+                tenants: cleanData(localDB.tenants) || {},
+                buyers: cleanData(localDB.buyers) || {},
+                revenueAuthorities: cleanData(localDB.revenueAuthorities) || {},
+                taxReceipts: cleanData(localDB.taxReceipts) || [],
+                tariffs: cleanData(localDB.tariffs) || {},
+                businessTypes: cleanData(localDB.businessTypes) || [],
+                adminSettings: cleanData(localDB.adminSettings) || {}
+            }).catch(err => console.error("Firebase Admin Sync Error:", err));
         } else {
             // የደህንነት ማሻሻያ፡ ሙሉ ዳታቤዙን overwrite ከማድረግ ይልቅ ተጠቃሚው የራሱን ዳታ ብቻ ሴቭ እንዲያደርግ ተቀይሯል
             if(typeof currentTenant !== 'undefined' && currentTenant) {
-                db.ref(`tirfe_system/tenants/${currentTenant.username}`).set(localDB.tenants[currentTenant.username]);
+                let tenantData = cleanData(localDB.tenants[currentTenant.username]);
+                if(tenantData) {
+                    db.ref(`tirfe_system/tenants/${currentTenant.username}`).set(tenantData)
+                    .catch(err => console.error("Firebase Tenant Sync Error:", err));
+                }
             }
             if(typeof currentBuyer !== 'undefined' && currentBuyer) {
-                db.ref(`tirfe_system/buyers/${currentBuyer.username}`).set(localDB.buyers[currentBuyer.username]);
+                let buyerData = cleanData(localDB.buyers[currentBuyer.username]);
+                if(buyerData) {
+                    db.ref(`tirfe_system/buyers/${currentBuyer.username}`).set(buyerData)
+                    .catch(err => console.error("Firebase Buyer Sync Error:", err));
+                }
             }
             if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
-                db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).set(localDB.revenueAuthorities[currentRevenueOfficer.username]);
+                let revData = cleanData(localDB.revenueAuthorities[currentRevenueOfficer.username]);
+                if(revData) {
+                    db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).set(revData)
+                    .catch(err => console.error("Firebase Revenue Sync Error:", err));
+                }
             }
             
             // የጋራ ዳታዎችን Update ማድረግ እንጂ Set አናደርግም (የሌላውን ዳታ ላለማጥፋት)
-            db.ref('tirfe_system').update({
-                taxReceipts: localDB.taxReceipts,
-                tariffs: localDB.tariffs,
-                businessTypes: localDB.businessTypes
-            });
+            let updates = {};
+            if(localDB.taxReceipts) updates.taxReceipts = cleanData(localDB.taxReceipts);
+            if(localDB.tariffs) updates.tariffs = cleanData(localDB.tariffs);
+            if(localDB.businessTypes) updates.businessTypes = cleanData(localDB.businessTypes);
+            
+            if(Object.keys(updates).length > 0) {
+                db.ref('tirfe_system').update(updates).catch(err => console.error("Firebase Global Updates Error:", err));
+            }
         }
     } 
 }
@@ -192,7 +213,7 @@ if(typeof db !== 'undefined') {
             if(checkBuyer) currentBuyer = checkBuyer;
         }
         if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-
+        
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
