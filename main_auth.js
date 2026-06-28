@@ -19,22 +19,14 @@ async function sendSecureVerificationEmail(userEmail, verificationCode) {
             },
             body: JSON.stringify({ email: userEmail, code: verificationCode })
         });
-        
-        let result;
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-            result = await response.json();
-        } else {
-            throw new Error("የሰርቨር ምላሽ ትክክለኛ JSON አይደለም (ምናልባት አፑ በ Vercel ላይ አልተጫነም)");
-        }
-
+        const result = await response.json();
         if(!result.success) {
             console.error('ኢሜል መላክ አልተሳካም:', result.error);
             showCustomAlert("ስህተት", "የማረጋገጫ ኮድ ወደ ኢሜል መላክ አልተቻለም! " + (result.error || ""));
         }
     } catch (error) {
         console.error('ከጀርባ አገልጋይ ጋር መገናኘት አልተቻለም:', error);
-        showCustomAlert("ስህተት", "ከሰርቨር (API) ጋር መገናኘት አልተቻለም። እባክዎ አፑ በ Live Server ወይም Vercel ላይ መክፈትዎን ያረጋግጡ።");
+        showCustomAlert("ስህተት", "ከሰርቨር (API) ጋር መገናኘት አልተቻለም። እባክዎ አፑን በ Live Server ወይም Vercel ላይ መክፈትዎን ያረጋግጡ።");
     }
 }
 
@@ -194,7 +186,6 @@ function autoFillPubCapitalFee() {
     if (capital === 'low') baseFee = tariffs.low;
     else if (capital === 'medium') baseFee = tariffs.medium;
     else if (capital === 'high') baseFee = tariffs.high;
-
     if (contractType === 'በዓመት' && baseFee > 0) {
         baseFee = baseFee * 12;
     }
@@ -215,7 +206,6 @@ async function handleUnifiedLogin() {
         err.innerText = "❌ እባክዎ ዩዘርኔም፣ ኢሜል እና የይለፍ ቃል በትክክል ያስገቡ!";
         return; 
     }
-
     // === የተስተካከለው አደገኛ የነበረው የአድሚን መግቢያ ሎጂክ ===
     if(user === "admin" || email === "apkcode1@gmail.com") {
         err.innerText = "🔄 የአድሚን መረጃ በማረጋገጥ ላይ...";
@@ -454,9 +444,11 @@ async function triggerForgotPassword() {
                     localDB.buyers[u] = foundAccount;
                 }
             }
-        } catch(err) { console.log(err); }
+        } catch(err) { console.log(err);
+        }
 
-        if(!foundAccount) { showCustomAlert("ስህተት", "በዚህ ዩዘርኔም እና ኢሜል የተመዘገበ አካውንት የለም!"); return; }
+        if(!foundAccount) { showCustomAlert("ስህተት", "በዚህ ዩዘርኔም እና ኢሜል የተመዘገበ አካውንት የለም!"); return;
+        }
 
         pendingRegType = 'forgot_pass';
         triggerOTPFlow(e);
@@ -501,7 +493,8 @@ function verifyEmailCodeSubmit() {
     if (enteredCode === emailVerificationCode) {
         closeActiveModal();
         if(onVerifySuccess) onVerifySuccess();
-    } else { showCustomAlert("❌ ስህተት", "ያስገቡት ማረጋገጫ ኮድ የተሳሳተ ነው!"); }
+    } else { showCustomAlert("❌ ስህተት", "ያስገቡት ማረጋገጫ ኮድ የተሳሳተ ነው!");
+    }
 }
 
 function logoutBuyer() {
@@ -535,7 +528,8 @@ window.openBuyerProfileSettings = function() {
             localDB.buyers[newU] = currentBuyer;
             delete localDB.buyers[oldU];
             localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: newU }));
-        } else { localDB.buyers[newU] = currentBuyer; }
+        } else { localDB.buyers[newU] = currentBuyer;
+        }
         
         pushToFirebase(); renderBuyerCatalog();
         showCustomAlert("✅ ተሳክቷል", "ፕሮፋይልዎ በትክክል ተስተካክሏል!");
@@ -553,7 +547,8 @@ function isTenantExpired(tenant, errorElement) {
             errorElement.innerText = "🔒 የኪራይ ውልዎ ጊዜ አልቋል! እባክዎ ባለቤቱን ያነጋግሩ።"; return true;
         }
     }
-    if(tenant.status === "blocked") { errorElement.innerText = "🔒 አካውንትዎ ታግዷል!"; return true; }
+    if(tenant.status === "blocked") { errorElement.innerText = "🔒 አካውንትዎ ታግዷል!"; return true;
+    }
     return false;
 }
 
@@ -596,7 +591,8 @@ function checkMonthlyAccessReset() {
 }
 
 window.openDeliveryOrderModal = function(shopKey, itemIdx, itemName, price) {
-    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return; }
+    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return;
+    }
     
     showFormModal("🚚 " + itemName + " - ዴሊቨሪ ማዘዣ", [
         { id: "phone", label: "ስልክ ቁጥርዎ", type: "text", defaultValue: currentBuyer.phone },
@@ -624,7 +620,8 @@ window.openDeliveryOrderModal = function(shopKey, itemIdx, itemName, price) {
 };
 
 window.buyFromShop = function(shopKey, itemIdx, itemName, price, availableRem) {
-    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return; }
+    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!");
+    return; }
     
     showFormModal("🛒 " + itemName + " - ወደ ቅርጫት (Cart) ማስገቢያ", [
         { id: "qty", label: "የሚፈልጉት ብዛት", type: "number", defaultValue: "1" }
@@ -691,7 +688,8 @@ window.renderBuyerCart = function() {
 
 window.removeFromBuyerCart = function(i) { if(window.buyerCartData) { window.buyerCartData.splice(i, 1); renderBuyerCart(); } };
 window.checkoutBuyerCart = function() {
-    if(!window.buyerCartData || window.buyerCartData.length === 0) { showCustomAlert("ስህተት", "ምንም ዕቃ አልመረጡም!"); return; }
+    if(!window.buyerCartData || window.buyerCartData.length === 0) { showCustomAlert("ስህተት", "ምንም ዕቃ አልመረጡም!"); return;
+    }
     
     showCustomConfirm("ትዕዛዝ ማረጋገጫ", "ሁሉንም የቅርጫት ትዕዛዞች ወደየሱቆቹ መላክ ይፈልጋሉ?", () => {
         let shops = {};
@@ -741,15 +739,18 @@ async function renderBuyerCatalog() {
                 }
                 localDB.tenants = allT;
             }
-        } catch(e) { console.warn("Catalog fetch error:", e); }
+        } catch(e) { console.warn("Catalog fetch error:", e);
+        }
     }
 
     container.innerHTML = '';
     let hasData = false;
-    let query = document.getElementById('buyerSearchInput') ? document.getElementById('buyerSearchInput').value.trim().toLowerCase() : "";
+    let query = document.getElementById('buyerSearchInput') ?
+    document.getElementById('buyerSearchInput').value.trim().toLowerCase() : "";
     let categories = new Set();
     
-    if (localDB.tenants) { Object.values(localDB.tenants).forEach(t => { if (t.status === "active") { categories.add(t.businessType || "አጠቃላይ ንግድ"); } }); }
+    if (localDB.tenants) { Object.values(localDB.tenants).forEach(t => { if (t.status === "active") { categories.add(t.businessType || "አጠቃላይ ንግድ"); } });
+    }
     
     let catContainer = document.getElementById('buyerCategoryContainer');
     if (catContainer) {
@@ -759,7 +760,8 @@ async function renderBuyerCatalog() {
     }
 
     let myOrdersHTML = ""; let myReceiptsHTML = "";
-    let liveBuyer = (currentBuyer && localDB.buyers) ? localDB.buyers[currentBuyer.username] : currentBuyer;
+    let liveBuyer = (currentBuyer && localDB.buyers) ?
+    localDB.buyers[currentBuyer.username] : currentBuyer;
 
     if(liveBuyer && liveBuyer.receipts) {
         let reversed = [...liveBuyer.receipts].reverse();
@@ -787,7 +789,7 @@ async function renderBuyerCatalog() {
                     let uName = t.username ? t.username.toLowerCase() : tKey.toLowerCase();
                     isShopMatch = (uName === query || uName.includes(query)) ||
                                    (t.shopName && t.shopName.toLowerCase().includes(query)) ||
-                                   (t.phone && t.phone.includes(query));
+                                  (t.phone && t.phone.includes(query));
                 }
 
                 let matchingItems = [];
@@ -802,7 +804,8 @@ async function renderBuyerCatalog() {
                 if (query !== "" && !isShopMatch && matchingItems.length === 0) return;
                 hasData = true;
                 let shopLogo = t.shopLogo || "https://cdn-icons-png.flaticon.com/512/869/869636.png";
-                let tgLink = t.telegram && t.telegram !== "-" ? (t.telegram.startsWith('@') ? t.telegram.substring(1) : t.telegram) : "";
+                let tgLink = t.telegram && t.telegram !== "-" ?
+                (t.telegram.startsWith('@') ? t.telegram.substring(1) : t.telegram) : "";
                 let shopCardHTML = `
                 <div class="shop-card">
                     <div class="shop-card-header">
@@ -850,7 +853,7 @@ async function renderBuyerCatalog() {
                 container.innerHTML += shopCardHTML;
 
                 if(liveBuyer && t.data && t.data.deliveryOrders) {
-                     t.data.deliveryOrders.forEach(ord => {
+                    t.data.deliveryOrders.forEach(ord => {
                         if(ord.buyerUser === liveBuyer.username) {
                             let st = ord.status;
                             let badge = st === "pending" ? "በመጠባበቅ ላይ" : (st === "accepted" ? "በመንገድ ላይ" : (st === "completed" ? "ተረክበዋል" : "ተመልሷል"));
@@ -867,7 +870,8 @@ async function renderBuyerCatalog() {
         });
     }
 
-    if(!hasData) { container.innerHTML = '<p style="text-align:center; color:#94a3b8; grid-column: 1/-1; padding:20px;">በተፈለገው ስም የተገኘ ምንም ሱቅ ወይም ዕቃ የለም።</p>'; }
+    if(!hasData) { container.innerHTML = '<p style="text-align:center; color:#94a3b8; grid-column: 1/-1; padding:20px;">በተፈለገው ስም የተገኘ ምንም ሱቅ ወይም ዕቃ የለም።</p>';
+    }
     
     let ordersBody = document.getElementById('buyerOrdersBody');
     if(ordersBody) {
@@ -909,19 +913,18 @@ window.openStaffManagement = function() {
         }
     }
     tempStaffForms = JSON.parse(JSON.stringify(currentTenant.staffAccounts));
-    if(tempStaffForms.length === 0) { tempStaffForms.push({ name: "", gmail: "", phone: "", user: "", pass: "" }); }
+    if(tempStaffForms.length === 0) { tempStaffForms.push({ name: "", gmail: "", phone: "", user: "", pass: "" });
+    }
     
     renderStaffForms(); openModalContainer();
     document.querySelectorAll('.modal-card').forEach(m => m.classList.add('hidden'));
     document.getElementById('staffManageModal').classList.remove('hidden');
 };
-
 window.addStaffFormRow = function() {
     if(tempStaffForms.length >= 3) { showCustomAlert("ማሳሰቢያ", "ከ 3 ሰራተኛ በላይ በአንድ ጊዜ መመዝገብ አይቻልም!");
     return; }
     tempStaffForms.push({ name: "", gmail: "", phone: "", user: "", pass: "" }); renderStaffForms();
 };
-
 window.removeStaffFormRow = function(idx) { tempStaffForms.splice(idx, 1); renderStaffForms(); };
 
 window.renderStaffForms = function() {
@@ -980,4 +983,4 @@ function configureBank() {
         currentTenant.telegramToken = res.telegramToken.trim(); currentTenant.telegramChatId = res.telegramChatId.trim(); currentTenant.bankAccount = res.bankAccountNumber.trim();
         saveAndRefresh(); showCustomAlert("ተሳክቷል", "የማያያዣ መቼቶች በተሳካ ሁኔታ ተቀምጠዋል!");
     });
-}
+                       }
