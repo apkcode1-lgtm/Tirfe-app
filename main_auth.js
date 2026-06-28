@@ -1,7 +1,15 @@
+// === (Inspect Blocker) ===
+document.addEventListener('contextmenu', event => event.preventDefault()); 
+document.addEventListener('keydown', event => {
+    if (event.keyCode === 123) { event.preventDefault(); } // F12
+    if (event.ctrlKey && event.shiftKey && (event.keyCode === 73 || event.keyCode === 74)) { event.preventDefault(); } // Ctrl+Shift+I / J
+    if (event.ctrlKey && event.keyCode === 85) { event.preventDefault(); } // Ctrl+U
+});
+// ===========================================
+
 async function sendSecureVerificationEmail(userEmail, verificationCode) {
     try {
         // Vercel ላይ ዴፕሎይ ሲሆን ይህ አድራሻ በቀጥታ api/send-otp.js ን ይጠራል
-        // ማሳሰቢያ፡ ሎካል ላይ እየሰሩ ከሆነ የ Vercel ፕሮጄክትዎን ሙሉ URL እዚህ ሊያስገቡ ይችላሉ (ምሳሌ: "https://your-app.vercel.app/api/send-otp")
         const backendAPIUrl = "/api/send-otp";
         const response = await fetch(backendAPIUrl, {
             method: 'POST',
@@ -88,10 +96,10 @@ function enableAllActions() {
 
 setInterval(() => { checkTimeLock(); }, 60000);
 
-// የደህንነት ማሻሻያ፡ ዩዘርኔም መኖሩን በቀጥታ ከሰርቨር ቼክ እንዲያደርግ (Async) ተቀይሯል
 async function isSystemDataTaken(u, p, skipTenantUser, skipBuyerUser) {
     u = u ? u.toLowerCase() : "";
     if (u === "admin") return "ይህ ዩዘርኔም በዋና አስተዳዳሪ (Admin) ተይዟል (ትይዟል)!";
+    
     if(typeof db !== 'undefined') {
         try {
             let tSnap = await db.ref(`tirfe_system/tenants/${u}`).once('value');
@@ -107,7 +115,6 @@ async function isSystemDataTaken(u, p, skipTenantUser, skipBuyerUser) {
         }
     }
 
-    // ሎካል ስቶሬጅ ላይ ያሉ የስልክ እና የሰራተኞች መረጃዎችን ቼክ ለማድረግ (Fallback)
     if (localDB.tenants) {
         for(let k in localDB.tenants) {
             let t = localDB.tenants[k];
@@ -177,6 +184,7 @@ function autoFillPubCapitalFee() {
     let feeInput = document.getElementById('pub_newRegistrationFee');
     let tariffs = localDB.tariffs || { low: 500, medium: 1000, high: 2000 };
     let baseFee = 0;
+    
     if (capital === 'low') baseFee = tariffs.low;
     else if (capital === 'medium') baseFee = tariffs.medium;
     else if (capital === 'high') baseFee = tariffs.high;
@@ -191,12 +199,12 @@ function autoFillPubCapitalFee() {
     }
 }
 
-// የደህንነት ማሻሻያ፡ Login ሲደረግ መረጃውን በቀጥታ ከሰርቨር ፈልጎ እንዲያመጣ (Async) ተደርጓል
 async function handleUnifiedLogin() {
     let user = document.getElementById('loginUnifiedUser').value.trim().toLowerCase();
     let email = document.getElementById('loginUnifiedEmail').value.trim();
     let pass = document.getElementById('loginUnifiedPass').value.trim();
     let err = document.getElementById('loginUnifiedError');
+    
     if(!user || !email || !pass) { 
         err.innerText = "❌ እባክዎ ዩዘርኔም፣ ኢሜል እና የይለፍ ቃል በትክክል ያስገቡ!";
         return; 
@@ -210,17 +218,15 @@ async function handleUnifiedLogin() {
     }
 
     err.innerText = "🔄 በማረጋገጥ ላይ...";
-    // ሎዲንግ ቴክስት
 
     try {
-        // 1. ነጋዴ መሆኑን ቼክ ማድረግ (Tenant)
         let tSnap = await db.ref(`tirfe_system/tenants/${user}`).once('value');
         if(tSnap.exists()) {
             let t = tSnap.val();
             if(t.gmail === email && String(t.password).trim() === pass) {
                 if(isTenantExpired(t, err)) return;
                 currentUserRole = "owner";
-                localDB.tenants[user] = t; // ሎካል ላይ ሴቭ እናደርጋለን
+                localDB.tenants[user] = t; 
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
                 if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 err.innerText = "";
@@ -229,13 +235,11 @@ async function handleUnifiedLogin() {
             }
         }
 
-        // 2. ገዥ መሆኑን ቼክ ማድረግ (Buyer)
         let bSnap = await db.ref(`tirfe_system/buyers/${user}`).once('value');
         if(bSnap.exists()) {
             let b = bSnap.val();
             if(b.email === email && String(b.password).trim() === pass) {
-                if(b.status === "blocked") { err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)!";
-                return; }
+                if(b.status === "blocked") { err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)!"; return; }
                 currentBuyer = b;
                 localDB.buyers[user] = b;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: user }));
@@ -246,7 +250,6 @@ async function handleUnifiedLogin() {
             }
         }
         
-        // 3. ገቢዎች መሆኑን ቼክ ማድረግ (Revenue)
         let rSnap = await db.ref(`tirfe_system/revenueAuthorities/${user}`).once('value');
         if(rSnap.exists()) {
             let r = rSnap.val();
@@ -265,7 +268,6 @@ async function handleUnifiedLogin() {
             }
         }
 
-        // 4. ሰራተኛ ከሆነ ደግሞ ሎካል ላይ ባለው ዳታ ቼክ እናደርጋለን (Staff Fallback)
         if(localDB.tenants) {
             for(let tKey in localDB.tenants) {
                 let t = localDB.tenants[tKey];
@@ -291,7 +293,6 @@ async function handleUnifiedLogin() {
     }
 }
 
-// የደህንነት ማሻሻያ፡ ምዝገባውን Async አድርገነዋል
 async function triggerUnifiedRegistration() {
     let role = document.getElementById('unifiedRegRole').value;
     if(role === 'buyer') {
@@ -300,8 +301,7 @@ async function triggerUnifiedRegistration() {
         let phone = document.getElementById('pubBuyerPhone').value.trim();
         let user = document.getElementById('pubBuyerUser').value.trim().toLowerCase();
 
-        if(!name || !email || !phone || !user) { showCustomAlert("ስህተት", "እባክዎ መረጃዎን ሙሉ በሙሉ ይሙሉ!");
-        return; }
+        if(!name || !email || !phone || !user) { showCustomAlert("ስህተት", "እባክዎ መረጃዎን ሙሉ በሙሉ ይሙሉ!"); return; }
 
         let takenMsg = await isSystemDataTaken(user, phone, "", "");
         if(takenMsg) { showCustomAlert("ስህተት", takenMsg); return; }
@@ -351,6 +351,7 @@ async function triggerUnifiedRegistration() {
         let registrationFee = parseFloat(document.getElementById('pub_newRegistrationFee').value) || 0;
         let contractType = document.getElementById('pub_newContractType').value;
         let expiryDate = document.getElementById('pub_newExpiryDate').value;
+        
         if(!shop || !user || !expiryDate || !fullName || !phone || !newEmail || !region || !zone || !woreda || !kebele || !houseNo || !tinNum || !tradeReg || !businessType) { 
             showCustomAlert("ስህተት", "እባክዎ መሠረታዊ እና አስገዳጅ መረጃዎችን ሙሉ በሙሉ ያሟሉ!");
             return; 
@@ -401,7 +402,6 @@ async function triggerUnifiedRegistration() {
     }
 }
 
-// የደህንነት ማሻሻያ፡ ፓስዎርድ መርሳትም በቀጥታ ከሰርቨር ፈልጎ እንዲያመጣ ተስተካክሏል
 async function triggerForgotPassword() {
     showFormModal("የይለፍ ቃል ማደሻ (Forgot Password)", [
         { id: "f_user", label: "የተጠቃሚ ስምዎን (Username) ያስገቡ፦", type: "text" },
@@ -418,7 +418,7 @@ async function triggerForgotPassword() {
             let tSnap = await db.ref(`tirfe_system/tenants/${u}`).once('value');
             if(tSnap.exists() && tSnap.val().gmail === e) {
                 foundAccount = tSnap.val(); accType = 'tenant';
-                localDB.tenants[u] = foundAccount; // Caching for update
+                localDB.tenants[u] = foundAccount; 
             } else {
                 let bSnap = await db.ref(`tirfe_system/buyers/${u}`).once('value');
                 if(bSnap.exists() && bSnap.val().email === e) {
@@ -458,14 +458,12 @@ function triggerOTPFlow(emailAddress) {
     for(let i=1; i<=5; i++) document.getElementById('code'+i).value = '';
     document.getElementById('code1').focus();
     
-    // የደህንነት ማሻሻያ፡ ወደ ትክክለኛው የኢሜል መላኪያ ተቀይሯል
     sendSecureVerificationEmail(emailAddress, emailVerificationCode);
 }
 
 window.resendOTP = function() {
     let currentEmail = document.getElementById('verifyEmailDisplay').innerText;
     emailVerificationCode = Math.floor(10000 + Math.random() * 90000).toString();
-    // የደህንነት ማሻሻያ፡ በድጋሚ ኮድ ሲጠየቅ ወደ ኢሜል እንዲላክ ተደርጓል
     sendSecureVerificationEmail(currentEmail, emailVerificationCode);
     showCustomAlert("✅ ተልኳል", "አዲስ ማረጋገጫ ኮድ ወደ ኢሜልዎ ተልኳል።");
 };
@@ -506,6 +504,7 @@ window.openBuyerProfileSettings = function() {
         currentBuyer.name = res.b_name.trim();
         currentBuyer.username = newU;
         currentBuyer.email = res.b_email.trim(); currentBuyer.phone = newP; currentBuyer.password = res.b_password.trim();
+        
         if(oldU !== newU) {
             localDB.buyers[newU] = currentBuyer;
             delete localDB.buyers[oldU];
@@ -542,16 +541,19 @@ function checkMonthlyAccessReset() {
     
     let diffTime = Math.abs(currentTimestamp - currentTenant.data.lastMonthlyResetDate);
     let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
     if (diffDays >= 30) {
         let d = currentTenant.data;
         let expensesList = d.expenses || []; let totalMonthlyExp = 0;
         expensesList.forEach(e => totalMonthlyExp += parseFloat(e.amount) || 0);
+        
         let totalMonthlySales = 0; let totalMonthlyProfit = 0;
         let inv = d.inventory || [];
         inv.forEach(item => {
             totalMonthlySales += (item.price * item.sold);
             totalMonthlyProfit += (item.price - item.cost) * item.sold;
         });
+        
         let finalMonthlyNetProfit = totalMonthlyProfit - totalMonthlyExp;
         
         if(!d.history) d.history = [];
@@ -584,9 +586,6 @@ window.openDeliveryOrderModal = function(shopKey, itemIdx, itemName, price) {
         if(qty <= 0 || !res.address) { showCustomAlert("ስህተት", "እባክዎ አድራሻዎን እና የሚፈልጉትን ብዛት በትክክል ይሙሉ!"); return; }
 
         let t = localDB.tenants[shopKey];
-        
-        // ማስተካከያ፡ data undefined ከሆነ እንዳይበላሽ
-        if(!t.data) t.data = {}; 
         if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
 
         let orderId = Math.floor(100000 + Math.random() * 900000);
@@ -595,6 +594,7 @@ window.openDeliveryOrderModal = function(shopKey, itemIdx, itemName, price) {
             address: res.address, mapLink: res.mapLink, itemIdx: itemIdx, itemName: itemName,
             qty: qty, price: price, total: qty * price, status: "pending", date: getTodayFormatted()
         });
+        
         localDB.tenants[shopKey] = t; pushToFirebase();
         showCustomAlert("ተሳክቷል", "ትዕዛዝዎ ለሻጩ ተልኳል። ሻጩ ሲቀበለው በገጽዎ ላይ 'በመንገድ ላይ ነው' የሚል ምልክት ያያሉ።");
         renderBuyerCatalog();
@@ -639,6 +639,7 @@ window.renderBuyerCart = function() {
 
     section.style.display = 'block'; listBody.innerHTML = '';
     let grandTotal = 0;
+    
     window.buyerCartData.forEach((c, i) => {
         grandTotal += c.total;
         let shopName = localDB.tenants[c.shopKey] ? localDB.tenants[c.shopKey].shopName : "ሱቅ";
@@ -650,6 +651,7 @@ window.renderBuyerCart = function() {
             <td><button class="btn-expense btn-sm" onclick="removeFromBuyerCart(${i})">❌ አጥፋ</button></td>
         </tr>`;
     });
+    
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
     let vatAmount = (grandTotal * vatRate) / 100;
     let finalTotal = grandTotal + vatAmount;
@@ -681,9 +683,6 @@ window.checkoutBuyerCart = function() {
 
         for(let sKey in shops) {
             let t = localDB.tenants[sKey];
-            
-            // ማስተካከያ፡ data undefined ከሆነ እንዳይበላሽ
-            if(!t.data) t.data = {};
             if(!t.data.remoteCarts) t.data.remoteCarts = {};
             if(!t.data.remoteCarts[currentBuyer.username]) t.data.remoteCarts[currentBuyer.username] = [];
             
@@ -700,7 +699,6 @@ window.checkoutBuyerCart = function() {
     });
 };
 
-// የደህንነት ማሻሻያ፡ ገዢዎች ሱቆችን ማየት እንዲችሉ ሚስጥራዊ መረጃዎች የተሰረዘበትን ብቻ እንዲያወርድ (Async Catalog Fetch) ተደርጓል
 async function renderBuyerCatalog() {
     if(currentBuyer) {
         let badge = document.getElementById('buyerProfileBadge');
@@ -711,7 +709,6 @@ async function renderBuyerCatalog() {
     let container = document.getElementById('buyerShopsContainer');
     if(!container) return;
     
-    // ገዥዎች ሱቆቹን ማየት እንዲችሉ ደህንነቱ በተጠበቀ ሁኔታ ሱቆችን ከፋየርቤዝ መሳብ (ሚስጥሮች ተቆርጠዋል)
     if (typeof db !== 'undefined' && (!localDB.tenants || Object.keys(localDB.tenants).length === 0)) {
         try {
             let snap = await db.ref('tirfe_system/tenants').once('value');
@@ -766,7 +763,6 @@ async function renderBuyerCatalog() {
                 let tBType = t.businessType || "አጠቃላይ ንግድ";
                 if (activeCategoryFilter !== "all" && tBType !== activeCategoryFilter) return;
        
-                // --- አዲሱ የሰርች ማስተካከያ (ለ QR ስካነር እና ለሱቅ ፍለጋ) ---
                 let isShopMatch = false;
                 if (query !== "") {
                     let uName = t.username ? t.username.toLowerCase() : tKey.toLowerCase();
@@ -780,13 +776,11 @@ async function renderBuyerCatalog() {
                     matchingItems = t.data.inventory.map((item, index) => ({...item, originalIdx: index})).filter(item => {
                         if (query === "") return true;
                         if (isShopMatch) return true;
-                        // የሻጩ ዩዘርኔም ወይም ስም ከተገኘ የሱቁን ሁሉንም ዕቃዎች ያሳያል
                         return item.name.toLowerCase().includes(query) || (item.model && item.model.toLowerCase().includes(query));
                     });
                 }
                 
                 if (query !== "" && !isShopMatch && matchingItems.length === 0) return;
-                // ----------------------------------------------------
            
                 hasData = true;
                 let shopLogo = t.shopLogo || "https://cdn-icons-png.flaticon.com/512/869/869636.png";
@@ -802,6 +796,7 @@ async function renderBuyerCatalog() {
                     </div>
                     <div style="margin-top:5px; font-size:0.85rem; color:#94a3b8; font-weight:bold;">📦 ዕቃዎች ዝርዝር፦</div>
                     <div class="shop-items-list">`;
+                    
                 if (matchingItems.length === 0) { 
                     shopCardHTML += `<p style="font-size:0.8rem; color:#64748b; padding:5px 0;">በአሁኑ ሰዓት የተመዘገበ ዕቃ የለም።</p>`;
                 } else {
@@ -882,10 +877,10 @@ window.viewBuyerReceipt = function(recId) {
     let bPhone = latestBuyerData.phone;
     let subT = rec.subTotal !== undefined ? rec.subTotal : rec.totalVal;
     let vAmt = rec.vatAmount !== undefined ? rec.vatAmount : 0;
+    
     if(rec.advancedItems) { 
         generateAdvancedReceipt(rec.advancedItems, subT, rec.seller, rec.recId, false, rec.shopName, rec.bType, bName, bPhone, vAmt, rec.ownerName, rec.ownerPhone);
-    } 
-    else { 
+    } else { 
         generateAdvancedReceipt([{name: rec.itemName, count: rec.count, unitPrice: subT/rec.count, total: subT}], subT, rec.seller, rec.recId, false, rec.shopName, rec.bType, bName, bPhone, vAmt, rec.ownerName, rec.ownerPhone);
     }
 };
@@ -937,6 +932,7 @@ window.saveAllStaff = async function() {
         tempStaffForms[i].phone = document.getElementById(`s_phone_${i}`).value.trim();
         tempStaffForms[i].user = document.getElementById(`s_user_${i}`).value.trim().toLowerCase();
         tempStaffForms[i].pass = document.getElementById(`s_pass_${i}`).value.trim();
+        
         if(!tempStaffForms[i].name || !tempStaffForms[i].phone || !tempStaffForms[i].user || !tempStaffForms[i].pass) {
             showCustomAlert("ስህተት", `እባክዎ ለሰራተኛ ${i+1} አስፈላጊ መረጃዎችን ይሙሉ!`);
             return;
@@ -961,7 +957,8 @@ function configureBank() {
         { id: "telegramToken", label: "የቴሌግራም ቦት ቶከን (Telegram Bot Token)", type: "text", placeholder: "Token...", defaultValue: currentTenant.telegramToken || "" },
         { id: "telegramChatId", label: "የቴሌግራም ቻት ID (Telegram Chat ID)", type: "text", placeholder: "Chat ID...", defaultValue: currentTenant.telegramChatId || "" },
         { id: "bankAccountNumber", label: "የባንክ ሂሳብ ቁጥር (CBE/Telebirr)", type: "text", placeholder: "የባንክ ቁጥር...", defaultValue: currentTenant.bankAccount || "" }
-    ], (res) => {
+    ], (res) => 
+    {
         currentTenant.telegramToken = res.telegramToken.trim(); currentTenant.telegramChatId = res.telegramChatId.trim(); currentTenant.bankAccount = res.bankAccountNumber.trim();
         saveAndRefresh(); showCustomAlert("ተሳክቷል", "የማያያዣ መቼቶች በተሳካ ሁኔታ ተቀምጠዋል!");
     });
