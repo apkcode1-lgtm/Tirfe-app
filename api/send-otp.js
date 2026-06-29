@@ -1,9 +1,4 @@
-const { Resend } = require('resend');
-
-// =====================================================================
-// ማሳሰቢያ፡ እዚህ ጋር ከ Resend.com ያገኘኸውን ትክክለኛ API Key አስገባ
-const resend = new Resend('re_4KWXjQTD_EBTsPNqGhJRzXibV9nsE7Ksr');
-// =====================================================================
+const nodemailer = require('nodemailer');
 
 module.exports = async function handler(req, res) {
     // የ CORS ችግር እንዳይፈጠር የሚረዳ
@@ -22,7 +17,7 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        // ሪኩዌስቱ በ string መልክ ከመጣ ወደ JSON Object እንዲቀየር ተደርጓል
+        // ማሻሻያ፡ ሪኩዌስቱ በ string መልክ ከመጣ ወደ JSON Object እንዲቀየር ተደርጓል
         let body = req.body;
         if (typeof body === 'string') {
             body = JSON.parse(body);
@@ -34,9 +29,22 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'ኢሜል እና ኮድ ያስፈልጋል' });
         }
 
-        const { data, error } = await resend.emails.send({
-            // የራስህ ዶሜይን (Domain) Verify ካላደረግህ 'onboarding@resend.dev' የሚለውን አትቀይረው
-            from: 'Tirfe Shop Security <onboarding@resend.dev>',
+        // =====================================================================
+        // ማሳሰቢያ፡ እዚህ ጋር የራስህን ትክክለኛ ጂሜይል እና App Password አስገባ
+        const GMAIL_USER = "apkcode1@gmail.com";
+        const GMAIL_APP_PASSWORD = "umausytvzemsatwn";
+        // =====================================================================
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: GMAIL_USER,
+                pass: GMAIL_APP_PASSWORD,
+            }
+        });
+
+        const mailOptions = {
+            from: `"Tirfe Shop Security" <${GMAIL_USER}>`,
             to: email,
             subject: 'የማረጋገጫ ኮድ (Tirfe Verification Code)',
             html: `
@@ -55,17 +63,13 @@ module.exports = async function handler(req, res) {
                     </div>
                 </div>
             `
-        });
+        };
 
-        if (error) {
-            console.error("Resend API Error:", error);
-            return res.status(500).json({ success: false, error: error.message });
-        }
-
-        return res.status(200).json({ success: true, message: 'OTP ተልኳል', data });
+        await transporter.sendMail(mailOptions);
+        return res.status(200).json({ success: true, message: 'OTP ተልኳል' });
 
     } catch (error) {
-        console.error("Server Error:", error);
+        console.error("Mail Send Error:", error);
         return res.status(500).json({ success: false, error: error.message || "Internal Server Error" });
     }
 };
