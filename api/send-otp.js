@@ -31,8 +31,8 @@ module.exports = async function handler(req, res) {
 
         // =====================================================================
         // ማሳሰቢያ፡ እዚህ ጋር የ Brevo.com መረጃህን አስገባ
-        const BREVO_SMTP_USER = "የብሬቮ_መግቢያ_ኢሜልህን_ወይም_SMTP_Login_አስገባ"; // ምሳሌ: apkcode1@gmail.com
-        const BREVO_SMTP_KEY = "የብሬቮ_SMTP_Master_Password_አስገባ"; // ከ Brevo SMTP & API ገፅ የሚገኝ (Master Password)
+        const BREVO_SMTP_USER = "b046b2001@smtp-brevo.com"; // ምሳሌ: apkcode1@gmail.com
+        const BREVO_SMTP_KEY = "xsmtpsib-cd99e1d51ba2b272d78788e6bdf1faef604b60461677a0aa1f29e86665e5406d-oVcHceVx9r2qW7co"; // ከ Brevo SMTP & API ገፅ የሚገኝ (Master Password)
         const SENDER_EMAIL = "apkcode1@gmail.com"; // በ Brevo ላይ Verified ያደረግከው ኢሜል
         // =====================================================================
 
