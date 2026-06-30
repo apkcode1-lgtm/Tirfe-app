@@ -1,7 +1,3 @@
-// ==========================================
-// የገዥ (Buyer) ሲስተም ዋና ኮዶች (main_buyer.js)
-// ==========================================
-
 function logoutBuyer() {
     currentBuyer = null;
     localStorage.removeItem('tirfe_active_session');
