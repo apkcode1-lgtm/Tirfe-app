@@ -37,13 +37,11 @@ function renderRevenuePanel() {
                t.zone === currentRevenueOfficer.authZone &&
                t.woreda === currentRevenueOfficer.authWoreda) {
             
-       
                 count++;
                 let accumulatedVat = (t.data && t.data.accumulatedVat) ? parseFloat(t.data.accumulatedVat) : 0;
                 let businessTypeDisplay = t.businessType || 'አጠቃላይ ንግድ';
                 let gmailDisplay = t.gmail || 'አልገባም';
                 
-       
                 tbody.innerHTML += `<tr>
                     <td><b>${t.fullName}</b><br><small style="color:var(--accent-color)">${t.shopName} | ${businessTypeDisplay}</small></td>
                     <td>📞 ${t.phone}<br>📧 ${gmailDisplay}</td>
@@ -85,7 +83,6 @@ window.payTenantVat = function(username) {
         // --- አዲሱ የግብር ደረሰኝ (Tax Receipt) ሎጂክ እዚህ ይገባል ---
         let recId = Math.floor(100000 + Math.random() * 900000);
         let todayDate = typeof getTodayFormatted === 'function' ? getTodayFormatted() : new Date().toISOString().split('T')[0];
-        
         let newTaxReceipt = {
             recId: recId,
             date: todayDate,
@@ -101,7 +98,6 @@ window.payTenantVat = function(username) {
             tenantTin: t.tinNumber || "-",
             reason: "የቫት (VAT) ግብር ክፍያ"
         };
-
         if(!t.data.taxReceipts) t.data.taxReceipts = [];
         t.data.taxReceipts.push(newTaxReceipt);
 
