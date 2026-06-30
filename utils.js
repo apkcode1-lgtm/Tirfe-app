@@ -7,10 +7,8 @@ function processImageUpload(file, callback) {
             let canvas = document.createElement('canvas');
             let MAX_WIDTH = 500; let MAX_HEIGHT = 500;
             let width = img.width; let height = img.height;
-            if(width > height) { if(width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH;
-            } }
-            else { if(height > MAX_HEIGHT) { width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT; } }
+            if(width > height) { if(width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } }
+            else { if(height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
             canvas.width = width;
             canvas.height = height;
             let ctx = canvas.getContext('2d');
@@ -42,7 +40,7 @@ function generateRandomCode() {
 }
 
 function switchView(targetId) {
-    let views = ['welcomeGateway', 'unifiedLoginBox', 'unifiedRegisterBox', 'buyerPage', 'adminPage', 'appPage', 'revenuePage'];
+    let views = ['welcomeGateway', 'unifiedLoginBox', 'unifiedRegisterBox', 'buyerPage', 'adminPage', 'appPage', 'revenuePage', 'motorPage'];
     views.forEach(v => {
         let el = document.getElementById(v);
         if(el) el.classList.add('hidden');
@@ -62,7 +60,6 @@ function openModalContainer() {
 function closeActiveModal() { 
     document.getElementById('modalOverlay').classList.add('hidden'); 
     document.querySelectorAll('.modal-card').forEach(m => m.classList.add('hidden'));
-    
     // የ QR ካሜራ ክፍት ከሆነ ሲዘጋ ካሜራውም አብሮ እንዲጠፋ
     if (typeof html5QrcodeScanner !== 'undefined' && html5QrcodeScanner) {
         try { html5QrcodeScanner.clear(); } catch(e){}
@@ -72,7 +69,7 @@ function closeActiveModal() {
 function showCustomAlert(title, message, callback) {
     document.getElementById('alertTitle').innerText = title;
     document.getElementById('alertMessage').innerText = message;
-    openModalContainer(); 
+    openModalContainer();
     document.getElementById('alertModal').classList.remove('hidden');
     document.querySelector('#alertModal .btn-add').onclick = function() { 
         closeActiveModal(); 
@@ -178,13 +175,11 @@ function moveToPrev(e, current, prevFieldID) {
 // 1. የሱቅ QR ኮድ አመንጪ እና ማሳያ
 function showSellerQR() {
     if(typeof currentTenant === 'undefined' || !currentTenant) return;
-    
     let qrContainer = document.getElementById("sellerQRCodeContainer");
     qrContainer.innerHTML = ""; // የድሮውን ማጥፊያ
     
     // ልዩ መለያ ኮድ ፎርማት
     let qrText = "TIRFE_SHOP:" + currentTenant.username;
-    
     new QRCode(qrContainer, {
         text: qrText,
         width: 200,
@@ -193,7 +188,6 @@ function showSellerQR() {
         colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.H
     });
-    
     document.getElementById("qrShopName").innerText = currentTenant.shopName;
     let bizType = currentTenant.businessType ? currentTenant.businessType : "አጠቃላይ ንግድ";
     document.getElementById("qrShopType").innerText = `[ ${bizType} ]`;
@@ -225,12 +219,10 @@ function downloadSellerQR() {
 
 // 3. የገዥዎች ስካነር 
 let html5QrcodeScanner = null;
-
 function openQRScanner() {
     openModalContainer();
     document.querySelectorAll('.modal-card').forEach(m => m.classList.add('hidden'));
     document.getElementById('qrScannerModal').classList.remove('hidden');
-    
     if(!html5QrcodeScanner) {
         html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
     }
@@ -256,11 +248,11 @@ function onScanSuccess(decodedText, decodedResult) {
         
         let searchInput = document.getElementById('buyerSearchInput');
         if(searchInput) {
-            searchInput.value = shopUsername; // ማጣሪያው ላይ ዩዘርኔሙን ያስገባዋል
+            searchInput.value = shopUsername;
+            // ማጣሪያው ላይ ዩዘርኔሙን ያስገባዋል
         }
         
         closeQRScanner();
-        
         let shopName = (typeof localDB !== 'undefined' && localDB.tenants && localDB.tenants[shopUsername]) 
                         ? localDB.tenants[shopUsername].shopName : "የተመረጠው";
                         
@@ -268,7 +260,6 @@ function onScanSuccess(decodedText, decodedResult) {
         document.getElementById('qrFilterIndicator').classList.remove('hidden');
         
         showCustomAlert("✅ ስካን ተሳክቷል!", `ወደ "${shopName}" ሱቅ ገብተዋል! አሁን የዚህን ነጋዴ ዕቃዎች ብቻ መግዛት ይችላሉ።`);
-        
         if(typeof renderBuyerCatalog === 'function') {
             renderBuyerCatalog();
         }
