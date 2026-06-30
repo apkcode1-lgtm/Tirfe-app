@@ -2,20 +2,18 @@ let localDB = {
     tenants: {}, 
     buyers: {}, 
     revenueAuthorities: {}, 
+    motors: {}, // አዲሱ የሞተረኞች ዳታቤዝ
     taxReceipts: [], 
-    // የደህንነት ማሻሻያ፡ adminAppPass እና tgToken ከዚህ ላይ ሙሉ በሙሉ ጠፍተዋል
-    adminSettings: { bankAccount: '', vatRate: 0 }, 
+    adminSettings: { bankAccount: '', vatRate: 0, motorTariff: 0 }, // የሞተረኛ ታሪፍ ተጨምሯል
     tariffs: { low: 500, medium: 1000, high: 2000 }, 
     businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"] 
 };
 
-// ማስተካከያ፡ ከመነሻው ትክክለኛውን የኢንተርኔት ሁኔታ እንዲያነብ ተደርጓል
 let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
 
 window.addEventListener('online', handleOnlineStatus);
 window.addEventListener('offline', handleOnlineStatus);
 
-// ፔጁ ሪፍሬሽ ሲደረግ ዳታው ወዲያውኑ እንዲጫን ይህ ፈንክሽን መጀመሪያ ላይ መጠራት አለበት
 loadLocalStorageBackup();
 
 function handleOnlineStatus() {
@@ -40,12 +38,12 @@ function loadLocalStorageBackup() {
         if(parsedBackup.tenants) localDB.tenants = parsedBackup.tenants;
         if(parsedBackup.buyers) localDB.buyers = parsedBackup.buyers;
         if(parsedBackup.revenueAuthorities) localDB.revenueAuthorities = parsedBackup.revenueAuthorities;
+        if(parsedBackup.motors) localDB.motors = parsedBackup.motors;
         if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
         if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
         if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
         if(parsedBackup.adminSettings) localDB.adminSettings = parsedBackup.adminSettings;
 
-        // ዳታው ሲጫን የክልል/ዞን እና የንግድ ዘርፍ ምርጫዎችን አፕዴት ያድርግ
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
         if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
     }
@@ -56,28 +54,23 @@ function saveToLocalStorage() {
 }
 
 function pushToFirebase() { 
-    // ማንኛውም ዳታ ሲገባ ሁልጊዜ በመጀመሪያ ሎካል ስቶሬጅ ላይ ሴቭ እንዲያደርግ ተደርጓል
     saveToLocalStorage();
-
     if(isOnline && typeof db !== 'undefined') { 
         
-        // ማስተካከያ፡ የዳታ ማጽጃ (Sanitizer)። ፋየርቤዝ undefined ዳታ ካገኘ ድምጽ ሳያሰማ ሴቭ ማድረጉን ያቋርጣል (Silent Error)።
-        // ይሄ ፈንክሽን ማናቸውንም undefined የሆኑ ክፍተቶች አጽድቶ ንፁህ ዳታ ለፋየርቤዝ ያቀርባል።
         const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
 
-        // አድሚን ሲሆን ሁሉንም ዳታዎች ወደ ፋየርቤዝ እንዲጭን ተስተካክሏል
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
             db.ref('tirfe_system').update({
                 tenants: cleanData(localDB.tenants) || {},
                 buyers: cleanData(localDB.buyers) || {},
                 revenueAuthorities: cleanData(localDB.revenueAuthorities) || {},
+                motors: cleanData(localDB.motors) || {},
                 taxReceipts: cleanData(localDB.taxReceipts) || [],
                 tariffs: cleanData(localDB.tariffs) || {},
                 businessTypes: cleanData(localDB.businessTypes) || [],
                 adminSettings: cleanData(localDB.adminSettings) || {}
             }).catch(err => console.error("Firebase Admin Sync Error:", err));
         } else {
-            // የደህንነት ማሻሻያ፡ ሙሉ ዳታቤዙን overwrite ከማድረግ ይልቅ ተጠቃሚው የራሱን ዳታ ብቻ ሴቭ እንዲያደርግ ተቀይሯል
             if(typeof currentTenant !== 'undefined' && currentTenant) {
                 let tenantData = cleanData(localDB.tenants[currentTenant.username]);
                 if(tenantData) {
@@ -99,13 +92,18 @@ function pushToFirebase() {
                     .catch(err => console.error("Firebase Revenue Sync Error:", err));
                 }
             }
+            if(typeof currentMotor !== 'undefined' && currentMotor) {
+                let motorData = cleanData(localDB.motors[currentMotor.username]);
+                if(motorData) {
+                    db.ref(`tirfe_system/motors/${currentMotor.username}`).set(motorData)
+                    .catch(err => console.error("Firebase Motor Sync Error:", err));
+                }
+            }
             
-            // የጋራ ዳታዎችን Update ማድረግ እንጂ Set አናደርግም (የሌላውን ዳታ ላለማጥፋት)
             let updates = {};
             if(localDB.taxReceipts) updates.taxReceipts = cleanData(localDB.taxReceipts);
             if(localDB.tariffs) updates.tariffs = cleanData(localDB.tariffs);
             if(localDB.businessTypes) updates.businessTypes = cleanData(localDB.businessTypes);
-            
             if(Object.keys(updates).length > 0) {
                 db.ref('tirfe_system').update(updates).catch(err => console.error("Firebase Global Updates Error:", err));
             }
@@ -113,9 +111,7 @@ function pushToFirebase() {
     } 
 }
 
-// የደህንነት ማሻሻያ፡ ቴሌግራም መልእክት አላላክ ወደ Vercel Backend API ተቀይሯል
 function sendAdminTelegramAlert(message) {
-    // ማሳሰቢያ፡ ይህንን ሊንክ Vercel ላይ ዴፕሎይ ካደረግክ በኋላ በሚሰጥህ ትክክለኛ ሊንክ ቀይረው
     const backendAPIUrl = "https://tirfe-app.vercel.app/api/sendAdminTelegram";
     fetch(backendAPIUrl, {
         method: 'POST',
@@ -124,10 +120,8 @@ function sendAdminTelegramAlert(message) {
     }).catch(err => console.log("Admin Telegram API Alert Error: ", err));
 }
 
-// የተከራይ ቴሌግራም መልእክት አላላክ
 function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant) return;
-    // ማሳሰቢያ፡ ይህንን ሊንክ Vercel ላይ ዴፕሎይ ካደረግክ በኋላ በሚሰጥህ ትክክለኛ ሊንክ ቀይረው
     const backendAPIUrl = "https://tirfe-app.vercel.app/api/sendTenantTelegram";
     fetch(backendAPIUrl, {
         method: 'POST',
@@ -139,10 +133,8 @@ function sendTelegramAlert(message) {
     }).catch(err => console.log("Telegram API Error: ", err));
 }
 
-// የደህንነት ማሻሻያ፡ ሙሉ ዳታቤዝ በአንድ ጊዜ ከማውረድ ይልቅ ደህንነቱ በተጠበቀ ሁኔታ መከፋፈል
 if(typeof db !== 'undefined') {
     
-    // 1. የጋራ (Public) የሆኑትን ብቻ ሲስተሙ ሲነሳ ይጎትታል
     const publicNodes = ['tariffs', 'businessTypes', 'adminSettings'];
     publicNodes.forEach(node => {
         db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
@@ -158,7 +150,6 @@ if(typeof db !== 'undefined') {
         });
     });
 
-    // 2. የተጠቃሚዎችን የግል ዳታ በየራሳቸው (Secure Fetching) የሚጎትት ፈንክሽን
     window.setupSecureUserListeners = function() {
         if(typeof currentTenant !== 'undefined' && currentTenant) {
             db.ref(`tirfe_system/tenants/${currentTenant.username}`).on('value', (snapshot) => {
@@ -187,12 +178,19 @@ if(typeof db !== 'undefined') {
                 }
             });
         }
+        if(typeof currentMotor !== 'undefined' && currentMotor) {
+            db.ref(`tirfe_system/motors/${currentMotor.username}`).on('value', (snapshot) => {
+                if(snapshot.exists()) {
+                    localDB.motors[currentMotor.username] = snapshot.val();
+                    saveToLocalStorage();
+                    triggerUIRefresh();
+                }
+            });
+        }
     };
 
-    // ሎካል ስቶሬጅ ላይ ከዚህ በፊት ሎግ-ኢን ያደረገ ሰው ካለ ቼክ እንዲያደርግ
     setupSecureUserListeners();
 
-    // የ UI ሪፍሬሽ ሎጂክ በየቦታው እንዳይደገም በአንድ ፈንክሽን ተሰብስቧል
     function triggerUIRefresh() {
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
         if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
@@ -213,7 +211,7 @@ if(typeof db !== 'undefined') {
             if(checkBuyer) currentBuyer = checkBuyer;
         }
         if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-        
+
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
@@ -221,6 +219,7 @@ if(typeof db !== 'undefined') {
         let adminPage = document.getElementById('adminPage');
         if(adminPage && !adminPage.classList.contains('hidden')) { 
             if(typeof renderAdminPanel === 'function') renderAdminPanel();
+            if(typeof renderAdminMotors === 'function') renderAdminMotors();
         }
     }
 }
