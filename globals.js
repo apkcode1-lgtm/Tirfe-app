@@ -1,6 +1,8 @@
 let currentTenant = null;
 let currentUserRole = "owner";
 let currentRevenueOfficer = null;
+let currentMotor = null;
+// የሞተረኛ መረጃ ማከማቻ
 let myChart = null;
 let currentLoginMode = "unified";
 let activeCategoryFilter = "all";
@@ -34,7 +36,6 @@ function getAvailableLocations() {
         let rRegion = rev.authRegion || rev.region; 
         let rZone = rev.authZone || rev.zone;
         let rWoreda = rev.authWoreda || rev.woreda;
-
         if (rRegion && rZone && rWoreda) {
             
             // ክልል መጨመር
@@ -126,42 +127,90 @@ function handleZoneChange(regionId, zoneId, woredaId) {
 
 function updateAllLocationDropdowns() {
     // የተጠቃሚዎች መመዝገቢያ ፎርም (Unified Form) አፕዴት ማድረግ
-    if (document.getElementById('pub_newRegion')) {
-        let currentReg = document.getElementById('pub_newRegion').value;
-        let currentZone = document.getElementById('pub_newZone').value;
-        let currentWor = document.getElementById('pub_newWoreda').value;
-        
-        initLocationDropdowns('pub_newRegion', 'pub_newZone', 'pub_newWoreda');
-        if (currentReg) {
-            document.getElementById('pub_newRegion').value = currentReg;
-            handleRegionChange('pub_newRegion', 'pub_newZone', 'pub_newWoreda');
-            if (currentZone) {
-                document.getElementById('pub_newZone').value = currentZone;
-                handleZoneChange('pub_newRegion', 'pub_newZone', 'pub_newWoreda');
-                if (currentWor) {
-                    document.getElementById('pub_newWoreda').value = currentWor;
+    try {
+        if (document.getElementById('pub_newRegion')) {
+            let currentReg = document.getElementById('pub_newRegion').value;
+            let currentZone = document.getElementById('pub_newZone').value;
+            let currentWor = document.getElementById('pub_newWoreda').value;
+            
+            initLocationDropdowns('pub_newRegion', 'pub_newZone', 'pub_newWoreda');
+            if (currentReg) {
+                document.getElementById('pub_newRegion').value = currentReg;
+                handleRegionChange('pub_newRegion', 'pub_newZone', 'pub_newWoreda');
+                if (currentZone) {
+                    document.getElementById('pub_newZone').value = currentZone;
+                    handleZoneChange('pub_newRegion', 'pub_newZone', 'pub_newWoreda');
+                    if (currentWor) {
+                        document.getElementById('pub_newWoreda').value = currentWor;
+                    }
                 }
             }
         }
-    }
+    } catch (e) { console.error("Error in public dropdowns: ", e); }
 
     // የአድሚን መመዝገቢያ ፎርም አፕዴት ማድረግ
-    if (document.getElementById('newRegion')) {
-        let currentReg = document.getElementById('newRegion').value;
-        let currentZone = document.getElementById('newZone').value;
-        let currentWor = document.getElementById('newWoreda').value;
-        
-        initLocationDropdowns('newRegion', 'newZone', 'newWoreda');
-        if (currentReg) {
-            document.getElementById('newRegion').value = currentReg;
-            handleRegionChange('newRegion', 'newZone', 'newWoreda');
-            if (currentZone) {
-                document.getElementById('newZone').value = currentZone;
-                handleZoneChange('newRegion', 'newZone', 'newWoreda');
-                if (currentWor) {
-                    document.getElementById('newWoreda').value = currentWor;
+    try {
+        if (document.getElementById('newRegion')) {
+            let currentReg = document.getElementById('newRegion').value;
+            let currentZone = document.getElementById('newZone').value;
+            let currentWor = document.getElementById('newWoreda').value;
+            
+            initLocationDropdowns('newRegion', 'newZone', 'newWoreda');
+            if (currentReg) {
+                document.getElementById('newRegion').value = currentReg;
+                handleRegionChange('newRegion', 'newZone', 'newWoreda');
+                if (currentZone) {
+                    document.getElementById('newZone').value = currentZone;
+                    handleZoneChange('newRegion', 'newZone', 'newWoreda');
+                    if (currentWor) {
+                        document.getElementById('newWoreda').value = currentWor;
+                    }
                 }
             }
         }
-    }
+    } catch (e) { console.error("Error in admin dropdowns: ", e); }
+
+    // የሞተረኛ መመዝገቢያ ፎርም አፕዴት ማድረግ
+    try {
+        if (document.getElementById('mot_region')) {
+            let currentReg = document.getElementById('mot_region').value;
+            let currentZone = document.getElementById('mot_zone').value;
+            let currentWor = document.getElementById('mot_woreda').value;
+            
+            initLocationDropdowns('mot_region', 'mot_zone', 'mot_woreda');
+            if (currentReg) {
+                document.getElementById('mot_region').value = currentReg;
+                handleRegionChange('mot_region', 'mot_zone', 'mot_woreda');
+                if (currentZone) {
+                    document.getElementById('mot_zone').value = currentZone;
+                    handleZoneChange('mot_region', 'mot_zone', 'mot_woreda');
+                    if (currentWor) {
+                        document.getElementById('mot_woreda').value = currentWor;
+                    }
+                }
+            }
+        }
+    } catch (e) { console.error("Error in motor dropdowns: ", e); }
 }
+
+// አዲስ የተጨመረ - ተጠቃሚው "ሞተረኛ ነኝ" ብሎ ሲመርጥ ፎርሙን በራሱ ጊዜ ዳታ እንዲያመጣ (Refresh እንዲያደርግ) የተጨመረ 
+document.addEventListener('DOMContentLoaded', () => {
+    const roleSelect = document.getElementById('unifiedRegRole');
+    if(roleSelect) {
+        roleSelect.addEventListener('change', (e) => {
+            if(e.target.value === 'motor' || e.target.value === 'tenant') {
+                updateAllLocationDropdowns();
+            }
+        });
+    }
+    
+    // ተጨማሪ ጥንቃቄ - ክልል የሚለው ላይ ክሊክ ሲያደርግ ባዶ ከሆነ ወዲያውኑ ፈልጎ እንዲያመጣ
+    const motReg = document.getElementById('mot_region');
+    if(motReg) {
+        motReg.addEventListener('focus', function() {
+            if(this.options.length <= 1) {
+                updateAllLocationDropdowns();
+            }
+        });
+    }
+});
