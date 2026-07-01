@@ -2,7 +2,6 @@
 function renderMotorPage() {
     // currentMotor በሎጊን ጊዜ (main_auth.js) የሚፈጠር ግሎባል ቬርያብል ነው
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
-
     // ሀ. የፕሮፋይል ባጅ መሙላት
     const badge = document.getElementById('motorProfileBadge');
     if (badge) {
@@ -47,12 +46,10 @@ function toggleMotorSettings() {
 // 3. የተስተካከለውን ሲቲንግ ሴቭ ማድረጊያ
 function saveMotorSettings() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
-
     const email = document.getElementById('motSetEmail').value.trim();
     const phone = document.getElementById('motSetPhone').value.trim();
     const pass = document.getElementById('motSetPassword').value.trim();
     const tg = document.getElementById('motSetTelegram').value.trim();
-
     if (email) currentMotor.email = email;
     if (phone) currentMotor.phone = phone;
     if (tg) {
@@ -61,7 +58,6 @@ function saveMotorSettings() {
         // ሁለቱም ላይ መቀመጡ ለደህንነት እና ስህተት ላለመፍጠር ይረዳል
     }
     if (pass) currentMotor.password = pass;
-
     // ዳታቤዝ ላይ አፕዴት ማድረግ
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -74,13 +70,13 @@ function saveMotorSettings() {
 
     alert("ማስተካከያው በትክክል ተቀምጧል!");
     toggleMotorSettings(); // ሴቲንጉን መልሶ ይደብቀዋል
-    renderMotorPage(); // ገፁን አዲስ ያደርገዋል
+    renderMotorPage();
+    // ገፁን አዲስ ያደርገዋል
 }
 
 // 4. ኦንላይን/ኦፍላይን መቀየሪያ
 function toggleMotorOnlineStatus() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
-
     const isChecked = document.getElementById('motorStatusToggle').checked;
     
     // Status ወደ ዳታቤዝ ማስገባት
@@ -89,7 +85,6 @@ function toggleMotorOnlineStatus() {
     
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') pushToFirebase();
-
     // ለሞተረኛው ቴሌግራም ላይ ሁኔታውን ማሳወቅ
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, `🔄 የስራ ሁኔታዎ ወደ ${isChecked ? 'ኦንላይን (Online)' : 'ኦፍላይን (Offline)'} ተቀይሯል።`);
@@ -110,7 +105,6 @@ function openMotorCreditModal() {
 // 6. ክሬዲት ሲሞላ ገንዘቡን ወደ አካውንቱ ማስገቢያ (ለጊዜው እዚሁ የሚደምር መዋቅር ነው)
 function submitMotorCredit() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
-
     const amountInput = document.getElementById('motorCreditAmount').value;
     const amount = parseFloat(amountInput);
 
@@ -178,12 +172,10 @@ function renderMotorOrders() {
 // 8. ሞተረኛው አዲሱን ጥሪ አክሲፕት ሲያደርግ (ከሌሎች ሞተረኞች ላይ ይጠፋል)
 window.acceptMotorOrder = function(index) {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
-
     let acceptedOrder = currentMotor.activeOrders[index];
 
     // 1. ስታተሱን መቀየር
     acceptedOrder.status = 'accepted';
-
     // 2. ይሄንን ትዕዛዝ ከሌሎች ሞተረኞች ላይ ማጥፋት (በ poolId በመለየት)
     let poolId = acceptedOrder.poolId;
     if(poolId && localDB.motors) {
@@ -206,7 +198,7 @@ window.acceptMotorOrder = function(index) {
                     `🗺️ የሻጭ ጎግል ማፕ: ${acceptedOrder.shopMap || '-'}\n\n` +
                     `🛍️ የዕቃው አይነት: ${acceptedOrder.itemName || '-'}\n` +
                     `🔢 የዕቃው ብዛት: ${acceptedOrder.qty || '-'}\n\n` +
-                    `መልካም ስራ! አድራሻውን ተጠቅመው እቃውን ያድርሱ።`;
+                    `መልካም ስራ!\nአድራሻውን ተጠቅመው እቃውን ያድርሱ።`;
 
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, tgMessage);
@@ -225,7 +217,6 @@ window.acceptMotorOrder = function(index) {
 function renderMotorHistory() {
     const tbody = document.getElementById('motorHistoryBody');
     if (!tbody) return;
-
     tbody.innerHTML = '';
 
     let history = currentMotor.history || [];
@@ -237,7 +228,6 @@ function renderMotorHistory() {
 
     // አዲሱ ታሪክ ከላይ እንዲመጣ ሪቨርስ እናደርገዋለን (reverse)
     let reversedHistory = [...history].reverse();
-
     reversedHistory.forEach(record => {
         let tr = document.createElement('tr');
         tr.innerHTML = `
@@ -253,31 +243,26 @@ function renderMotorHistory() {
 // 10. ትዕዛዝ ማድረሱን ማረጋገጫ እና ወደ ታሪክ (History) ማዛወሪያ
 function completeMotorOrder(index) {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
-
     if(!confirm("እርግጠኛ ነዎት እቃውን ለደንበኛው አስረክበዋል?")) return;
     
     let order = currentMotor.activeOrders[index];
     
     // ሀ. መረጃውን ወደ ታሪክ (history) ማስገባት
     if(!currentMotor.history) currentMotor.history = [];
-    
     currentMotor.history.push({
         date: new Date().toLocaleDateString('am-ET'),
         shopName: order.shopName,
         buyerName: order.buyerName,
         earned: order.deliveryFee || 0
     });
-
     // ለ. ከአክቲቭ ኦርደር ላይ ማጥፋት
     currentMotor.activeOrders.splice(index, 1);
     
     // ሐ. ያደረሳቸውን አጠቃላይ ብዛት መጨመር
     currentMotor.totalDelivered = (currentMotor.totalDelivered || 0) + 1;
-
     // ማሳሰቢያ፦ የክሬዲት መቀነስ/መቁረጥ ስሌት (Credit Deduct Logic) ገና አልተሰራም።
     // በቀጣይ ትዕዛዝ ሲያደርስ ክሬዲት የሚቆርጥ ከሆነ እዚህ ጋር ይጨመራል፦
     // currentMotor.credit -= order.platformFee;
-
     // ዳታቤዝ አፕዴት
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -370,13 +355,11 @@ async function processMotorRegistration() {
     }
 
     // የ 1MB ክልከላ ሙሉ በሙሉ ተነስቷል! ፎቶው የፈለገውን ያህል ቢሆን ሲስተሙ በራሱ ያሳንሰዋል።
-
     const btn = document.getElementById('regSubmitBtn');
     const originalText = btn.innerText;
 
     btn.innerText = "ፎቶዎችን በማዘጋጀት ላይ...";
     btn.disabled = true;
-
     try {
         // 1. ዩዘርኔም ወይም ስልክ መያዙን ማረጋገጥ 
         if (typeof isSystemDataTaken === 'function') {
@@ -401,7 +384,6 @@ async function processMotorRegistration() {
         const licBase64 = await compressMotorImage(licFile);
 
         btn.innerText = "OTP በመላክ ላይ...";
-
         // 3. OTP ወደ ኢሜል መላክ
         if(typeof triggerOTPFlow === 'function') {
             pendingRegType = 'motor';
@@ -412,17 +394,20 @@ async function processMotorRegistration() {
                 showFormModal("🔒 የይለፍ ቃል ይፍጠሩ", [
                     { id: "newPass", label: "ለሞተረኛ አካውንትዎ አዲስ የይለፍ ቃል ይፍጠሩ፦", type: "password", placeholder: "ሚስጥራዊ ፓስዎርድ" }
                 ], async (res) => {
+    
                     if(!res.newPass) { 
                         if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); 
                         return; 
                     }
+      
                     await finalizeMotorRegistration(res.newPass, idBase64, licBase64);
                 });
             };
         } else {
             // እንደ አጋጣሚ የ OTP ሎጂክ ከሌለ ፎልባክ (Fallback)
             let defaultPass = prompt("እባክዎ ለመግቢያ የሚሆን የይለፍ ቃል ይፍጠሩ:");
-            if(!defaultPass) { alert("ፓስዎርድ አልፈጠሩም!"); btn.innerText = originalText; btn.disabled = false; return; }
+            if(!defaultPass) { alert("ፓስዎርድ አልፈጠሩም!"); btn.innerText = originalText; btn.disabled = false; return;
+            }
             await finalizeMotorRegistration(defaultPass, idBase64, licBase64);
         }
 
@@ -441,7 +426,6 @@ async function processMotorRegistration() {
             btn.disabled = true;
 
             if (typeof localDB.motors === 'undefined') localDB.motors = {};
-            
             // 5. መረጃውን ወደ ቋት (Database) ማስገባት
             localDB.motors[user] = {
                 role: 'motor',
@@ -468,7 +452,7 @@ async function processMotorRegistration() {
             };
 
             // ወደ ሎካል እና ኦንላይን ዳታቤዝ መላክ
-            if (typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
+            if (typeof db !== 'undefined' && db) {
                 db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
             }
             
@@ -489,7 +473,6 @@ async function processMotorRegistration() {
             document.getElementById('unifiedMotorForm').querySelectorAll('input').forEach(i => i.value = '');
             if(typeof goToGateway === 'function') goToGateway();
             else if(typeof switchView === 'function') switchView('welcomeGateway');
-
         } catch (err) {
             console.error(err);
         } finally {
