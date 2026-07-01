@@ -51,14 +51,17 @@ function toggleMotorSettings() {
 // 3. የተስተካከለውን ሲቲንግ ሴቭ ማድረጊያ
 function saveMotorSettings() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
+
     const email = document.getElementById('motSetEmail').value.trim();
     const phone = document.getElementById('motSetPhone').value.trim();
     const pass = document.getElementById('motSetPassword').value.trim();
     const tg = document.getElementById('motSetTelegram').value.trim();
+
     if (email) currentMotor.email = email;
     if (phone) currentMotor.phone = phone;
     if (tg) currentMotor.tgToken = tg;
     if (pass) currentMotor.password = pass;
+
     // ዳታቤዝ ላይ አፕዴት ማድረግ
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -72,10 +75,12 @@ function saveMotorSettings() {
 // 4. ኦንላይን/ኦፍላይን መቀየሪያ
 function toggleMotorOnlineStatus() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
+
     const isChecked = document.getElementById('motorStatusToggle').checked;
     
     // Status ወደ ዳታቤዝ ማስገባት
     currentMotor.status = isChecked ? 'online' : 'offline';
+
     localDB.motors[currentMotor.username] = currentMotor;
     
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -96,6 +101,7 @@ function openMotorCreditModal() {
 // 6. ክሬዲት ሲሞላ ገንዘቡን ወደ አካውንቱ ማስገቢያ (ለጊዜው እዚሁ የሚደምር መዋቅር ነው)
 function submitMotorCredit() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
+
     const amountInput = document.getElementById('motorCreditAmount').value;
     const amount = parseFloat(amountInput);
 
@@ -127,6 +133,7 @@ function renderMotorOrders() {
     tbody.innerHTML = '';
 
     let activeOrders = currentMotor.activeOrders || [];
+
     if (activeOrders.length === 0) {
         tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">በአሁኑ ሰዓት የተመደበ ምንም ትዕዛዝ የለም</td></tr>`;
         return;
@@ -150,6 +157,7 @@ function renderMotorOrders() {
 function renderMotorHistory() {
     const tbody = document.getElementById('motorHistoryBody');
     if (!tbody) return;
+
     tbody.innerHTML = '';
 
     let history = currentMotor.history || [];
@@ -176,6 +184,7 @@ function renderMotorHistory() {
 // 9. ትዕዛዝ ማድረሱን ማረጋገጫ እና ወደ ታሪክ (History) ማዛወሪያ
 function completeMotorOrder(index) {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
+
     if(!confirm("እርግጠኛ ነዎት እቃውን ለደንበኛው አስረክበዋል?")) return;
     
     let order = currentMotor.activeOrders[index];
@@ -188,16 +197,17 @@ function completeMotorOrder(index) {
         buyerName: order.buyerName,
         earned: order.deliveryFee || 0
     });
+
     // ለ. ከአክቲቭ ኦርደር ላይ ማጥፋት
     currentMotor.activeOrders.splice(index, 1);
     
     // ሐ. ያደረሳቸውን አጠቃላይ ብዛት መጨመር
     currentMotor.totalDelivered = (currentMotor.totalDelivered || 0) + 1;
-    
+
     // ማሳሰቢያ፦ የክሬዲት መቀነስ/መቁረጥ ስሌት (Credit Deduct Logic) ገና አልተሰራም።
     // በቀጣይ ትዕዛዝ ሲያደርስ ክሬዲት የሚቆርጥ ከሆነ እዚህ ጋር ይጨመራል፦
     // currentMotor.credit -= order.platformFee;
-    
+
     // ዳታቤዝ አፕዴት
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -254,6 +264,7 @@ function compressMotorImage(file) {
                 
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
+
                 // ፎቶውን ወደ 60% ጥራት ዝቅ በማድረግ ሚሞሪ እንዳይጨናነቅ ያደርጋል
                 resolve(canvas.toDataURL('image/jpeg', 0.6));
             };
@@ -283,6 +294,19 @@ async function processMotorRegistration() {
     if (!fName || !lName || !phone || !email || !user || !tg || !plate || !region || !idFile || !licFile) {
         if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "እባክዎ ሁሉንም የሞተረኛ መረጃዎች እና ፎቶዎች በትክክል ያስገቡ!");
         else alert("እባክዎ ሁሉንም የሞተረኛ መረጃዎች እና ፎቶዎች በትክክል ያስገቡ!");
+        return;
+    }
+
+    // የፎቶ ሳይዝ ማረጋገጫ (1MB = 1048576 bytes)
+    const MAX_SIZE = 1048576;
+    if (idFile.size > MAX_SIZE) {
+        if(typeof showCustomAlert === 'function') showCustomAlert("⚠️ ፎቶው ትልቅ ነው", "የነዋሪነት መታወቂያ ፎቶ ሳይዝ ከ 1MB በላይ ነው። እባክዎ አነስ ያለ ፎቶ ይምረጡ (ከወዲሁ ቀድሞ እንዲስተካከል)። 1MB ይሁን።");
+        else alert("የነዋሪነት መታወቂያ ፎቶ ሳይዝ ከ 1MB በላይ ነው። እባክዎ አነስ ያለ ፎቶ ይምረጡ። 1MB ይሁን።");
+        return;
+    }
+    if (licFile.size > MAX_SIZE) {
+        if(typeof showCustomAlert === 'function') showCustomAlert("⚠️ ፎቶው ትልቅ ነው", "የመንጃፍቃድ ፎቶ ሳይዝ ከ 1MB በላይ ነው። እባክዎ አነስ ያለ ፎቶ ይምረጡ (ከወዲሁ ቀድሞ እንዲስተካከል)። 1MB ይሁን።");
+        else alert("የመንጃፍቃድ ፎቶ ሳይዝ ከ 1MB በላይ ነው። እባክዎ አነስ ያለ ፎቶ ይምረጡ። 1MB ይሁን።");
         return;
     }
 
@@ -346,7 +370,7 @@ async function processMotorRegistration() {
             const licBase64 = await compressMotorImage(licFile);
 
             if (typeof localDB.motors === 'undefined') localDB.motors = {};
-            
+
             // 5. መረጃውን ወደ ቋት (Database) ማስገባት
             localDB.motors[user] = {
                 role: 'motor',
