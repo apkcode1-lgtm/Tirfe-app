@@ -169,13 +169,14 @@ function renderMotorOrders() {
     });
 }
 
-// 8. ሞተረኛው አዲሱን ጥሪ አክሲፕት ሲያደርግ (ከሌሎች ሞተረኞች ላይ ይጠፋል)
+// ============== ማስተካከያ የተደረገበት ክፍል (ሞተረኛ ኦርደሩን ሲቀበል) ==============
 window.acceptMotorOrder = function(index) {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
     let acceptedOrder = currentMotor.activeOrders[index];
 
     // 1. ስታተሱን መቀየር
     acceptedOrder.status = 'accepted';
+    
     // 2. ይሄንን ትዕዛዝ ከሌሎች ሞተረኞች ላይ ማጥፋት (በ poolId በመለየት)
     let poolId = acceptedOrder.poolId;
     if(poolId && localDB.motors) {
@@ -184,6 +185,13 @@ window.acceptMotorOrder = function(index) {
                 let otherMotor = localDB.motors[mUser];
                 if(otherMotor.activeOrders) {
                     otherMotor.activeOrders = otherMotor.activeOrders.filter(o => o.poolId !== poolId);
+                    
+                    // --- አዲስ የተጨመረው ኮድ ---
+                    // ሌሎች ሞተረኞች ገፅ ላይ ወዲያውኑ ትዕዛዙ እንዲጠፋ ወደ Firebase መላክ
+                    if(typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
+                        db.ref(`tirfe_system/motors/${mUser}`).set(otherMotor).catch(err => console.error(err));
+                    }
+                    // ------------------------
                 }
             }
         });
@@ -199,7 +207,7 @@ window.acceptMotorOrder = function(index) {
                     `🛍️ የዕቃው አይነት: ${acceptedOrder.itemName || '-'}\n` +
                     `🔢 የዕቃው ብዛት: ${acceptedOrder.qty || '-'}\n\n` +
                     `መልካም ስራ!\nአድራሻውን ተጠቅመው እቃውን ያድርሱ።`;
-
+    
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, tgMessage);
     }
@@ -212,6 +220,7 @@ window.acceptMotorOrder = function(index) {
     alert("ትዕዛዙን በተሳካ ሁኔታ ተቀብለዋል! ዝርዝር መረጃው በቴሌግራም ተልኮልዎታል።");
     renderMotorPage();
 };
+// =========================================================================
 
 // 9. የስራ ታሪክ ማሳያ (Delivery History)
 function renderMotorHistory() {
@@ -399,7 +408,7 @@ async function processMotorRegistration() {
                         if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); 
                         return; 
                     }
-      
+  
                     await finalizeMotorRegistration(res.newPass, idBase64, licBase64);
                 });
             };
@@ -432,25 +441,28 @@ async function processMotorRegistration() {
                 firstName: fName,
                 lastName: lName,
                 phone: phone,
+            
                 email: email,
                 username: user,
                 password: passwordToSave, // <=== አዲሱ የይለፍ ቃል
                 telegramToken: tg, 
                 tgToken: tg,
                 plateNumber: plate,
+    
                 region: region,
                 zone: zone,
                 woreda: woreda,
                 idCardPhoto: preCompressedId,   // ቀድሞ የተዘጋጀውን ፎቶ ይጠቀማል
                 licensePhoto: preCompressedLic, // ቀድሞ የተዘጋጀውን ፎቶ ይጠቀማል
-                credit: 0,
+       
+                 credit: 0,
                 totalDelivered: 0,
                 status: 'offline', 
                 activeOrders: [],
                 history: [],
                 registeredDate: new Date().toLocaleDateString('am-ET')
-            };
-
+   
+             };
             // ወደ ሎካል እና ኦንላይን ዳታቤዝ መላክ
             if (typeof db !== 'undefined' && db) {
                 db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
