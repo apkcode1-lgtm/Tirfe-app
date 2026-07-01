@@ -1,11 +1,13 @@
 function openTenantProfileEditor() {
-    if(currentUserRole === "staff") { showCustomAlert("ክልክል", "ይህን መረጃ እና የይለፍ ቃል ማስተካከል የሚችለው የሱቁ ባለቤት ብቻ ነው!"); return; }
+    if(currentUserRole === "staff") { showCustomAlert("ክልክል", "ይህን መረጃ እና የይለፍ ቃል ማስተካከል የሚችለው የሱቁ ባለቤት ብቻ ነው!");
+        return; }
 
     showFormModal("⚙️ የሱቅ መረጃ እና ምስጢራዊ ኮድ ማስተካከያ", [
         { id: "shopName", label: "የሱቅ ስም", type: "text", defaultValue: currentTenant.shopName },
         { id: "phone", label: "የሱቅ ስልክ ቁጥር", type: "text", defaultValue: currentTenant.phone },
         { id: "gmail", label: "ኢሜል (Gmail)", type: "email", defaultValue: currentTenant.gmail || "" },
         { id: "mapsLink", label: "የጎግል ማፕ ሊንክ (Google Maps URL)", type: "text", defaultValue: currentTenant.googleMapsLink || "" },
+       
         { id: "newLogo", label: "የሱቅ ፎቶ/ሎጎ ለመቀየር (አማራጭ)", type: "file" },
         { id: "newPassword", label: "አዲስ ምስጢራዊ ኮድ / ፓስዎርድ ለመቀየር (ባዶ ከሆነ አይቀየርም)", type: "password", placeholder: "አዲስ ነባር ኮድ" }
     ], (res, fileInput) => {
@@ -15,7 +17,8 @@ function openTenantProfileEditor() {
             currentTenant.gmail = res.gmail.trim();
             currentTenant.googleMapsLink = res.mapsLink.trim();
             if(base64Logo) currentTenant.shopLogo = base64Logo;
-            if (res.newPassword && res.newPassword.trim() !== "") { currentTenant.password = res.newPassword.trim(); }
+            if (res.newPassword && res.newPassword.trim() !== "") { currentTenant.password = res.newPassword.trim();
+            }
             saveAndRefresh();
             showCustomAlert("ተሳክቷል", "የሱቅዎ መረጃ በተሳካ ሁኔታ ተስተካክሏል!");
         };
@@ -24,7 +27,8 @@ function openTenantProfileEditor() {
 }
 
 function logout() { currentTenant = null; currentRevenueOfficer = null; localStorage.removeItem('tirfe_active_session'); switchView('welcomeGateway'); }
-function saveAndRefresh() { localDB.tenants[currentTenant.username] = currentTenant; saveToLocalStorage(); pushToFirebase(); renderApp(); checkTimeLock(); }
+function saveAndRefresh() { localDB.tenants[currentTenant.username] = currentTenant; saveToLocalStorage(); pushToFirebase(); renderApp();
+checkTimeLock(); }
 
 function addItemDirectly() {
     if(currentUserRole === "staff") return;
@@ -35,7 +39,8 @@ function addItemDirectly() {
     let qty = parseInt(document.getElementById('itemQty').value) || 0;
     let fileInput = document.getElementById('itemImgFile'); let file = fileInput.files[0];
     
-    if(!name || cost <= 0 || price <= 0 || qty <= 0) { showCustomAlert("ስህተት", "እባክዎ ትክክለኛ የዕቃ መረጃ ያስገቡ!"); return; }
+    if(!name || cost <= 0 || price <= 0 || qty <= 0) { showCustomAlert("ስህተት", "እባክዎ ትክክለኛ የዕቃ መረጃ ያስገቡ!");
+        return; }
     
     let proceedAdd = function(imgBase64) {
         let inv = currentTenant.data.inventory || [];
@@ -64,7 +69,8 @@ function openExpenseModal() {
     ], (res) => {
         let amount = parseFloat(res.amount) || 0; let reason = res.reason.trim();
         if(!reason || amount <= 0) return;
-        let d = currentTenant.data || {}; if(!d.expenses) d.expenses = [];
+        let d = currentTenant.data || {}; if(!d.expenses) 
+            d.expenses = [];
         d.expenses.push({ reason, amount, date: getTodayFormatted(), time: new Date().toLocaleTimeString('en-GB') });
         currentTenant.data = d; saveAndRefresh();
     });
@@ -72,7 +78,8 @@ function openExpenseModal() {
 
 function openDebtModal() {
     let inv = currentTenant.data.inventory || [];
-    if (inv.length === 0) { showCustomAlert("⚠️ ዕቃ አልተገኘም", "ዕዳ ለመመዝገብ አስቀድሞ በዕቃዎች ዝርዝር ውስጥ ቢያንስ አንድ ዕቃ መኖር አለበት!"); return; }
+    if (inv.length === 0) { showCustomAlert("⚠️ ዕቃ አልተገኘም", "ዕዳ ለመመዝገብ አስቀድሞ በዕቃዎች ዝርዝር ውስጥ ቢያንስ አንድ ዕቃ መኖር አለበት!"); return;
+    }
 
     let itemOptions = inv.map((item, index) => { return { value: index, label: `${item.name} (${item.price} ETB)` }; });
     showFormModal("አዲስ የዕዳ መዝገብ", [
@@ -81,6 +88,7 @@ function openDebtModal() {
         { id: "itemIdx", label: "የወሰደው የዕቃ አይነት", type: "select", options: itemOptions },
         { id: "qty", label: "የዕቃው ብዛት", type: "number", placeholder: "1", defaultValue: "1" },
         { id: "date", label: "ቀን", type: "date", defaultValue: getTodayFormatted() }
+   
     ], (res) => {
         let customer = res.customer.trim(); let phone = res.phone.trim();
         let itemIdx = parseInt(res.itemIdx); let qty = parseInt(res.qty) || 0;
@@ -90,6 +98,7 @@ function openDebtModal() {
 
         let selectedItem = inv[itemIdx]; let calculatedAmount = selectedItem.price * qty;
         
+
         let d = currentTenant.data || {}; if (!d.debts) d.debts = [];
         d.debts.push({ customer: customer, phone: phone || "-", itemName: selectedItem.name, qty: qty, amount: calculatedAmount, paid: 0, date: selectedDate });
         selectedItem.sold += qty; currentTenant.data = d; saveAndRefresh();
@@ -107,7 +116,7 @@ function collectDebt(idx) {
         if(amt <= 0 || amt > remaining) { showCustomAlert("ስህተት", "የክፍያ መጠን ልክ አይደለም!"); return; }
         debt.paid += amt; currentTenant.data.collectedCreditToday = (parseFloat(currentTenant.data.collectedCreditToday) || 0) + amt;
         saveAndRefresh();
-        
+     
         sendTelegramAlert(`💵 የዕዳ ክፍያ ተሰበሰበ (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nከ ${debt.customer} ላይ ${amt} ETB ተቀብለዋል።`);
         showCustomAlert("ክፍያ ተፈጽሟል", `${debt.customer} እዳ ከፍሏል!`);
     });
@@ -118,13 +127,15 @@ function openDrawerModal() {
         { id: "actionType", label: "የድርጊት ዓይነት ይምረጡ፦", type: "select", options: [{ value: "withdraw", label: "💸 ከሳጥን ብር ማንሻ (Withdrawal)" }, { value: "return", label: "📥 የተነሳ ብር መመለሻ (Repayment/Return)" }] },
         { id: "reason", label: "ምክንያት / ማስታወሻ", type: "text", placeholder: "ምሳሌ፡ ለመልስ መለወጫ / የወሰድኩትን መለስኩ" },
         { id: "amount", label: "የገንዘብ መጠን (ETB)", type: "number", placeholder: "0.00" }
-    ], (res) => {
+    ], (res) => 
+    {
         let amount = parseFloat(res.amount) || 0; let reason = res.reason.trim(); let action = res.actionType;
         if(!reason || amount <= 0) return;
         let d = currentTenant.data || {}; if(!d.drawerLog) d.drawerLog = [];
         let finalAmount = action === "withdraw" ? amount : -amount;
         let displayType = action === "withdraw" ? "ገንዘብ ተነሳ" : "ገንዘብ ተመለሰ";
-        d.drawerLog.push({ reason: `${action === "withdraw" ? "⚠️ [የተነሳ] " : "✅ [የተመለሰ] "} ${reason}`, amount: finalAmount, time: new Date().toLocaleTimeString('en-GB') });
+        d.drawerLog.push({ reason: `${action === "withdraw" 
+            ? "⚠️ [የተነሳ] " : "✅ [የተመለሰ] "} ${reason}`, amount: finalAmount, time: new Date().toLocaleTimeString('en-GB') });
         currentTenant.data = d; saveAndRefresh();
         sendTelegramAlert(`💸 ከሳጥን ${displayType} (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nምክንያት፡ ${reason}\nመጠን፡ ${amount} ETB`);
     });
@@ -136,12 +147,14 @@ function openSettlementModal() {
         { id: "periodType", label: "የማወራረጃ ዓይነት ይምረጡ፦", type: "select", options: [{ value: "monthly", label: "📅 የወር ሂሳብ (Monthly)" }, { value: "yearly", label: "📆 የአመት ሂሳብ (Yearly)" }] },
         { id: "periodDate", label: "ወር / አመት ይምረጡ (ለወር: YYYY-MM, ለአመት: YYYY)፦", type: "text", placeholder: "ምሳሌ: 2026-06 ወይም 2026", defaultValue: getTodayFormatted().substring(0,7) },
         { id: "bankBalance", label: "በባንክ / ቴሌብር ላይ ያለ ጠቅላላ ገንዘብ (ETB)፦", type: "number", placeholder: "0.00" }
-    ], (res) => {
+    ], (res) => 
+    {
         let type = res.periodType; let periodStr = res.periodDate.trim(); let bankAmt = parseFloat(res.bankBalance) || 0;
         let d = currentTenant.data || {}; let hist = d.history || [];
         let tSales = 0, tProfit = 0, tExp = 0, tDraws = 0, tReported = 0;
         let matchedEntries = hist.filter(h => {
             if(type === "monthly") return h.date.startsWith(periodStr) && !h.isMonthlyArchive;
+      
             if(type === "yearly") return h.date.startsWith(periodStr) && !h.isMonthlyArchive;
             return false;
         });
@@ -171,14 +184,16 @@ function triggerShiftReport() {
     ], (res) => {
         let reported = parseFloat(res.reportedCash) || 0; let tExp = 0; let tDraw = 0; let formattedDateToday = getTodayFormatted();
         (d.expenses || []).forEach(e => { if (e.date === formattedDateToday) tExp += parseFloat(e.amount) || 0; });
-        (d.drawerLog || []).forEach(dr => tDraw += parseFloat(dr.amount) || 0);
+        (d.drawerLog || []).forEach(dr => tDraw += parseFloat(dr.amount) || 
+            0);
         let creditSalesToday = 0;
         (d.debts || []).forEach(debt => { if(debt.date === formattedDateToday) creditSalesToday += debt.amount; });
 
         let expectedCash = ((parseFloat(session.initialFloat) || 0) + sysSales) - creditSalesToday - tExp - tDraw;
         let variance = reported - expectedCash;
         let statusText = variance === 0 ? "ትክክል (Balanced)" : `ልዩነት አለ (${variance} ETB)`;
-        d.shiftClosed = true; d.reportedCash = reported; d.variance = variance; d.expectedCash = expectedCash;
+        d.shiftClosed = true; d.reportedCash = reported; d.variance 
+            = variance; d.expectedCash = expectedCash;
         
         document.getElementById('shiftStatusAlert').classList.add('hidden');
         let msg = `የዕለቱ ሂሳብ በተሳካ ሁኔታ ተዘጋጅቷል!\nሁኔታ፡ ${statusText}\nበሲስተሙ የሚጠበቅ ካሽ፡ ${expectedCash} ETB\nየቀረበው ካሽ፡ ${reported} ETB`;
@@ -196,14 +211,16 @@ function triggerShiftReport() {
 
 function startNewDaySession() {
     if(currentUserRole === "staff") return; let d = currentTenant.data || {};
-    if(d.sessionActive && !d.shiftClosed) { showCustomAlert("ክልክል!", "መጀመሪያ የትላንቱን (ወይም የዛሬውን) የዕለት ሂሳብ 'የዕለት ሂሳብ ዝጋ' በሚለው ዘግተው ሪፖርት ማቅረብ አለብዎት!"); return; }
+    if(d.sessionActive && !d.shiftClosed) { showCustomAlert("ክልክል!", "መጀመሪያ የትላንቱን (ወይም የዛሬውን) የዕለት ሂሳብ 'የዕለት ሂሳብ ዝጋ' በሚለው ዘግተው ሪፖርት ማቅረብ አለብዎት!"); return;
+    }
 
     showCustomConfirm("አዲስ ቀን መጀመር", "የዛሬውን ቀን ሂሳብ ሙሉ በሙሉ አጽድተው ለአዲስ ቀን ማዘጋጀት ይፈልጋሉ? (የወር ትርፍዎ አይጠፋም)", () => {
         let inv = d.inventory || [];
         inv.forEach(item => { item.qty = Math.max(0, item.qty - item.sold); item.sold = 0; });
         d.sessionActive = false; d.shiftClosed = false; d.drawerLog = []; d.collectedCreditToday = 0;
         currentTenant.data = d; saveAndRefresh(); checkMorningSession();
-        sendTelegramAlert(`🔄 አዲስ የሥራ ቀን በአሰሪ ተጀምሯል! የትላንትና ሂሳብ ተሰርዞ ወደ አዲስ ቀን ተሸጋግረዋል።`);
+        sendTelegramAlert(`🔄 አዲስ የሥራ ቀን በአሰሪ ተጀምሯል! 
+            የትላንትና ሂሳብ ተሰርዞ ወደ አዲስ ቀን ተሸጋግረዋል።`);
     });
 }
 
@@ -220,13 +237,15 @@ function renderHistoryTable() {
     historyBody.innerHTML = '<tr><th>ቀን/ዓይነት</th><th>ሰራተኛ/ወቅት</th><th>ሽያጭ</th><th>ትርፍ</th><th>ሪፖርት ካሽ</th><th>ልዩነት</th></tr>';
     let historyList = d.history || []; let filterValue = document.getElementById('historyDateFilter').value;
     let filtered = historyList.filter(h => { if(!filterValue) return true; return h.date === filterValue; });
-    if(filtered.length === 0) { historyBody.innerHTML += '<tr><td colspan="6" style="text-align:center; color:#94a3b8;">በተፈለገው ቀን ምንም ታሪክ የለም</td></tr>'; } 
+    if(filtered.length === 0) { historyBody.innerHTML += '<tr><td colspan="6" style="text-align:center; color:#94a3b8;">በተፈለገው ቀን ምንም ታሪክ የለም</td></tr>';
+    } 
     else {
         filtered.forEach(h => {
             let vColor = h.variance === 0 ? 'var(--success-color)' : 'var(--danger-color)';
             let rowStyle = h.isMonthlyArchive ? `style="background: rgba(192, 132, 252, 0.15); border-left: 4px solid var(--purple-color);"` : '';
             historyBody.innerHTML += `<tr ${rowStyle}>
                 <td><b>${h.date}</b></td><td>${h.employee}</td><td style="color:var(--success-color)">${h.sales}</td>
+    
                 <td style="color:var(--accent-color)"><b>${h.profit}</b></td><td>${h.reportedCash || 0}</td>
                 <td style="${rowStyle ? '' : 'color:'+vColor}"><b>${h.variance || 0}</b></td>
             </tr>`;
@@ -238,9 +257,19 @@ window.acceptDelivery = function(idx) {
     let ord = currentTenant.data.deliveryOrders[idx];
     let item = currentTenant.data.inventory[ord.itemIdx];
     let neededMeters = item.isAdvanced && item.unitType !== 'kg' ? ord.qty * item.unitPerPack : ord.qty;
-    if(item.qty - item.sold < neededMeters) { showCustomAlert("ስህተት", "ይህንን ትዕዛዝ ለማስተናገድ በቂ ክምችት የሎትም!"); return; }
+    if(item.qty - item.sold < neededMeters) { showCustomAlert("ስህተት", "ይህንን ትዕዛዝ ለማስተናገድ በቂ ክምችት የሎትም!"); return;
+    }
     
     ord.status = "accepted"; saveAndRefresh();
+
+    // === አዲስ የተጨመረ የሞተረኛ ቴሌግራም ኖቲፊኬሽን ===
+    let assignedMotor = ord.motorUsername || ord.motorUser || ord.motor;
+    if (typeof sendMotorTelegramAlert === 'function' && assignedMotor) {
+        let msg = `🔔 አዲስ ትዕዛዝ በሱቅ ተረጋግጧል!\n\n🏢 ሱቅ: ${currentTenant.shopName}\n👤 ደንበኛ: ${ord.buyerUser}\n📞 ደንበኛ ስልክ: ${ord.buyerPhone}\n📍 አድራሻ: ${ord.address}\n📦 እቃ: ${ord.itemName} (ብዛት: ${ord.qty})\n\nእባክዎ እቃውን ከሱቅ ተቀብለው ለደንበኛው ያድሱ!`;
+        sendMotorTelegramAlert(assignedMotor, msg);
+    }
+    // ===========================================
+
     showCustomAlert("ተቀብለዋል", "ትዕዛዙ ተቀባይነት አግኝቷል! እቃው በመንገድ ላይ ነው ተብሎ ምልክት ተደርጎበታል።");
 };
 
@@ -260,7 +289,21 @@ window.completeDelivery = function(idx) {
     saveAndRefresh();
 };
 
-window.returnDelivery = function(idx) { let ord = currentTenant.data.deliveryOrders[idx]; ord.status = "returned"; saveAndRefresh(); showCustomAlert("ተመልሷል", "እቃው ተመልሷል!"); };
+window.returnDelivery = function(idx) { 
+    let ord = currentTenant.data.deliveryOrders[idx]; 
+    ord.status = "returned"; 
+    saveAndRefresh(); 
+
+    // === አዲስ የተጨመረ የሞተረኛ ቴሌግራም ኖቲፊኬሽን ===
+    let assignedMotor = ord.motorUsername || ord.motorUser || ord.motor;
+    if (typeof sendMotorTelegramAlert === 'function' && assignedMotor) {
+        let msg = `⚠️ የደንበኛ ትዕዛዝ ተመልሷል (Returned)!\n\n🏢 ሱቅ: ${currentTenant.shopName}\n👤 ደንበኛ: ${ord.buyerUser}\n📦 እቃ: ${ord.itemName}\n\nእባክዎ ከሱቁ ጋር ይነጋገሩ።`;
+        sendMotorTelegramAlert(assignedMotor, msg);
+    }
+    // ===========================================
+
+    showCustomAlert("ተመልሷል", "እቃው ተመልሷል!"); 
+};
 
 window.handleRemoteCartCheckout = function(buyerUser) {
     let t = currentTenant.data;
@@ -272,7 +315,8 @@ window.handleRemoteCartCheckout = function(buyerUser) {
         remoteCart.forEach(c => {
             let item = t.inventory[c.itemIdx];
             let neededMeters = item.isAdvanced && item.unitType !== 'kg' ? c.qty * item.unitPerPack : c.qty;
-            item.sold += neededMeters; grandTotal += c.total;
+            item.sold += neededMeters; grandTotal 
+                += c.total;
             receiptItems.push({ name: c.itemName, count: c.qty, unitPrice: c.price, total: c.total });
         });
         
@@ -281,6 +325,7 @@ window.handleRemoteCartCheckout = function(buyerUser) {
         let bPhone = localDB.buyers[buyerUser] ? localDB.buyers[buyerUser].phone : "";
 
         let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
+  
         let collectedVat = 0;
         
         if(vatRate > 0) {
@@ -324,6 +369,7 @@ window.renderTenantTaxReceipts = function() {
             <td style="color:var(--success-color); font-weight:bold;">${parseFloat(rec.amount).toFixed(2)} ETB</td>
             <td>${rec.officerName}<br><small style="color: #94a3b8;">📞 ${rec.officerPhone}</small></td>
             <td><button class="btn-config btn-sm" onclick="viewTaxReceiptDetail(${originalIdx})">👁️ ሙሉ ደረሰኝ እይ</button></td>
+   
         </tr>`;
     });
 };
@@ -338,23 +384,35 @@ window.viewTaxReceiptDetail = function(idx) {
             <p style="margin: 5px 0 0 0; color: #555; font-size: 0.9rem;">የገቢዎች ባለስልጣን ማረጋገጫ</p>
         </div>
         <table style="width: 100%; border-collapse: collapse; color: #000; font-size: 0.95rem;">
-            <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>የደረሰኝ ቁጥር:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd; font-weight:bold;">#${rec.recId}</td></tr>
+            <tr><td 
+                style="padding: 5px; border-bottom: 1px solid #ddd;"><b>የደረሰኝ ቁጥር:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd; font-weight:bold;">#${rec.recId}</td></tr>
             <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>ቀን:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.date}</td></tr>
             <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>የተከፈለ መጠን:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd; color: #10b981; font-weight: bold; font-size: 1.1rem;">${parseFloat(rec.amount).toFixed(2)} ETB</td></tr>
-            <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>የክፍያ ምክንያት:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.reason}</td></tr>
+            <tr><td style="padding: 5px;
+                border-bottom: 1px solid #ddd;"><b>የክፍያ ምክንያት:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.reason}</td></tr>
             
-            <tr><td colspan="2" style="background: rgba(0,0,0,0.05); padding: 8px; font-weight: bold; text-align: center; margin-top: 10px;">የግብር ከፋይ (ተከራይ) መረጃ</td></tr>
-            <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>የከፋይ ስም:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.tenantName}</td></tr>
-            <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>የድርጅት/ሱቅ ስም:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.tenantShop}</td></tr>
-            <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>TIN ቁጥር:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.tenantTin}</td></tr>
-            <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>ስልክ ቁጥር:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.tenantPhone}</td></tr>
+            <tr><td colspan="2" style="background: rgba(0,0,0,0.05);
+                padding: 8px; font-weight: bold; text-align: center; margin-top: 10px;">የግብር ከፋይ (ተከራይ) መረጃ</td></tr>
+            <tr><td style="padding: 5px;
+                border-bottom: 1px solid #ddd;"><b>የከፋይ ስም:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.tenantName}</td></tr>
+            <tr><td style="padding: 5px;
+                border-bottom: 1px solid #ddd;"><b>የድርጅት/ሱቅ ስም:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.tenantShop}</td></tr>
+            <tr><td style="padding: 5px;
+                border-bottom: 1px solid #ddd;"><b>TIN ቁጥር:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.tenantTin}</td></tr>
+            <tr><td style="padding: 5px;
+                border-bottom: 1px solid #ddd;"><b>ስልክ ቁጥር:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.tenantPhone}</td></tr>
             
-            <tr><td colspan="2" style="background: rgba(0,0,0,0.05); padding: 8px; font-weight: bold; text-align: center; margin-top: 10px;">የተቀባይ (ባለስልጣን) መረጃ</td></tr>
-            <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>የባለስልጣኑ ስም:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.officerName}</td></tr>
-            <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>አድራሻ (ክልል/ዞን/ወረዳ):</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.officerRegion} / ${rec.officerZone} / ${rec.officerWoreda}</td></tr>
-            <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>ስልክ ቁጥር:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.officerPhone}</td></tr>
+            <tr><td colspan="2" style="background: rgba(0,0,0,0.05);
+                padding: 8px; font-weight: bold; text-align: center; margin-top: 10px;">የተቀባይ (ባለስልጣን) መረጃ</td></tr>
+            <tr><td style="padding: 5px;
+                border-bottom: 1px solid #ddd;"><b>የባለስልጣኑ ስም:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.officerName}</td></tr>
+            <tr><td style="padding: 5px;
+                border-bottom: 1px solid #ddd;"><b>አድራሻ (ክልል/ዞን/ወረዳ):</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.officerRegion} / ${rec.officerZone} / ${rec.officerWoreda}</td></tr>
+            <tr><td style="padding: 5px;
+                border-bottom: 1px solid #ddd;"><b>ስልክ ቁጥር:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.officerPhone}</td></tr>
         </table>
-        <div style="margin-top: 20px; text-align: center; font-size: 0.8rem; color: #555; font-style: italic;">ይህ ደረሰኝ በሲስተሙ የተመዘገበ ህጋዊ ሰነድ ነው።</div>
+        <div style="margin-top: 20px;
+            text-align: center; font-size: 0.8rem; color: #555; font-style: italic;">ይህ ደረሰኝ በሲስተሙ የተመዘገበ ህጋዊ ሰነድ ነው።</div>
     `;
     
     document.getElementById('taxReceiptDetailBody').innerHTML = detailHtml;
@@ -390,19 +448,23 @@ function renderApp() {
         if (query !== "" && !item.name.toLowerCase().includes(query)) return;
 
         let rowClass = remaining <= 3 ? 'low-stock-row' : '';
-        let stockBadge = remaining <= 3 ? '<span class="low-stock-badge">⚠️</span>' : '';
+        let stockBadge = remaining <= 3 ? 
+            '<span class="low-stock-badge">⚠️</span>' : '';
         let itemModelText = item.model || "-";
         let wholesaleText = item.wholesalePrice ? ` / ${item.wholesalePrice}` : '';
         let priceDisplay = `${item.price}${wholesaleText}`;
         
         let sellAction = `
             <div style="display:flex; gap:5px; align-items:center;">
-                <input type="number" id="quickQty_${idx}" style="width:60px; padding:4px; margin:0;" placeholder="ብዛት" value="1">
-                <select id="quickType_${idx}" style="width:70px; padding:4px; margin:0; ${item.wholesalePrice > 0 ? '' : 'display:none;'}">
+                <input type="number" id="quickQty_${idx}" style="width:60px; padding:4px; margin:0;" 
+                    placeholder="ብዛት" value="1">
+                <select id="quickType_${idx}" style="width:70px;
+                    padding:4px; margin:0; ${item.wholesalePrice > 0 ? '' : 'display:none;'}">
                     <option value="retail">ችርቻሮ</option><option value="wholesale">ጅምላ</option>
                 </select>
                 <button class="btn-sell btn-sm" onclick="addToMainCart(${idx})">➕ ሽጥ</button>
                 ${currentUserRole === "owner" ? `<button class="btn-expense btn-sm" onclick="deleteInventoryItem(${idx})" style="margin-left:5px;">🗑️</button>` : ''}
+        
             </div>`;
 
         let displayQty = item.qty; let displaySold = item.sold; let displayRem = remaining;
@@ -412,9 +474,11 @@ function renderApp() {
         }
 
         if (currentUserRole === "staff") {
+ 
             tbody.innerHTML += `<tr class="${rowClass}">
                 <td><strong>${item.name}</strong> ${stockBadge}</td><td>${itemModelText}</td><td>${item.price} ETB</td>
-                <td><b>${displaySold}</b></td><td style="${remaining <= 3 ? 'color:#f87171;font-weight:bold;' : ''}">${displayRem}</td><td>${sellAction}</td>
+                <td><b>${displaySold}</b></td><td style="${remaining <= 3 ?
+                    'color:#f87171;font-weight:bold;' : ''}">${displayRem}</td><td>${sellAction}</td>
             </tr>`;
         } else {
             tbody.innerHTML += `<tr class="${rowClass}">
@@ -424,6 +488,7 @@ function renderApp() {
         }
     });
 
+    
     let formattedDateToday = getTodayFormatted(); let todayExpensesTotal = 0; let creditSalesToday = 0;
     expensesList.forEach(e => { if (e.date === formattedDateToday) todayExpensesTotal += parseFloat(e.amount) || 0; });
     (d.debts || []).forEach(debt => { if (debt.date === formattedDateToday) creditSalesToday += debt.amount; });
@@ -462,7 +527,8 @@ function renderApp() {
             if(items && items.length > 0) {
                 hasRemotes = true; let totalSum = 0; let detailsHTML = "";
                 items.forEach(i => {
-                    totalSum += i.total; let invItem = d.inventory[i.itemIdx];
+                    totalSum += 
+                        i.total; let invItem = d.inventory[i.itemIdx];
                     let modelTxt = (invItem && invItem.model && invItem.model !== "-") ? `(ሞዴል: ${invItem.model})` : "";
                     detailsHTML += `<div style="font-size:0.8rem; margin-bottom:2px; color: var(--accent-color);">▪ ${i.itemName} ${modelTxt} - ብዛት: ${i.qty}</div>`;
                 });
@@ -472,6 +538,7 @@ function renderApp() {
                     <td><button class="btn-sell btn-sm" onclick="handleRemoteCartCheckout('${bUser}')">✅ ክፍያ ተቀበል (Checkout)</button></td>
                 </tr>`;
             }
+     
         });
         if(!hasRemotes) remoteBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">በአሁኑ ሰዓት የገዥዎች Cart ትዕዛዝ የለም።</td></tr>`;
     }
@@ -492,13 +559,15 @@ function renderApp() {
                            <button class="btn-expense btn-sm" style="margin-top:4px;" onclick="returnDelivery(${idx})">እቃው ተመለሰ</button>`;
             }
             
+     
             let invItem = d.inventory[ord.itemIdx];
             let modelTxt = (invItem && invItem.model && invItem.model !== "-") ? `(ሞዴል: ${invItem.model})` : "";
-            let transportBadge = ord.transport === 'car' ? '<br><span style="color:var(--accent-color);">🚗 መኪና</span>' : (ord.transport === 'motor' ? '<br><span style="color:var(--accent-color);">🏍️ ሞተረኛ</span>' : '');
-
+            let transportBadge = ord.transport === 'car' ?
+                '<br><span style="color:var(--accent-color);">🚗 መኪና</span>' : (ord.transport === 'motor' ? '<br><span style="color:var(--accent-color);">🏍️ ሞተረኛ</span>' : '');
             delBody.innerHTML += `<tr>
                 <td>👤 ${ord.buyerUser}<br>📞 ${ord.buyerPhone}${transportBadge}</td>
-                <td>📍 ${ord.address} <br> ${ord.mapLink ? `<a href="${ord.mapLink}" target="_blank" style="color:var(--accent-color);">Map Link</a>` : ''}</td>
+                <td>📍 ${ord.address} <br> ${ord.mapLink ?
+                    `<a href="${ord.mapLink}" target="_blank" style="color:var(--accent-color);">Map Link</a>` : ''}</td>
                 <td>📦 <b style="color:var(--accent-color);">${ord.itemName}</b> <br> ${modelTxt} <br> ብዛት: ${ord.qty}</td>
                 <td>${ord.total} ETB</td><td>${statusBadge}</td><td>${actions}</td>
             </tr>`;
@@ -509,17 +578,20 @@ function renderApp() {
     let creditBody = document.getElementById('creditBody');
     creditBody.innerHTML = '<tr><th>ባለዕዳ / ስልክ</th><th>የወሰደው ዕቃ (ብዛት)</th><th>ጠቅላላ ዕዳ</th><th>ቀሪ</th><th>ድርጊት</th></tr>';
     let debts = d.debts || [];
-    if(debts.length === 0) { creditBody.innerHTML += '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">ምንም የዕዳ መዝገብ የለም</td></tr>'; } 
+    if(debts.length === 0) { creditBody.innerHTML += '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">ምንም የዕዳ መዝገብ የለም</td></tr>';
+    } 
     else {
         debts.forEach((debt, idx) => {
             let remaining = debt.amount - debt.paid;
             if (remaining > 0) {
                 let itemDisplay = debt.itemName ? `${debt.itemName} (${debt.qty || 1} ፍሬ)` : "-";
                 creditBody.innerHTML += `<tr>
+     
                     <td><b>${debt.customer}</b><br><small style="color:#94a3b8">${debt.phone}</small><br><small style="color:var(--warning-color)">📅 ${debt.date || ''}</small></td>
                     <td>${itemDisplay}</td><td>${debt.amount} ETB</td>
                     <td style="color:var(--danger-color)"><b>${remaining} ETB</b></td>
                     <td><button class="btn-sell btn-sm" onclick="collectDebt(${idx})">ክፍያ</button></td>
+              
                 </tr>`;
             }
         });
@@ -527,13 +599,15 @@ function renderApp() {
 
     let drawBody = document.getElementById('drawBody');
     drawBody.innerHTML = '<tr><th>ምክንያት</th><th>የተወሰደው</th><th>ሰዓት</th></tr>';
-    if(drawsList.length === 0) { drawBody.innerHTML += '<tr><td colspan="3" style="text-align:center; color:#94a3b8;">ምንም የተነሳ ገንዘብ የለም</td></tr>'; } 
+    if(drawsList.length === 0) { drawBody.innerHTML += '<tr><td colspan="3" style="text-align:center; color:#94a3b8;">ምንም የተነሳ ገንዘብ የለም</td></tr>';
+    } 
     else {
         drawsList.forEach(dr => {
             let isReturn = dr.amount < 0; let displayAmt = isReturn ? Math.abs(dr.amount) + " ETB (መለሰ)" : dr.amount + " ETB";
             let displayColor = isReturn ? "var(--success-color)" : "var(--purple-color)";
             let tbodyColor = `style="color:${displayColor}; font-weight:bold;"`;
             drawBody.innerHTML += `<tr><td>${dr.reason}</td><td ${tbodyColor}>${displayAmt}</td><td>${dr.time}</td></tr>`;
+  
         });
     }
 
@@ -541,10 +615,12 @@ function renderApp() {
     receiptHistoryBody.innerHTML = '';
     let pastReceipts = d.receipts || [];
     let receiptFilterDate = document.getElementById('receiptDateFilter').value;
-    if (!receiptFilterDate) { receiptHistoryBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8; font-weight: bold;">📅 እባክዎ ደረሰኞችን ለማየት መጀመሪያ ቀን ይምረጡ!</td></tr>'; } 
+    if (!receiptFilterDate) { receiptHistoryBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8; font-weight: bold;">📅 እባክዎ ደረሰኞችን ለማየት መጀመሪያ ቀን ይምረጡ!</td></tr>';
+    } 
     else {
         let filteredReceipts = pastReceipts.filter(rec => rec.date === receiptFilterDate);
-        if (filteredReceipts.length === 0) { receiptHistoryBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#94a3b8;">የመረጡት ቀን (${receiptFilterDate}) የተቆረጠ ምንም ደረሰኝ የለም።</td></tr>`; } 
+        if (filteredReceipts.length === 0) { receiptHistoryBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#94a3b8;">የመረጡት ቀን (${receiptFilterDate}) የተቆረጠ ምንም ደረሰኝ የለም።</td></tr>`;
+        } 
         else {
             let reversedReceipts = [...pastReceipts].reverse();
             reversedReceipts.forEach((rec, originalIdx) => {
@@ -552,6 +628,7 @@ function renderApp() {
                 if (rec.date === receiptFilterDate) {
                     receiptHistoryBody.innerHTML += `<tr>
                         <td><b>#${rec.recId}</b></td><td>${rec.date}</td><td>${rec.itemName}</td><td>${rec.count}</td>
+        
                         <td class="text-success"><b>${rec.totalVal} ETB</b></td><td><span class="text-warning">${rec.seller}</span></td>
                         <td><button class="btn-config btn-sm" onclick="viewPastReceipt(${actualIdx})">👁️ ድጋሚ እይ / Print</button></td>
                     </tr>`;
@@ -577,6 +654,7 @@ function initChart() {
             datasets: [{ label: 'የገንዘብ መጠን (ETB)', data: [0, 0, 0], backgroundColor: ['#38bdf8', '#4ade80', '#fbbf24'], borderRadius: 6 }]
         },
         options: {
+         
             responsive: true, maintainAspectRatio: false, 
             plugins: { legend: { display: false } },
             scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } }
@@ -591,11 +669,13 @@ function checkMorningSession() {
             { id: "employee", label: "የገቢ አድራጊው/ሰራተኛው ስም ያስገቡ፦", type: "text", placeholder: "ስም", defaultValue: currentUserRole === "staff" ? "ሰራተኛ" : "አሰሪ" },
             { id: "initialFloat", label: "ጠዋት በካዝና/ሳጥን ውስጥ የተገኘ መነሻ ገንዘብ (Float)፦", type: "number", placeholder: "0.00", defaultValue: "0" }
         ], (res) => {
-            d.sessionData = { date: getTodayFormatted(), loginTime: new Date().toLocaleTimeString('en-GB'), employee: res.employee || "ሰራተኛ", initialFloat: parseFloat(res.initialFloat) || 0 };
+            d.sessionData 
+                = { date: getTodayFormatted(), loginTime: new Date().toLocaleTimeString('en-GB'), employee: res.employee || "ሰራተኛ", initialFloat: parseFloat(res.initialFloat) || 0 };
             d.sessionActive = true; d.shiftClosed = false; d.expenses = d.expenses || []; 
             d.drawerLog = []; d.debts = d.debts || []; d.receipts = d.receipts || [];
             d.deliveryOrders = d.deliveryOrders || []; d.collectedCreditToday = 0;
             currentTenant.data = d; 
+    
             document.getElementById('receiptDateFilter').value = getTodayFormatted();
             saveAndRefresh();
         });
@@ -608,6 +688,7 @@ function openItemRegistrationChoice() {
     ], (res) => {
         if(res.regType === "standard") { document.getElementById('itemName').focus(); showCustomAlert("መረጃ", "መደበኛ ዕቃዎችን ከታች ባለው 'የዕቃ ስም' በሚለው ፎርም ቀጥታ መመዝገብ ይችላሉ።"); } 
         else if(res.regType === "advanced") { openAdvancedRegistration(); }
+  
     });
 }
 
@@ -616,21 +697,25 @@ function openAdvancedRegistration() {
         { id: "unitType", label: "የልኬት አይነት ይምረጡ", type: "select", options: [{value: "meter", label: "📏 በሜትር (Meter)"}, {value: "kg", label: "⚖️ በኪሎግራም (KG)"}] },
         { id: "name", label: "የዕቃ ስም (ምሳሌ፡ የኤሌክትሪክ ገመድ/ስኳር)", type: "text", placeholder: `ስም` },
         { id: "model", label: "ሞዴል / አይነት", type: "text", placeholder: "-" },
-        { id: "packCount", label: "ስንት ጥቅል (Package/Roll/Sack) ገባ?", type: "number", placeholder: "0" },
+        { id: "packCount", label: "ስንት ጥቅል 
+            (Package/Roll/Sack) ገባ?", type: "number", placeholder: "0" },
         { id: "unitPerPack", label: "በአንድ ጥቅል ውስጥ ያለው ጠቅላላ ሜትር/ኪሎ", type: "number", placeholder: "0" },
         { id: "totalCost", label: `የጠቅላላ ዕቃው የገባበት ዋጋ (ካፒታል)`, type: "number", placeholder: "0" },
         { id: "retailPrice", label: "የ 1 ሜትር/ኪሎ መሸጫ ዋጋ (ችርቻሮ)", type: "number", placeholder: "0" },
         { id: "wholesalePrice", label: "በጅምላ (በጥቅል/ጆንያ) ሲሸጥ የአንድ ጥቅል መሸጫ ዋጋ", type: "number", placeholder: "0" },
+      
         { id: "advImgFile", label: "የዕቃው ፎቶ ከጋላሪ ይምረጡ (አማራጭ)፡", type: "file" }
     ], (res, fileInputObj) => {
         let name = res.name.trim();
         let packCount = parseFloat(res.packCount) || 0; let unitPerPack = parseFloat(res.unitPerPack) || 0;
         let totalQtyInMeters = packCount * unitPerPack;
         let totalCost = parseFloat(res.totalCost) || 0; let retailPrice = parseFloat(res.retailPrice) || 0;
-        if(!name || packCount <= 0 || unitPerPack <= 0 || totalCost <= 0 || retailPrice <= 0) { showCustomAlert("ስህተት", "እባክዎ የተሟላ እና ትክክለኛ መረጃ ያስገቡ!"); return; }
+        if(!name || packCount <= 0 || unitPerPack <= 0 || totalCost <= 0 || retailPrice <= 0) { showCustomAlert("ስህተት", "እባክዎ የተሟላ እና ትክክለኛ መረጃ ያስገቡ!");
+            return; }
 
         let proceedAdd = function(imgBase64) {
-            let inv = currentTenant.data.inventory || [];
+            let inv = currentTenant.data.inventory ||
+                [];
             let existingItem = inv.find(item => item.name.toLowerCase() === name.toLowerCase() && (!item.model || item.model.toLowerCase() === (res.model || "-").toLowerCase()));
             let unitCostPerMeter = totalCost / totalQtyInMeters;
 
@@ -655,19 +740,22 @@ function openSellChoiceModal() {
 }
 
 window.addToMainCart = function(idx) {
-    if(currentTenant.data.shiftClosed) { showCustomAlert("ስህተት", "የዕለቱ ፈረቃ ተዘግቷል! ማሸጥ አይቻልም።"); return; }
+    if(currentTenant.data.shiftClosed) { showCustomAlert("ስህተት", "የዕለቱ ፈረቃ ተዘግቷል! ማሸጥ አይቻልም።"); return;
+    }
     
     let qtyInput = document.getElementById(`quickQty_${idx}`); let qty = parseFloat(qtyInput.value) || 0;
     let typeSelect = document.getElementById(`quickType_${idx}`); let isWholesale = typeSelect && typeSelect.value === 'wholesale';
     let item = currentTenant.data.inventory[idx];
     let rem = item.qty - item.sold;
-    if(qty <= 0) { showCustomAlert("ስህተት", "የተሳሳተ ብዛት ነው!"); return; }
+    if(qty <= 0) { showCustomAlert("ስህተት", "የተሳሳተ ብዛት ነው!"); return;
+    }
 
     let unitPriceToUse = (isWholesale && item.wholesalePrice > 0) ? item.wholesalePrice : item.price;
     let neededMeters = qty;
     if(isWholesale && item.isAdvanced) { neededMeters = qty * item.unitPerPack; }
 
-    if(neededMeters > rem) { showCustomAlert("ስህተት", "ከክምችት በላይ ነው!"); return; }
+    if(neededMeters > rem) { showCustomAlert("ስህተት", "ከክምችት በላይ ነው!");
+        return; }
 
     let existIdx = mainCart.findIndex(c => c.index === idx && c.isWholesale === isWholesale);
     if(existIdx > -1) {
@@ -685,7 +773,8 @@ window.addToMainCart = function(idx) {
 
 window.renderMainCart = function() {
     let container = document.getElementById('cartItemsList'); let totalEl = document.getElementById('cartTotalSum'); let emptyMsg = document.getElementById('emptyCartMsg');
-    if(!mainCart || mainCart.length === 0) { container.innerHTML = ""; emptyMsg.style.display = "block"; if(totalEl) totalEl.innerText = "0"; return; }
+    if(!mainCart || mainCart.length === 0) { container.innerHTML = ""; emptyMsg.style.display = "block"; if(totalEl) totalEl.innerText = "0"; return;
+    }
     
     emptyMsg.style.display = "none";
     let html = '<table style="width:100%; border-collapse:collapse; margin-bottom:10px;">';
@@ -707,7 +796,8 @@ window.renderMainCart = function() {
     let summaryHtml = `
         <div style="text-align: right; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-top: 10px;">
             <div style="color: #bbb; font-size: 0.9rem;">Subtotal / ሂሳብ: <b>${grandTotal.toFixed(2)} ETB</b></div>
-            ${vatRate > 0 ? `<div style="color: var(--warning-color); font-size: 0.9rem;">VAT / ቫት (${vatRate}%): <b>+${vatAmount.toFixed(2)} ETB</b></div>` : ''}
+            ${vatRate > 0 ?
+                `<div style="color: var(--warning-color); font-size: 0.9rem;">VAT / ቫት (${vatRate}%): <b>+${vatAmount.toFixed(2)} ETB</b></div>` : ''}
             <div style="font-size: 1.2rem; color: var(--success-color); margin-top: 5px; font-weight: bold;">Grand Total / ድምር: <b>${finalTotal.toFixed(2)} ETB</b></div>
         </div>
     `;
@@ -718,9 +808,11 @@ window.renderMainCart = function() {
 window.removeMainCartItem = function(i) { mainCart.splice(i, 1); renderMainCart(); };
 
 window.checkoutMainCart = function() {
-    if(!mainCart || mainCart.length === 0) { showCustomAlert("ስህተት", "እባክዎ መጀመሪያ ከቴብሉ እቃ ወደ ቅርጫቱ ያስገቡ!"); return; }
+    if(!mainCart || mainCart.length === 0) { showCustomAlert("ስህተት", "እባክዎ መጀመሪያ ከቴብሉ እቃ ወደ ቅርጫቱ ያስገቡ!");
+        return; }
     
-    let grandTotal = 0; let currentSeller = currentUserRole === 'staff' ? 'ሰራተኛ (Employee)' : 'ባለቤት (Employer)';
+    let grandTotal = 0; let currentSeller = currentUserRole === 'staff' ?
+        'ሰራተኛ (Employee)' : 'ባለቤት (Employer)';
     let receiptItems = [];
     
     mainCart.forEach(c => {
@@ -767,7 +859,8 @@ window.toggleVatReceiptPanel = function() {
     if(panel) {
         panel.classList.toggle('hidden');
         document.getElementById('vatCurrentDateSpan').innerText = getTodayFormatted();
-        let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 15;
+        let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ?
+            parseFloat(localDB.adminSettings.vatRate) : 15;
         let vatDisplay = document.getElementById('specialVatPercentDisplay');
         if(vatDisplay) vatDisplay.value = "ቫት: " + vatRate + "%";
     }
@@ -780,8 +873,10 @@ window.generateStandaloneVatReceipt = function() {
     let iName = document.getElementById('specialVatItemName').value.trim() || "የተለያዩ ዕቃዎች";
     let iModel = document.getElementById('specialVatItemModel').value.trim() || "-";
     let iPrice = parseFloat(document.getElementById('specialVatItemPrice').value) || 0;
-    if(iPrice <= 0) { showCustomAlert("ስህተት", "እባክዎ ትክክለኛ የዕቃ ዋጋ ያስገቡ!"); return; }
-    if(iPrice >= 3000) { showCustomAlert("ስህተት", "የብር መጠኑ ከ3000 እና ከዚያ በላይ ስለሆነ እባክዎ መደበኛውን ካርት (Cart) ይጠቀሙ!"); return; }
+    if(iPrice <= 0) { showCustomAlert("ስህተት", "እባክዎ ትክክለኛ የዕቃ ዋጋ ያስገቡ!"); return;
+    }
+    if(iPrice >= 3000) { showCustomAlert("ስህተት", "የብር መጠኑ ከ3000 እና ከዚያ በላይ ስለሆነ እባክዎ መደበኛውን ካርት (Cart) ይጠቀሙ!");
+        return; }
 
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 15;
     let subTotal = iPrice;
@@ -790,11 +885,9 @@ window.generateStandaloneVatReceipt = function() {
     let grandTotal = subTotal + vatAmount;
     let recId = Math.floor(100000 + Math.random() * 900000);
     let dateStr = getTodayFormatted();
-    
     // 1. የቫት ብሩን ወደ አጠቃላይ ቫት መደመሪያ ብቻ ይጨምራል
     if(!currentTenant.data.accumulatedVat) currentTenant.data.accumulatedVat = 0;
     currentTenant.data.accumulatedVat += vatAmount;
-    
     // 2. ደረሰኙን ሂስትሪ ውስጥ ያስቀምጣል (በመለያ ታግ)
     if(!currentTenant.data.receipts) currentTenant.data.receipts = [];
     let displayItemName = `${iName} (ሞዴል: ${iModel}) [ፈጣን የቫት ደረሰኝ]`;
@@ -841,7 +934,6 @@ window.generateStandaloneVatReceipt = function() {
     document.getElementById('recPrintVatPercent').innerText = vatRate;
     document.getElementById('recPrintVatAmount').innerText = vatAmount.toFixed(2);
     document.getElementById('recPrintGrandTotal').innerText = grandTotal.toFixed(2);
-    
     // ፎርሙን ባዶ ያደርጋል
     document.getElementById('specialVatCustomerName').value = "";
     document.getElementById('specialVatItemName').value = "";
@@ -856,15 +948,18 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
     if (!recId) recId = Math.floor(10000 + Math.random() * 90000);
     let dateStr = getTodayFormatted();
     let shopName = givenShopName || (currentTenant ? currentTenant.shopName : "የተለያዩ ሱቆች");
-    let bType = givenBType || (currentTenant ? currentTenant.businessType : "አጠቃላይ ንግድ");
+    let bType = givenBType ||
+        (currentTenant ? currentTenant.businessType : "አጠቃላይ ንግድ");
     
     let ownerName = givenOwnerName || (currentTenant ? currentTenant.fullName : "ያልተመዘገበ");
     let ownerPhone = givenOwnerPhone || (currentTenant ? currentTenant.phone : "ያልተመዘገበ");
     let shopLogo = (currentTenant && currentTenant.shopLogo) ? currentTenant.shopLogo : "https://cdn-icons-png.flaticon.com/512/869/869636.png";
     let displayBuyerName = buyerName;
     let displayBuyerPhone = buyerPhone;
-    if (buyerName && localDB.buyers && localDB.buyers[buyerName] && !buyerPhone) { displayBuyerPhone = localDB.buyers[buyerName].phone; } 
-    else if (currentBuyer && !buyerName) { displayBuyerName = currentBuyer.username; displayBuyerPhone = currentBuyer.phone; }
+    if (buyerName && localDB.buyers && localDB.buyers[buyerName] && !buyerPhone) { displayBuyerPhone = localDB.buyers[buyerName].phone;
+    } 
+    else if (currentBuyer && !buyerName) { displayBuyerName = currentBuyer.username; displayBuyerPhone = currentBuyer.phone;
+    }
 
     let vatAmt = passedVat !== null ? passedVat : 0;
     let finalGrandTotal = subTotal + vatAmt;
@@ -879,7 +974,8 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
     if(vatAmt > 0) rawTextForShare += `VAT / ቫት: +${vatAmt.toFixed(2)} ETB\n`;
     rawTextForShare += `ጠቅላላ ሂሳብ (Grand Total): ${finalGrandTotal.toFixed(2)} ETB\n`;
 
-    if (displayBuyerName) { rawTextForShare += `ገዥ: ${displayBuyerName} | ስልክ: ${displayBuyerPhone || ''}\n`; }
+    if (displayBuyerName) { rawTextForShare += `ገዥ: ${displayBuyerName} | ስልክ: ${displayBuyerPhone || ''}\n`;
+    }
     rawTextForShare += `እናመሰግናለን!`;
 
     if (saveToHistory && currentTenant) {
@@ -898,7 +994,8 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
 
     let buyerSection = "";
     if (displayBuyerName) {
-        buyerSection = `<div style="margin-top: 15px; border-top: 2px dashed #333; padding-top: 10px; text-align: left; font-size: 0.9rem;"><b>ገዥ:</b> ${displayBuyerName} <br><b>ስልክ ቁጥር:</b> ${displayBuyerPhone || ''}</div>`;
+        buyerSection = `<div style="margin-top: 15px; border-top: 2px dashed #333; padding-top: 10px; text-align: left; font-size: 0.9rem;"><b>ገዥ:</b> ${displayBuyerName} <br><b>ስልክ ቁጥር:</b> ${displayBuyerPhone ||
+            ''}</div>`;
     }
 
     let vatHtml = vatAmt > 0 ?
@@ -911,33 +1008,40 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
     let receiptHTML = `
     <div class="receipt-container" id="printableReceiptArea" style="background:#fff; color:#000; padding:15px; width:100%; max-width:350px; margin:0 auto;">
         <div class="receipt-header" style="display:flex; flex-direction:column; align-items:center;">
-            <img src="${shopLogo}" style="width:60px; height:60px; border-radius:50%; margin-bottom:10px; object-fit:cover; border: 1px solid #ddd;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/869/869636.png'">
+            <img src="${shopLogo}" style="width:60px; height:60px; border-radius:50%; margin-bottom:10px; object-fit:cover; border: 1px solid #ddd;"
+                onerror="this.src='https://cdn-icons-png.flaticon.com/512/869/869636.png'">
             <h4 style="margin:0; font-size:1.3rem; color:#111; text-transform:uppercase;">${shopName}</h4>
             <p style="color:#565656; font-weight:bold; margin: 4px 0;">[ ${bType} ]</p>
             <p style="margin: 2px 0; font-size: 0.85rem;"><b>የባለቤት ስም:</b> ${ownerName}</p>
             <p style="margin: 2px 0; font-size: 0.85rem;"><b>ስልክ:</b> ${ownerPhone}</p>
             <div style="border-bottom: 2px dashed #333; width: 100%; margin: 10px 0;"></div>
+       
             <p style="margin: 2px 0; font-size: 0.85rem; font-weight:bold;">ዲጂታል የሽያጭ ደረሰኝ</p>
-            <p style="margin: 2px 0; font-size: 0.85rem;"><b>ቁጥር (No):</b> #${recId} | ቀን: ${dateStr}</p>
+            <p style="margin: 2px 0; font-size: 0.85rem;"><b>ቁጥር (No):</b> #${recId} |
+                ቀን: ${dateStr}</p>
             <p style="margin: 2px 0; font-size: 0.85rem;"><b>የሻጭ ማንነት:</b> ${currentSeller}</p>
         </div>
         <table class="receipt-table" style="color:#000; width:100%; margin-top: 10px; border-collapse: collapse;">
             <thead><tr><th style="color:#000!important; text-align:left; border-bottom: 1px dashed #ddd; padding: 5px;">የዕቃ ስም</th><th style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">ብዛት</th><th style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">ነጠላ</th><th style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">ጠቅላ局</th></tr></thead>
             <tbody>${tableRows}</tbody>
+   
         </table>
         <div class="receipt-summary" style="margin-top: 15px; border-top: 2px dashed #333; padding-top: 8px; text-align: right; font-size: 0.95rem; font-weight: bold; color: #111;">
             ${vatHtml}
-            <div style="display:flex; justify-content:space-between; margin-top:5px; font-size: 1.1rem; font-weight: 900;">
+            <div style="display:flex; justify-content:space-between; margin-top:5px;
+                font-size: 1.1rem; font-weight: 900;">
                 <span>Grand Total (አጠቃላይ):</span> <span>${finalGrandTotal.toFixed(2)} ETB</span>
             </div>
         </div>
         ${buyerSection}
-        <div class="receipt-footer" style="text-align: center; margin-top: 20px; font-size: 0.8rem; color: #777; font-style: italic;">~ ስለመጡ እናመሰግናለን! እንደገና ይጎብኙን ~</div>
+        <div class="receipt-footer" style="text-align: center;
+            margin-top: 20px; font-size: 0.8rem; color: #777; font-style: italic;">~ ስለመጡ እናመሰግናለን! እንደገና ይጎብኙን ~</div>
     </div>
     <div class="receipt-actions-grid">
         <button class="btn-sell" onclick="window.print()">𖖨️ ደረሰኝ አትም (Print)</button>
         <button class="btn-add" onclick="downloadReceiptPDF('Receipt_${recId}')">📥 ፒዲኤፍ (PDF)</button>
-        <button class="btn-config" style="background:#0088cc; color:white; grid-column: span 2;" onclick="shareToSocial('tg', \`${rawTextForShare}\`)">✈️ በቴሌግራም አጋራ</button>
+        <button class="btn-config" style="background:#0088cc;
+            color:white; grid-column: span 2;" onclick="shareToSocial('tg', \`${rawTextForShare}\`)">✈️ በቴሌግራም አጋራ</button>
         <button class="btn-expense" style="grid-column: span 2;" onclick="closeActiveModal()">❌ ዝጋ</button>
     </div>
     `;
@@ -953,6 +1057,7 @@ function viewPastReceipt(idx) {
     let vAmt = rec.vatAmount !== undefined ? rec.vatAmount : 0;
     
     if(rec.advancedItems) { 
+ 
         generateAdvancedReceipt(rec.advancedItems, subT, rec.seller, rec.recId, false, rec.shopName, rec.bType, rec.buyerName, rec.buyerPhone, vAmt, rec.ownerName, rec.ownerPhone);
     } else { 
         generateAdvancedReceipt([{name: rec.itemName, count: rec.count, unitPrice: subT/rec.count, total: subT}], subT, rec.seller, rec.recId, false, rec.shopName, rec.bType, rec.buyerName, rec.buyerPhone, vAmt, rec.ownerName, rec.ownerPhone);
@@ -981,7 +1086,8 @@ function launchApp(tenant) {
     document.getElementById('profGmail').innerText = tenant.gmail || "-";
     document.getElementById('profExpiry').innerText = tenant.expiryDate ? `${tenant.expiryDate} (${tenant.contractType})` : "ያልተገደበ";
     let rentDisplay = document.getElementById('tenantRentDisplay');
-    if(rentDisplay) { rentDisplay.innerText = (tenant.registrationFee || 0) + " ETB"; }
+    if(rentDisplay) { rentDisplay.innerText = (tenant.registrationFee || 0) + " ETB";
+    }
 
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
     let rentAmount = parseFloat(tenant.registrationFee) || 0;
