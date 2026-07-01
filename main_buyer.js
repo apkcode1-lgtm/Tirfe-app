@@ -1,507 +1,468 @@
-// =========================================================================
-// የሞተረኛ (Delivery/Motor) ማዕከላዊ የጃቫስክሪፕት ፋይል (main_delivery.js)
-// =========================================================================
+// ==========================================
+// የገዥ (Buyer) ሲስተም ዋና ኮዶች (main_buyer.js)
+// ==========================================
 
-// 1. ሞተረኛ ሎጊን ሲያደርግ ገፁን መረጃዎች ማሳያ (ከ main_auth.js ጋር የሚገናኝ)
-function renderMotorPage() {
-    // currentMotor በሎጊን ጊዜ (main_auth.js) የሚፈጠር ግሎባል ቬርያብል ነው
-    if (typeof currentMotor === 'undefined' || !currentMotor) return;
-// ሀ. የፕሮፋይል ባጅ መሙላት
-    const badge = document.getElementById('motorProfileBadge');
-if (badge) {
-        badge.innerText = `ሰላም, ${currentMotor.firstName} ${currentMotor.lastName} (@${currentMotor.username})`;
+window.buyerCartData = window.buyerCartData || [];
+
+function logoutBuyer() {
+    currentBuyer = null;
+    localStorage.removeItem('tirfe_active_session');
+    switchView('welcomeGateway');
 }
 
-    // ለ. ሴቲንግ ፎርም ላይ የነበሩትን መረጃዎች መሙላት
-    document.getElementById('motSetEmail').value = currentMotor.email || '';
-document.getElementById('motSetPhone').value = currentMotor.phone || '';
-    document.getElementById('motSetTelegram').value = currentMotor.telegramToken || currentMotor.tgToken || '';
-    document.getElementById('motSetPassword').value = currentMotor.password || '';
-
-    // ሐ.
-ዳሽቦርድ መረጃዎች (ክሬዲት እና ያደረሳቸው ብዛት)
-    const credit = currentMotor.credit || 0;
-document.getElementById('motorCreditDisplay').innerText = credit.toFixed(2) + ' ETB';
-    document.getElementById('motorTotalDelivered').innerText = currentMotor.totalDelivered || 0;
-
-    // መ.
-የስራ ሁኔታ (Status Toggle - Online/Offline)
-    let isOnline = currentMotor.status === 'online';
-    const statusToggle = document.getElementById('motorStatusToggle');
-const statusText = document.getElementById('motorStatusText');
-    
-    if (statusToggle && statusText) {
-        statusToggle.checked = isOnline;
-statusText.innerText = isOnline ? 'ኦንላይን (Online)' : 'ኦፍላይን (Offline)';
-        statusText.style.color = isOnline ? 'var(--success-color)' : 'var(--danger-color)';
-}
-
-    // ሠ. ቴብሎችን (ትዕዛዞች እና ታሪክ) መሳል
-    renderMotorOrders();
-    renderMotorHistory();
-}
-
-// 2. የፕሮፋይል ሲቲንግ መክፈቻና መዝጊያ
-function toggleMotorSettings() {
-    const settingsSection = document.getElementById('motorSettingsSection');
-if (settingsSection) {
-        settingsSection.classList.toggle('hidden');
-}
-}
-
-// 3. የተስተካከለውን ሲቲንግ ሴቭ ማድረጊያ
-function saveMotorSettings() {
-    if (typeof currentMotor === 'undefined' || !currentMotor) return;
-const email = document.getElementById('motSetEmail').value.trim();
-    const phone = document.getElementById('motSetPhone').value.trim();
-    const pass = document.getElementById('motSetPassword').value.trim();
-    const tg = document.getElementById('motSetTelegram').value.trim();
-if (email) currentMotor.email = email;
-    if (phone) currentMotor.phone = phone;
-if (tg) {
-        currentMotor.tgToken = tg;
-        currentMotor.telegramToken = tg;
-// ሁለቱም ላይ መቀመጡ ለደህንነት እና ስህተት ላለመፍጠር ይረዳል
-    }
-    if (pass) currentMotor.password = pass;
-// ዳታቤዝ ላይ አፕዴት ማድረግ
-    localDB.motors[currentMotor.username] = currentMotor;
-    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-if (typeof pushToFirebase === 'function') pushToFirebase();
-
-    // ማሳወቂያ በቴሌግራም መላክ
-    if (typeof sendMotorTelegramAlert === 'function') {
-        sendMotorTelegramAlert(currentMotor.username, "✅ የፕሮፋይል ማስተካከያዎ (Settings) በትክክል ተቀምጧል።");
-}
-
-    alert("ማስተካከያው በትክክል ተቀምጧል!");
-    toggleMotorSettings(); // ሴቲንጉን መልሶ ይደብቀዋል
-    renderMotorPage();
-// ገፁን አዲስ ያደርገዋል
-}
-
-// 4. ኦንላይን/ኦፍላይን መቀየሪያ
-function toggleMotorOnlineStatus() {
-    if (typeof currentMotor === 'undefined' || !currentMotor) return;
-const isChecked = document.getElementById('motorStatusToggle').checked;
-    
-    // Status ወደ ዳታቤዝ ማስገባት
-    currentMotor.status = isChecked ? 'online' : 'offline';
-localDB.motors[currentMotor.username] = currentMotor;
-    
-    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushToFirebase();
-// ለሞተረኛው ቴሌግራም ላይ ሁኔታውን ማሳወቅ
-    if (typeof sendMotorTelegramAlert === 'function') {
-        sendMotorTelegramAlert(currentMotor.username, `🔄 የስራ ሁኔታዎ ወደ ${isChecked ? 'ኦንላይን (Online)' : 'ኦፍላይን (Offline)'} ተቀይሯል።`);
-}
-
-    renderMotorPage();
-}
-
-// 5. ክሬዲት ሞዳል መክፈቻ (መዋቅር)
-function openMotorCreditModal() {
-    const modal = document.getElementById('motorCreditModal');
-if (modal) {
-        modal.classList.remove('hidden');
-        document.getElementById('motorCreditAmount').value = '';
-}
-}
-
-// 6. ክሬዲት ሲሞላ ገንዘቡን ወደ አካውንቱ ማስገቢያ (ለጊዜው እዚሁ የሚደምር መዋቅር ነው)
-function submitMotorCredit() {
-    if (typeof currentMotor === 'undefined' || !currentMotor) return;
-const amountInput = document.getElementById('motorCreditAmount').value;
-    const amount = parseFloat(amountInput);
-
-    if (isNaN(amount) || amount <= 0) {
-        alert("እባክዎ ትክክለኛ የብር መጠን ያስገቡ!");
-return;
-    }
-
-    // አሁን ባለው ክሬዲት ላይ የተሞላውን መደመር
-    if (typeof currentMotor.credit === 'undefined') currentMotor.credit = 0;
-currentMotor.credit += amount;
-
-    // ወደ ዳታቤዝ ማስቀመጥ
-    localDB.motors[currentMotor.username] = currentMotor;
-    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-if (typeof pushToFirebase === 'function') pushToFirebase();
-
-    // ማሳወቂያ በቴሌግራም መላክ
-    if (typeof sendMotorTelegramAlert === 'function') {
-        sendMotorTelegramAlert(currentMotor.username, `💰 ሂሳብዎ ላይ ${amount} ብር ክሬዲት ተሞልቷል!\nአጠቃላይ ክሬዲት፡ ${currentMotor.credit} ETB`);
-}
-
-    alert(`በትክክል ${amount} ብር ክሬዲት ተሞልቷል!`);
-    
-    if (typeof closeActiveModal === 'function') closeActiveModal();
-    renderMotorPage();
-}
-
-// 7. ትዕዛዞችን ማሳያ (Active Deliveries) እና ሞተረኛ ጥሪ መቀበያ ሎጂክ
-function renderMotorOrders() {
-    const tbody = document.getElementById('motorActiveOrdersBody');
-if (!tbody) return;
-    
-    tbody.innerHTML = '';
-
-    let activeOrders = currentMotor.activeOrders || [];
-if (activeOrders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">በአሁኑ ሰዓት የተመደበ ምንም ትዕዛዝ የለም</td></tr>`;
-return;
-    }
-
-    activeOrders.forEach((order, index) => {
-        let tr = document.createElement('tr');
-        let actionBtn = "";
-        let statusBadge = "";
-
-        if(order.status === 'pending_motor') {
-            statusBadge = `<span class="badge-warning">አዲስ ጥሪ (በመጠባበቅ ላይ)</span><br>`;
-            actionBtn = `<button class="btn-add btn-sm" onclick="acceptMotorOrder(${index})">✋ ተቀበል (Accept)</button>`;
-        } else {
-            statusBadge = `<span class="badge-success">በእርስዎ የተያዘ</span><br>`;
-            actionBtn = `<button class="btn-sell btn-sm" onclick="completeMotorOrder(${index})">✅ አድርሻለሁ</button>`;
+window.openBuyerProfileSettings = function() {
+    if(!currentBuyer) return;
+    showFormModal("⚙️ የፕሮፋይል ሲቲንግ", [
+        { id: "b_name", label: "ሙሉ ስም (Name)", type: "text", defaultValue: currentBuyer.name },
+        { id: "b_username", label: "መግቢያ ስም (Username)", type: "text", defaultValue: currentBuyer.username },
+        { id: "b_email", label: "ኢሜል (Gmail)", type: "email", defaultValue: currentBuyer.email || "" },
+        { id: "b_phone", label: "ስልክ ቁጥር (Phone)", type: "tel", defaultValue: currentBuyer.phone },
+        { id: "b_password", label: "የይለፍ ቃል (Password)", type: "text", defaultValue: currentBuyer.password }
+    ], async (res) => {
+        let newU = res.b_username.trim().toLowerCase();
+        let newP = res.b_phone.trim();
+        
+        if(newU !== currentBuyer.username || newP !== currentBuyer.phone) {
+            let takenMsg = await isSystemDataTaken(newU, newP, "", currentBuyer.username);
+            if(takenMsg) { showCustomAlert("ስህተት (Error)", takenMsg); return; }
         }
 
-        tr.innerHTML = `
-            <td>${order.shopName}<br><a href="${order.shopMap}" target="_blank" style="color:var(--accent-color);">📍 የሻጭ ማፕ</a> | 📞 ${order.shopPhone}</td>
-            <td>${order.buyerName}<br><a href="${order.buyerMap}" target="_blank" style="color:var(--accent-color);">📍 የገዥ ማፕ</a> | 📞 ${order.buyerPhone}</td>
-            <td>${order.itemName} (x${order.qty})<br><strong style="color:var(--warning-color);">${order.totalPrice} ETB</strong><br>${statusBadge}</td>
-            <td>${actionBtn}</td>
-        `;
-        tbody.appendChild(tr);
+        let oldU = currentBuyer.username;
+        currentBuyer.name = res.b_name.trim();
+        currentBuyer.username = newU;
+        currentBuyer.email = res.b_email.trim(); currentBuyer.phone = newP; currentBuyer.password = res.b_password.trim();
+        
+        if(oldU !== newU) {
+            localDB.buyers[newU] = currentBuyer;
+            delete localDB.buyers[oldU];
+            localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: newU }));
+        } else { 
+            localDB.buyers[newU] = currentBuyer;
+        }
+        
+        pushToFirebase(); renderBuyerCatalog();
+        showCustomAlert("✅ ተሳክቷል", "ፕሮፋይልዎ በትክክል ተስተካክሏል!");
     });
-}
+};
 
-// 8. ሞተረኛው አዲሱን ጥሪ አክሲፕት ሲያደርግ (ከሌሎች ሞተረኞች ላይ ይጠፋል)
-window.acceptMotorOrder = function(index) {
-    if (typeof currentMotor === 'undefined' || !currentMotor) return;
-    let acceptedOrder = currentMotor.activeOrders[index];
+window.openDeliveryOrderModal = function(shopKey, itemIdx, itemName, price) {
+    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return; }
+    
+    showFormModal("🚚 " + itemName + " - ዴሊቨሪ ማዘዣ", [
+        { id: "phone", label: "ስልክ ቁጥርዎ (ግዴታ)", type: "text", defaultValue: currentBuyer.phone },
+        { id: "address", label: "ያሉበት ትክክለኛ አድራሻ / ሰፈር (ግዴታ)", type: "text", placeholder: "ምሳሌ: ቦሌ ሚካኤል፣ ህንፃ 3..." },
+        { id: "mapLink", label: "የጎግል ማፕ ሊንክ (አማራጭ)", type: "text", placeholder: "https://maps.google.com/..." },
+        { id: "qty", label: "የሚፈልጉት ብዛት (ግዴታ)", type: "number", defaultValue: "1" },
+        { id: "transport", label: "የትራንስፖርት ምርጫ (ግዴታ)", type: "select", options: [
+            { value: "", label: "-- ይምረጡ --" },
+            { value: "motor", label: "🏍️ ሞተረኛ" },
+            { value: "car", label: "🚗 መኪና" }
+        ]}
+    ], 
+    (res) => {
+        let qty = parseFloat(res.qty) || 0;
+        
+        if(qty <= 0 || !res.address || !res.phone || !res.transport) { 
+            showCustomAlert("ስህተት", "እባክዎ ያላስገቡት ወይም ያልመረጡት የፎርም ዝርዝር አለ! ሁሉንም ግዴታ የሆኑትን በትክክል ይሙሉ!"); 
+            return; 
+        }
 
-    // 1. ስታተሱን መቀየር
-    acceptedOrder.status = 'accepted';
+        let t = localDB.tenants[shopKey];
+        if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
 
-    // 2. ይሄንን ትዕዛዝ ከሌሎች ሞተረኞች ላይ ማጥፋት (በ poolId በመለየት)
-    let poolId = acceptedOrder.poolId;
-    if(poolId && localDB.motors) {
-        Object.keys(localDB.motors).forEach(mUser => {
-            if(mUser !== currentMotor.username) {
-                let otherMotor = localDB.motors[mUser];
-                if(otherMotor.activeOrders) {
-                    otherMotor.activeOrders = otherMotor.activeOrders.filter(o => o.poolId !== poolId);
+        let orderId = Math.floor(100000 + Math.random() * 900000);
+        t.data.deliveryOrders.push({
+            orderId: orderId, buyerUser: currentBuyer.username, buyerPhone: res.phone,
+            address: res.address, mapLink: res.mapLink, itemIdx: itemIdx, itemName: itemName,
+            qty: qty, price: price, total: qty * price, status: "pending", date: getTodayFormatted(),
+            transport: res.transport, deliveryFeePaid: 0
+        });
+        
+        localDB.tenants[shopKey] = t; pushToFirebase();
+        showCustomAlert("ተሳክቷል", "ትዕዛዝዎ ለሻጩ ተልኳል። ሻጩ ሲቀበለው በገጽዎ ላይ 'በመንገድ ላይ ነው' የሚል ምልክት ያያሉ።");
+        renderBuyerCatalog();
+    });
+};
+
+window.submitDeliveryFee = function(shopKey, orderId) {
+    let feeInput = document.getElementById(`delFee_${shopKey}_${orderId}`);
+    if(!feeInput) return;
+    
+    let fee = parseFloat(feeInput.value) || 0;
+    if(fee <= 0) {
+        showCustomAlert("ስህተት", "እባክዎ ለዴሊቨሪ የከፈሉትን ትክክለኛ የብር መጠን ያስገቡ!");
+        return;
+    }
+
+    let t = localDB.tenants[shopKey];
+    if(t && t.data && t.data.deliveryOrders) {
+        let ord = t.data.deliveryOrders.find(o => o.orderId == orderId);
+        if(ord) {
+            ord.deliveryFeePaid = fee;
+            localDB.tenants[shopKey] = t;
+            pushToFirebase();
+            showCustomAlert("✅ ተሳክቷል", "የዴሊቨሪ ክፍያ መጠን በተሳካ ሁኔታ ገብቷል! (ይህ ለጊዜው መረጃ ብቻ የሚይዝ ፎርም ነው)");
+            renderBuyerCatalog();
+        }
+    }
+};
+
+window.buyFromShop = function(shopKey, itemIdx, itemName, price, availableRem) {
+    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return; }
+    
+    showFormModal("🛒 " + itemName + " - ወደ ቅርጫት (Cart) ማስገቢያ", [
+        { id: "qty", label: "የሚፈልጉት ብዛት", type: "number", defaultValue: "1" }
+    ], (res) => {
+        let qty = parseFloat(res.qty) || 0;
+        if(qty <= 0) { showCustomAlert("ስህተት", "የተሳሳተ ብዛት!"); return; }
+        if(qty > availableRem) { showCustomAlert("ብዛት የለም", "የጠየቁት ብዛት በአሁኑ ሰዓት ከስቶር የለም (አልቋል)!"); return; }
+
+        let existIdx = window.buyerCartData.findIndex(c => c.shopKey === shopKey && c.itemIdx === itemIdx);
+        if(existIdx > -1) {
+            let totalWanted = window.buyerCartData[existIdx].qty + qty;
+            if(totalWanted > availableRem) { showCustomAlert("ስህተት", "ከክምችት በላይ ነው!"); return; }
+            window.buyerCartData[existIdx].qty += qty;
+            window.buyerCartData[existIdx].total = window.buyerCartData[existIdx].qty * price;
+        } else {
+            window.buyerCartData.push({ shopKey: shopKey, itemIdx: itemIdx, itemName: itemName, qty: qty, price: price, total: qty * price });
+        }
+        renderBuyerCart();
+        showCustomAlert("🛒 በቅርጫትዎ ውስጥ ገብቷል", "ትዕዛዙ Cart ውስጥ ገብቷል። ሲጨርሱ ከላይ 'እርግጠኛ ነኝ ትዕዛዙን ላክ' የሚለውን ይጫኑ።");
+    });
+};
+
+window.renderBuyerCart = function() {
+    let section = document.getElementById('buyerCartSection');
+    let listBody = document.getElementById('buyerCartList');
+    let cartTotalBar = section.querySelector('.cart-total-bar');
+
+    if(!window.buyerCartData || window.buyerCartData.length === 0) {
+        section.style.display = 'none';
+        listBody.innerHTML = ''; 
+        if(cartTotalBar) cartTotalBar.innerHTML = `አጠቃላይ ሂሳብ: <span id="buyerCartTotalSum" style="color: var(--success-color);">0</span> ብር`;
+        return;
+    }
+
+    section.style.display = 'block'; listBody.innerHTML = '';
+    let grandTotal = 0;
+    
+    window.buyerCartData.forEach((c, i) => {
+        grandTotal += c.total;
+        let shopName = localDB.tenants[c.shopKey] ? localDB.tenants[c.shopKey].shopName : "ሱቅ";
+        listBody.innerHTML += `
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+            <td style="color:var(--text-color);"><b>${c.itemName}</b><br><small style="color:var(--accent-color)">[${shopName}]</small></td>
+            <td style="color:var(--text-color);">${c.qty}</td>
+            <td style="color:var(--success-color);"><b>${c.total}</b></td>
+            <td><button class="btn-expense btn-sm" onclick="removeFromBuyerCart(${i})">❌ አጥፋ</button></td>
+        </tr>`;
+    });
+    
+    let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
+    let vatAmount = (grandTotal * vatRate) / 100;
+    let finalTotal = grandTotal + vatAmount;
+    
+    if (cartTotalBar) {
+        if (vatRate > 0) {
+            cartTotalBar.innerHTML = `
+                <div style="font-size: 0.95rem;">የዕቃዎች ድምር (Subtotal): <span style="color: white;">${grandTotal.toFixed(2)}</span> ብር</div>
+                <div style="font-size: 0.9rem; color: var(--danger-color);">ቫት (VAT ${vatRate}%): <span>${vatAmount.toFixed(2)}</span> ብር</div>
+                <div style="border-top: 1px dashed #eab308; padding-top: 5px; margin-top: 5px;">ጠቅላላ ሂሳብ (Total): <span id="buyerCartTotalSum" style="color: var(--success-color); font-weight: bold;">${finalTotal.toFixed(2)}</span> ብር</div>
+            `;
+        } else {
+            cartTotalBar.innerHTML = `አጠቃላይ ሂሳብ: <span id="buyerCartTotalSum" style="color: var(--success-color);">${grandTotal.toFixed(2)}</span> ብር`;
+        }
+    }
+};
+
+window.removeFromBuyerCart = function(i) { if(window.buyerCartData) { window.buyerCartData.splice(i, 1); renderBuyerCart(); } };
+
+window.checkoutBuyerCart = function() {
+    if(!window.buyerCartData || window.buyerCartData.length === 0) { showCustomAlert("ስህተት", "ምንም ዕቃ አልመረጡም!"); return; }
+    
+    showCustomConfirm("ትዕዛዝ ማረጋገጫ", "ሁሉንም የቅርጫት ትዕዛዞች ወደየሱቆቹ መላክ ይፈልጋሉ?", () => {
+        let shops = {};
+        window.buyerCartData.forEach(c => {
+            if(!shops[c.shopKey]) shops[c.shopKey] = [];
+            shops[c.shopKey].push(c);
+        });
+        for(let sKey in shops) {
+            let t = localDB.tenants[sKey];
+            if(!t.data.remoteCarts) t.data.remoteCarts = {};
+            if(!t.data.remoteCarts[currentBuyer.username]) t.data.remoteCarts[currentBuyer.username] = [];
+            
+            shops[sKey].forEach(item => {
+                t.data.remoteCarts[currentBuyer.username].push({
+                    itemIdx: item.itemIdx, itemName: item.itemName, qty: item.qty, price: item.price, total: item.total
+                });
+            });
+            localDB.tenants[sKey] = t;
+        }
+        
+        window.buyerCartData = []; renderBuyerCart(); pushToFirebase();
+        showCustomAlert("✅ ተሳክቷል", "ትዕዛዞችዎ በተሳካ ሁኔታ ተልከዋል! ሻጮች ሲያረጋግጡ የ'ተቆረጡ ደረሰኞች' ቦታ ላይ ይደርስዎታል።");
+    });
+};
+
+async function renderBuyerCatalog() {
+    if(currentBuyer) {
+        let badge = document.getElementById('buyerProfileBadge');
+        if(badge) badge.innerText = `👤 የተጠቃሚ ስም: ${currentBuyer.username} | 📱 ስልክ: ${currentBuyer.phone}`;
+        renderBuyerCart();
+    }
+
+    let container = document.getElementById('buyerShopsContainer');
+    if(!container) return;
+    
+    if (typeof db !== 'undefined' && (!localDB.tenants || Object.keys(localDB.tenants).length === 0)) {
+        try {
+            let snap = await db.ref('tirfe_system/tenants').once('value');
+            if(snap.exists()) {
+                let allT = snap.val();
+                for(let k in allT) { 
+                    delete allT[k].password;
+                    delete allT[k].activationCode; 
+                    delete allT[k].staffAccounts; 
+                    delete allT[k].telegramToken; 
+                    delete allT[k].bankAccount; 
+                }
+                localDB.tenants = allT;
+            }
+        } catch(e) { console.warn("Catalog fetch error:", e); }
+    }
+
+    container.innerHTML = '';
+    let hasData = false;
+    let query = document.getElementById('buyerSearchInput') ? document.getElementById('buyerSearchInput').value.trim().toLowerCase() : "";
+    let categories = new Set();
+    
+    if (localDB.tenants) { Object.values(localDB.tenants).forEach(t => { if (t.status === "active") { categories.add(t.businessType || "አጠቃላይ ንግድ"); } }); }
+    
+    let catContainer = document.getElementById('buyerCategoryContainer');
+    if (catContainer) {
+        let catHTML = `<button class="category-btn ${activeCategoryFilter === 'all' ? 'active' : ''}" onclick="setCategoryFilter('all')">🌐 ሁሉም</button>`;
+        categories.forEach(cat => { catHTML += `<button class="category-btn ${activeCategoryFilter === cat ? 'active' : ''}" onclick="setCategoryFilter('${cat}')">🛍️ ${cat}</button>`; });
+        catContainer.innerHTML = catHTML;
+    }
+
+    let myOrdersHTML = ""; let myReceiptsHTML = "";
+    let liveBuyer = (currentBuyer && localDB.buyers) ? localDB.buyers[currentBuyer.username] : currentBuyer;
+
+    let allItems = [];
+    if (localDB.tenants) {
+        Object.keys(localDB.tenants).forEach(tKey => {
+            let t = localDB.tenants[tKey];
+            if (t.status === "active") {
+                let tBType = t.businessType || "አጠቃላይ ንግድ";
+                if (activeCategoryFilter !== "all" && tBType !== activeCategoryFilter) return;
+
+                let isShopMatch = false;
+                if (query !== "") {
+                    let uName = t.username ? t.username.toLowerCase() : tKey.toLowerCase();
+                    isShopMatch = (uName === query || uName.includes(query)) ||
+                                  (t.shopName && t.shopName.toLowerCase().includes(query)) ||
+                                  (t.phone && t.phone.includes(query));
+                }
+
+                if (t.data && t.data.inventory) {
+                    t.data.inventory.forEach((item, index) => {
+                        let isItemMatch = query === "" || isShopMatch || 
+                                          item.name.toLowerCase().includes(query) ||
+                                          (item.model && item.model.toLowerCase().includes(query));
+                        if (isItemMatch) {
+                            allItems.push({
+                                ...item,
+                                originalIdx: index,
+                                shopKey: tKey,
+                                tenant: t
+                            });
+                        }
+                    });
+                }
+
+                if(liveBuyer && t.data && t.data.deliveryOrders) {
+                    t.data.deliveryOrders.forEach(ord => {
+                        if(ord.buyerUser === liveBuyer.username) {
+                            let st = ord.status;
+                            let badge = st === "pending" ? "በመጠባበቅ ላይ" : (st === "accepted" ? "በመንገድ ላይ" : (st === "completed" ? "ተረክበዋል" : "ተመልሷል"));
+                            let cl = st === "pending" ? "text-warning" : (st === "accepted" ? "text-success" : "text-danger");
+                            
+                            let transportBadge = ord.transport === 'car' ? '🚗 መኪና' : (ord.transport === 'motor' ? '🏍️ ሞተረኛ' : '');
+
+                            let feeSection = "";
+                            if(ord.transport === "motor") {
+                                let feeValue = ord.deliveryFeePaid > 0 ? ord.deliveryFeePaid : "";
+                                let isDisabled = ord.deliveryFeePaid > 0 ? "disabled" : "";
+                                let btnText = ord.deliveryFeePaid > 0 ? "ገብቷል" : "አስገባ";
+                                
+                                feeSection = `
+                                <div style="margin-top: 8px; display: flex; gap: 5px; align-items: center; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                                    <input type="number" id="delFee_${tKey}_${ord.orderId}" placeholder="የዴሊቨሪ ክፍያ (ብር)" style="width: 130px; padding: 6px; margin: 0; font-size: 0.85rem;" value="${feeValue}" ${isDisabled}>
+                                    <button class="btn-sell btn-sm" onclick="submitDeliveryFee('${tKey}', '${ord.orderId}')" ${isDisabled} style="padding: 6px 12px; white-space:nowrap;">${btnText}</button>
+                                </div>`;
+                            }
+
+                            myOrdersHTML += `<tr>
+                                <td>${t.shopName}<br><small style="color:var(--accent-color)">${transportBadge}</small></td>
+                                <td>${ord.itemName} (x${ord.qty})</td>
+                                <td>${ord.total} ETB</td><td>${ord.date}</td>
+                                <td class="${cl}"><b>${badge}</b>${feeSection}</td>
+                            </tr>`;
+                        }
+                    });
                 }
             }
         });
     }
 
-    // 3. 7ቱን መረጃዎች አሟልቶ በቴሌግራም መላክ
-    let tgMessage = `📦 አዲስ ትዕዛዝ ተቀብለዋል!\n\n` +
-                    `📱 የገዥ ስልክ: ${acceptedOrder.buyerPhone || '-'}\n` +
-                    `📍 ገዥ ያለበት ቦታ: ${acceptedOrder.address || '-'}\n` +
-                    `🗺️ የገዥ ጎግል ማፕ: ${acceptedOrder.buyerMap || '-'}\n\n` +
-                    `📞 የሻጭ ስልክ: ${acceptedOrder.shopPhone || '-'}\n` +
-                    `🗺️ የሻጭ ጎግል ማፕ: ${acceptedOrder.shopMap || '-'}\n\n` +
-                    `🛍️ የዕቃው አይነት: ${acceptedOrder.itemName || '-'}\n` +
-                    `🔢 የዕቃው ብዛት: ${acceptedOrder.qty || '-'}\n\n` +
-                    `መልካም ስራ! አድራሻውን ተጠቅመው እቃውን ያድርሱ።`;
-
-    if (typeof sendMotorTelegramAlert === 'function') {
-        sendMotorTelegramAlert(currentMotor.username, tgMessage);
-    }
-
-    // ዳታቤዝ አፕዴት ማድረግ
-    localDB.motors[currentMotor.username] = currentMotor;
-    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushToFirebase();
-
-    alert("ትዕዛዙን በተሳካ ሁኔታ ተቀብለዋል! ዝርዝር መረጃው በቴሌግራም ተልኮልዎታል።");
-    renderMotorPage();
-};
-
-// 9. የስራ ታሪክ ማሳያ (Delivery History)
-function renderMotorHistory() {
-    const tbody = document.getElementById('motorHistoryBody');
-    if (!tbody) return;
-tbody.innerHTML = '';
-
-    let history = currentMotor.history || [];
+    allItems.sort((a, b) => {
+        let scoreA = (a.name.charCodeAt(0) || 0) + (a.shopKey.charCodeAt(0) || 0) + a.originalIdx;
+        let scoreB = (b.name.charCodeAt(0) || 0) + (b.shopKey.charCodeAt(0) || 0) + b.originalIdx;
+        return (scoreA % 7) - (scoreB % 7) || scoreA - scoreB;
+    });
     
-    if (history.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">ባዶ ነው</td></tr>`;
-return;
-    }
-
-    // አዲሱ ታሪክ ከላይ እንዲመጣ ሪቨርስ እናደርገዋለን (reverse)
-    let reversedHistory = [...history].reverse();
-reversedHistory.forEach(record => {
-        let tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${record.date}</td>
-            <td>${record.shopName}</td>
-            <td>${record.buyerName}</td>
-            <td style="color: var(--success-color); font-weight: bold;">+${record.earned} ETB</td>
+    let carouselHTML = '';
+    if (allItems.length > 0) {
+        hasData = true;
+        let carouselItems = allItems.slice(0, 8);
+        
+        carouselHTML += `
+        <div class="featured-carousel-section" style="grid-column: 1 / -1; margin-bottom: 20px; width: 100%; overflow: hidden; background: rgba(15, 23, 42, 0.4); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+            <h3 style="color: var(--accent-color); margin: 0 0 12px 0; font-size: 1.05rem; display: flex; align-items: center; gap: 6px;">
+                ✨ ተለይተው የቀረቡ ዕቃዎች (Featured Products)
+            </h3>
+            <div class="carousel-track-container" style="width: 100%; overflow-x: auto; display: flex; gap: 12px; padding-bottom: 4px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
         `;
-        tbody.appendChild(tr);
-    });
-}
-
-// 10. ትዕዛዝ ማድረሱን ማረጋገጫ እና ወደ ታሪክ (History) ማዛወሪያ
-function completeMotorOrder(index) {
-    if (typeof currentMotor === 'undefined' || !currentMotor) return;
-if(!confirm("እርግጠኛ ነዎት እቃውን ለደንበኛው አስረክበዋል?")) return;
-    
-    let order = currentMotor.activeOrders[index];
-    
-    // ሀ.
-መረጃውን ወደ ታሪክ (history) ማስገባት
-    if(!currentMotor.history) currentMotor.history = [];
-currentMotor.history.push({
-        date: new Date().toLocaleDateString('am-ET'),
-        shopName: order.shopName,
-        buyerName: order.buyerName,
-        earned: order.deliveryFee || 0
-    });
-// ለ. ከአክቲቭ ኦርደር ላይ ማጥፋት
-    currentMotor.activeOrders.splice(index, 1);
-    
-    // ሐ.
-ያደረሳቸውን አጠቃላይ ብዛት መጨመር
-    currentMotor.totalDelivered = (currentMotor.totalDelivered || 0) + 1;
-// ማሳሰቢያ፦ የክሬዲት መቀነስ/መቁረጥ ስሌት (Credit Deduct Logic) ገና አልተሰራም።
-// በቀጣይ ትዕዛዝ ሲያደርስ ክሬዲት የሚቆርጥ ከሆነ እዚህ ጋር ይጨመራል፦
-    // currentMotor.credit -= order.platformFee;
-// ዳታቤዝ አፕዴት
-    localDB.motors[currentMotor.username] = currentMotor;
-    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-if (typeof pushToFirebase === 'function') pushToFirebase();
-
-    // ትዕዛዙ በተሳካ ሁኔታ ሲደርስ ለሞተረኛው ማሳወቅ
-    if (typeof sendMotorTelegramAlert === 'function') {
-        sendMotorTelegramAlert(currentMotor.username, `✅ ትዕዛዝ በተሳካ ሁኔታ አድረሷል!\n\n🏢 ሱቅ: ${order.shopName}\n👤 ደንበኛ: ${order.buyerName}\n💵 የተገኘ ገቢ: ${order.deliveryFee || 0} ETB\n\nእናመሰግናለን!`);
-}
-
-    alert("ትዕዛዙን በተሳካ ሁኔታ ስላደረሱ እናመሰግናለን!");
-    renderMotorPage();
-}
-
-// 11. ከሞተረኛ ሲስተም መውጫ (Logout)
-function logoutMotor() {
-    if(!confirm("ከሲስተሙ መውጣት ይፈልጋሉ?")) return;
-    
-    currentMotor = null;
-    document.getElementById('motorPage').classList.add('hidden');
-    document.getElementById('welcomeGateway').classList.remove('hidden');
-}
-
-
-// =========================================================================
-// አዲስ የተጨመሩ የሞተረኛ ምዝገባ እና ፎቶ ማስተካከያ (Compression) ኮዶች
-// =========================================================================
-
-// 12. የሞተረኛን ፎቶዎች መጠን መቀነሻ (Memory Crash እንዳያደርግ)
-function compressMotorImage(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = event => {
-            const img = new Image();
-            img.src = event.target.result;
         
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800; // ከፍተኛው የስፋት መጠን
-                const MAX_HEIGHT = 800; // ከፍተኛው የቁመት መጠን
-                let width = 
-img.width;
+        carouselItems.forEach(item => {
+            let itemImg = item.imgUrl || "https://cdn-icons-png.flaticon.com/512/3342/3342137.png";
+            carouselHTML += `
+                <div class="carousel-item-card" style="flex: 0 0 170px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div onclick="viewImageFullscreen('${itemImg}')" style="cursor: pointer;">
+                        <img src="${itemImg}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 6px;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3342/3342137.png'">
+                        <div style="font-weight: bold; font-size: 0.85rem; color: #fff; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</div>
+                        <div style="color: var(--warning-color); font-size: 0.85rem; font-weight: bold; margin-top: 2px;">${item.price} ETB</div>
+                        <div style="color: #94a3b8; font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">🏬 ${item.tenant.shopName}</div>
+                    </div>
+                    <button class="btn-add btn-sm" style="width: 100%; margin-top: 8px; padding: 5px 0; font-size: 0.75rem; border-radius: 4px;" onclick="openDeliveryOrderModal('${item.shopKey}', ${item.originalIdx}, '${item.name}', ${item.price})">🚚 እዘዝ</button>
+                </div>
+            `;
+        });
         
-                let height = img.height;
+        carouselHTML += `
+            </div>
+        </div>
+        <div style="grid-column: 1 / -1; margin-bottom: 12px; margin-top: 5px;"><h3 style="color: #fff; font-size: 1.1rem; margin: 0; font-weight: 600;">🛍️ አጠቃላይ የዕቃዎች ዝርዝር (All Mixed Products)</h3></div>
+        `;
 
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-height = MAX_HEIGHT;
-                    }
-                }
-                canvas.width = width;
-canvas.height = height;
-                
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-// ፎቶውን ወደ 60% ጥራት ዝቅ በማድረግ ሚሞሪ እንዳይጨናነቅ ያደርጋል
-                resolve(canvas.toDataURL('image/jpeg', 0.6));
-};
-            img.onerror = error => reject(error);
-        };
-        reader.onerror = error => reject(error);
-    });
-}
+        container.innerHTML = carouselHTML;
 
-// 13. የሞተረኛን ምዝገባ ማካሄጃ ዋና ኮድ (በOTP እና Password የተስተካከለ)
-async function processMotorRegistration() {
-    const fName = document.getElementById('mot_firstName').value.trim();
-const lName = document.getElementById('mot_lastName').value.trim();
-    const phone = document.getElementById('mot_phone').value.trim();
-    const email = document.getElementById('mot_email').value.trim();
-    const user = document.getElementById('mot_username').value.trim().toLowerCase();
-    const tg = document.getElementById('mot_tgToken').value.trim();
-const plate = document.getElementById('mot_plateNumber').value.trim();
-    const region = document.getElementById('mot_region').value;
-    const zone = document.getElementById('mot_zone').value;
-    const woreda = document.getElementById('mot_woreda').value;
-
-    const idFile = document.getElementById('mot_idCardFile').files[0];
-const licFile = document.getElementById('mot_licenseFile').files[0];
-
-    // ክፍት ቦታዎች መኖራቸውን ማረጋገጥ
-    if (!fName || !lName || !phone || !email || !user || !tg || !plate || !region || !idFile || !licFile) {
-        if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "እባክዎ ሁሉንም የሞተረኛ መረጃዎች እና ፎቶዎች በትክክል ያስገቡ!");
-else alert("እባክዎ ሁሉንም የሞተረኛ መረጃዎች እና ፎቶዎች በትክክል ያስገቡ!");
-        return;
-}
-
-    // የፎቶ ሳይዝ ማረጋገጫ (1MB = 1048576 bytes)
-    const MAX_SIZE = 1048576;
-if (idFile.size > MAX_SIZE) {
-        if(typeof showCustomAlert === 'function') showCustomAlert("⚠️ ፎቶው ትልቅ ነው", "የነዋሪነት መታወቂያ ፎቶ ሳይዝ ከ 1MB በላይ ነው። እባክዎ አነስ ያለ ፎቶ ይምረጡ (ከወዲሁ ቀድሞ እንዲስተካከል)። 1MB ይሁን።");
-else alert("የነዋሪነት መታወቂያ ፎቶ ሳይዝ ከ 1MB በላይ ነው። እባክዎ አነስ ያለ ፎቶ ይምረጡ። 1MB ይሁን።");
-        return;
-}
-    if (licFile.size > MAX_SIZE) {
-        if(typeof showCustomAlert === 'function') showCustomAlert("⚠️ ፎቶው ትልቅ ነው", "የመንጃፍቃድ ፎቶ ሳይዝ ከ 1MB በላይ ነው። እባክዎ አነስ ያለ ፎቶ ይምረጡ (ከወዲሁ ቀድሞ እንዲስተካከል)። 1MB ይሁን።");
-else alert("የመንጃፍቃድ ፎቶ ሳይዝ ከ 1MB በላይ ነው። እባክዎ አነስ ያለ ፎቶ ይምረጡ። 1MB ይሁን።");
-        return;
-}
-
-    const btn = document.getElementById('regSubmitBtn');
-    const originalText = btn.innerText;
-
-    btn.innerText = "በማረጋገጥ ላይ...";
-    btn.disabled = true;
-// ዩዘርኔም ወይም ስልክ መያዙን ማረጋገጥ (ከ main_auth.js ሎጂክ ጋር የተገናኘ)
-    if (typeof isSystemDataTaken === 'function') {
-        let checkUser = await isSystemDataTaken(user, phone, "", "");
-if (checkUser) { 
-            if(typeof showCustomAlert === 'function') showCustomAlert("⚠️ ምዝገባው አልተሳካም", checkUser);
-else alert(checkUser);
-            btn.innerText = originalText;
-            btn.disabled = false;
-            return;
-        }
-    } else if (typeof localDB.motors !== 'undefined' && localDB.motors[user]) {
-        if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "ይህ ዩዘርኔም (Username) በሌላ ሰው ተይዟል። እባክዎ ሌላ ይሞክሩ።");
-else alert("ይህ ዩዘርኔም (Username) በሌላ ሰው ተይዟል። እባክዎ ሌላ ይሞክሩ።");
-        btn.innerText = originalText;
-        btn.disabled = false;
-        return;
-}
-
-    // 1. OTP ወደ ኢሜል መላክ
-    if(typeof triggerOTPFlow === 'function') {
-        pendingRegType = 'motor';
-triggerOTPFlow(email);
-        
-        // 2. OTP በትክክል ሲረጋገጥ
-        onVerifySuccess = () => {
-            // 3. የይለፍ ቃል (Password) እንዲፈጥር ማድረግ
-            showFormModal("🔒 የይለፍ ቃል ይፍጠሩ", [
-                { id: "newPass", label: "ለሞተረኛ አካውንትዎ አዲስ የይለፍ ቃል ይፍጠሩ፦", type: "password", placeholder: "ሚስጥራዊ ፓስዎርድ" }
-            ], async (res) => {
-  
-              if(!res.newPass) { 
-                    if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); 
-                    return; 
-                }
-                await finalizeMotorRegistration(res.newPass);
-   
-         });
-        };
-} else {
-        // እንደ አጋጣሚ የ OTP ሎጂክ ከሌለ ፎልባክ (Fallback)
-        let defaultPass = prompt("እባክዎ ለመግቢያ የሚሆን የይለፍ ቃል ይፍጠሩ:");
-if(!defaultPass) { alert("ፓስዎርድ አልፈጠሩም!"); btn.innerText = originalText; btn.disabled = false; return;
-}
-        await finalizeMotorRegistration(defaultPass);
-}
-
-    // ዳታውን እና ፎቶውን ፕሮሰስ አድርጎ ሴቭ የሚያደርገው ዋና ሎጂክ
-    async function finalizeMotorRegistration(passwordToSave) {
-        try {
-            btn.innerText = "እየመዘገበ ነው... እባክዎ ይጠብቁ";
-btn.disabled = true;
-
-            // 4. ፎቶዎችን ሚሞሪ በማያጨናንቅ መልኩ ፕሮሰስ ማድረግ
-            const idBase64 = await compressMotorImage(idFile);
-const licBase64 = await compressMotorImage(licFile);
-
-            if (typeof localDB.motors === 'undefined') localDB.motors = {};
-// 5. መረጃውን ወደ ቋት (Database) ማስገባት
-            localDB.motors[user] = {
-                role: 'motor',
-                firstName: fName,
-                lastName: lName,
-                phone: phone,
-            
-    email: email,
-                username: user,
-                password: passwordToSave, // <=== አዲሱ የይለፍ ቃል እዚህ ይገባል
-                telegramToken: tg, // ይሄኛው ከ tgToken ጋር አንድ አይነት ሆኖ መቀመጡ ይጠቅማል
-                tgToken: tg,
+        allItems.forEach(item => {
+            let t = item.tenant;
+            let itemImg = item.imgUrl || "https://cdn-icons-png.flaticon.com/512/3342/3342137.png";
+            let modelDisplay = item.model && item.model !== "-" ? `<br><small style="color:var(--accent-color)">ሞዴል: ${item.model}</small>` : '';
+            let unitLabel = item.unitType === 'kg' ? 'ኪሎ' : (item.isAdvanced ? 'ሜትር' : 'ፍሬ');
+            let rem = item.qty - item.sold;
+            let shopLogo = t.shopLogo || "https://cdn-icons-png.flaticon.com/512/869/869636.png";
+            let tgLink = t.telegram && t.telegram !== "-" ? (t.telegram.startsWith('@') ? t.telegram.substring(1) : t.telegram) : "";
           
-      plateNumber: plate,
-                region: region,
-                zone: zone,
-                woreda: woreda,
-                idCardPhoto: idBase64,
-                licensePhoto: licBase64,
-        
-        credit: 0,
-                totalDelivered: 0,
-                status: 'offline', // መግባት (Login) እንዲችል ሆን ተብሎ 'offline' ተብሏል (ከድሮው ጋር ተመሳሳይ)
-                activeOrders: [],
-                history: [],
-            
-    registeredDate: new Date().toLocaleDateString('am-ET')
-            };
-// ወደ ሎካል እና ኦንላይን ዳታቤዝ መላክ
-            if (typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
-                db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
-}
-            
-            if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-if (typeof pushToFirebase === 'function') pushToFirebase();
+            let singleProductHTML = `
+            <div class="shop-card" style="display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;">
+                <div>
+                    <div class="shop-card-header" style="padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                        <img src="${shopLogo}" class="shop-avatar" onerror="this.src='https://cdn-icons-png.flaticon.com/512/869/869636.png'" style="width:28px; height:28px; margin:0;">
+                        <div class="shop-meta" style="margin:0;">
+                            <h3 style="font-size: 0.85rem; margin:0; line-height:1.2;">${t.shopName}</h3>
+                            <span style="color:#64748b; font-size:0.7rem;">📍 ${t.address || 'ያልተገለጸ'}</span>
+                        </div>
+                    </div>
+                    <div class="catalog-item-card" style="background:transparent; padding:0; border:none; box-shadow:none; margin:0;">
+                        <img src="${itemImg}" class="catalog-item-img" onclick="viewImageFullscreen('${itemImg}')" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3342/3342137.png'">
+                        <div class="catalog-item-info">
+                            <span style="font-weight:bold; font-size:0.9rem; color:#fff;">${item.name}</span>${modelDisplay}
+                            <div style="color:var(--warning-color); font-weight:bold; margin-top:2px;">${item.price} ETB <small>(${unitLabel})</small></div>
+                            <div style="color:#94a3b8; font-size:0.75rem; margin-top:2px;">ቀሪ፡ ${rem}</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top:12px;">
+                    <div style="display:flex; gap:5px; margin-bottom:6px;">
+                        <button class="btn-add btn-sm" style="flex:1;" onclick="openDeliveryOrderModal('${item.shopKey}', ${item.originalIdx}, '${item.name}', ${item.price})">🚚 ዴሊቨሪ</button>
+                        <button class="btn-success btn-sm" style="flex:1; background:var(--warning-color); color:#000;" onclick="buyFromShop('${item.shopKey}', ${item.originalIdx}, '${item.name}', ${item.price}, ${rem})">🛒 ሱቅ ግዛ</button>
+                    </div>
+                    <div class="shop-links" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; padding:0; margin:0;">
+                        <a href="tel:${t.phone}" class="btn-link-action" style="background:#22c55e; color:#fff; padding:4px; font-size:0.75rem; text-align:center; border-radius:4px; display:block; text-decoration:none;">📞 ደውል</a>
+                        ${tgLink ? `<a href="https://t.me/${tgLink}" target="_blank" class="btn-link-action" style="background:#0088cc; color:#fff; padding:4px; font-size:0.75rem; text-align:center; border-radius:4px; display:block; text-decoration:none;">✈️ ቴሌግራም</a>` : `<span class="btn-link-action" style="background:#334155; color:#64748b; padding:4px; font-size:0.75rem; text-align:center; border-radius:4px; display:block;">✈️ የለም</span>`}
+                    </div>
+                </div>
+            </div>`;
+            container.innerHTML += singleProductHTML;
+        });
 
-            // ለአድሚን ቴሌግራም ላይ ኖቲፊኬሽን መላክ
-            let tgMsg = `🏍️ አዲስ ሞተረኛ ተመዝግቧል!\n\n👤 ስም: ${fName} ${lName}\n🔑 ዩዘርኔም: ${user}\n📞 ስልክ: ${phone}\n📍 አድራሻ: ${region} / ${zone} / ${woreda}\n\nአስተዳዳሪ (Admin) ገፅ ላይ በመግባት ማረጋገጥ ይችላሉ።`;
-if(typeof sendAdminTelegramAlert === 'function') sendAdminTelegramAlert(tgMsg);
-
-            if(typeof showCustomAlert === 'function') {
-                showCustomAlert("✅ ተሳክቷል", "የሞተረኛ ምዝገባዎ በተሳካ ሁኔታ ተጠናቋል! አሁን መግባት (Login) ይችላሉ።");
-} else {
-                alert("የሞተረኛ ምዝገባዎ በተሳካ ሁኔታ ተጠናቋል! አሁን መግባት (Login) ይችላሉ።");
-}
-
-            // ፎርሙን ባዶ ማድረግ
-            document.getElementById('unifiedMotorForm').querySelectorAll('input').forEach(i => i.value = '');
-if(typeof goToGateway === 'function') goToGateway();
-            else if(typeof switchView === 'function') switchView('welcomeGateway');
-} catch (err) {
-            if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "በፎቶው መጠን ወይም ጥራት የተነሳ ችግር ተፈጥሯል። እባክዎ አነስ ያለ ፎቶ ይምረጡ።");
-else alert("በፎቶው መጠን ወይም ጥራት የተነሳ ችግር ተፈጥሯል። እባክዎ አነስ ያለ ፎቶ ይምረጡ።");
-            console.error(err);
-} finally {
-            btn.innerText = originalText;
-            btn.disabled = false;
-}
+        setTimeout(() => {
+            let track = document.querySelector('.carousel-track-container');
+            if (track && !track.dataset.animated) {
+                track.dataset.animated = "true";
+                setInterval(() => {
+                    if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
+                        track.scrollLeft = 0;
+                    } else {
+                        track.scrollLeft += 160;
+                    }
+                }, 3500);
+            }
+        }, 600);
     }
 
-    // OTP Flow ሲጠራ በተኑ ወደ ነበረበት ይመለሳል
-    btn.innerText = originalText;
-btn.disabled = false;
+    if (!hasData) { 
+        container.innerHTML = '<p style="text-align:center; color:#94a3b8; grid-column: 1/-1; padding:20px;">በተፈለገው ስም የተገኘ ምንም ሱቅ ወይም ዕቃ የለም።</p>';
+    }
+    
+    let liveBuyerReceipts = (currentBuyer && localDB.buyers) ? localDB.buyers[currentBuyer.username] : currentBuyer;
+    if(liveBuyerReceipts && liveBuyerReceipts.receipts) {
+        let reversed = [...liveBuyerReceipts.receipts].reverse();
+        let filterDate = document.getElementById('buyerReceiptDateFilter') ? document.getElementById('buyerReceiptDateFilter').value : "";
+        reversed.forEach(rec => {
+            if (filterDate && rec.date !== filterDate) return;
+            
+            myReceiptsHTML += `<tr>
+                <td><b>#${rec.recId}</b></td><td>${rec.date}</td>
+                <td>${rec.itemName} (${rec.count})</td>
+                <td style="color:var(--success-color);"><b>${rec.totalVal} ETB</b></td>
+                <td><button class="btn-sm btn-add" onclick="viewBuyerReceipt('${rec.recId}')">📥 አውርድ</button></td>
+            </tr>`;
+        });
+    }
+
+    let ordersBody = document.getElementById('buyerOrdersBody');
+    if(ordersBody) {
+        if(myOrdersHTML === "") ordersBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">ምንም የዴሊቨሪ ትዕዛዝ አልጠየቁም።</td></tr>`;
+        else ordersBody.innerHTML = myOrdersHTML;
+    }
+    
+    let receiptsBody = document.getElementById('buyerReceiptsBody');
+    if(receiptsBody) {
+        if(myReceiptsHTML === "") receiptsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">የተቆረጠ ደረሰኝ የለም።</td></tr>`;
+        else receiptsBody.innerHTML = myReceiptsHTML;
+    }
 }
+
+window.viewBuyerReceipt = function(recId) {
+    if (!currentBuyer || !localDB.buyers[currentBuyer.username]) return;
+    let latestBuyerData = localDB.buyers[currentBuyer.username];
+    if (!latestBuyerData.receipts) return;
+    
+    let rec = latestBuyerData.receipts.find(r => r.recId === parseInt(recId) || r.recId == recId);
+    if(!rec) { showCustomAlert("ስህተት", "ይህ ደረሰኝ አልተገኘም!"); return; }
+    
+    let bName = latestBuyerData.username;
+    let bPhone = latestBuyerData.phone;
+    let subT = rec.subTotal !== undefined ? rec.subTotal : rec.totalVal;
+    let vAmt = rec.vatAmount !== undefined ? rec.vatAmount : 0;
+    
+    if(rec.advancedItems) { 
+        generateAdvancedReceipt(rec.advancedItems, subT, rec.seller, rec.recId, false, rec.shopName, rec.bType, bName, bPhone, vAmt, rec.ownerName, rec.ownerPhone);
+    } else { 
+        generateAdvancedReceipt([{name: rec.itemName, count: rec.count, unitPrice: subT/rec.count, total: subT}], subT, rec.seller, rec.recId, false, rec.shopName, rec.bType, bName, bPhone, vAmt, rec.ownerName, rec.ownerPhone);
+    }
+};
