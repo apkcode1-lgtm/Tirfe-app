@@ -18,6 +18,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+ 
     <script src="https://smtpjs.com/v3/smtp.js"></script>
     <script src="speed-insights-init.js"></script>
 </head>
@@ -349,7 +350,7 @@
                             <tr>
                                 <th>የሱቅ ስም / ዘርፍ / ካፒታል</th>
                                 <th>የተከራይ መገለጫ (Profile)</th>
-                                <th>የመግቢያ ዝርዝር / ኮድ</th>
+                               <th>የመግቢያ ዝርዝር / ኮድ</th>
                                 <th>የውል ዓይነት / ክፍያ</th>
                                 <th>የማብቂያ ቀን</th>
                                 <th>የአሁን ሁኔታ</th>
@@ -492,69 +493,84 @@
             </div>
         </header>
 
-        <section id="motorSettingsSection" class="section-box hidden" style="border-color: var(--accent-color);">
-            <h3 style="color: var(--accent-color); margin-bottom: 10px;">⚙️ የሞተረኛ ሲቲንግ / ማስተካከያ</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <input type="email" id="motSetEmail" placeholder="ኢሜል (Gmail)">
-                <input type="tel" id="motSetPhone" placeholder="ስልክ ቁጥር">
-                <input type="password" id="motSetPassword" placeholder="አዲስ የይለፍ ቃል (Password)">
-                <input type="text" id="motSetTelegram" placeholder="Telegram Token">
-            </div>
-            <button class="btn-sell btn-block" style="margin-top: 10px;" onclick="saveMotorSettings()">💾 ማስተካከያውን አስቀምጥ</button>
-        </section>
+        <div id="motorBlockedOverlay" class="hidden" style="background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #ef4444; margin-bottom: 10px;">⚠️ አካውንትዎ ታግዷል (Blocked)</h2>
+            <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.5;">ክሬዲትዎ 25 ብር እና ከዚያ በታች ስለደረሰ ሲስተሙ በራስ-ሰር አግዶታል። እባክዎ ክሬዲት ይሙሉ እና አስተዳዳሪ (Admin) ክፍያውን አረጋግጦ አካውንትዎን እስኪከፍትልዎ ድረስ ይጠብቁ።</p>
+            <button class="btn-sell" style="background-color: #f59e0b; color: black; margin-top: 15px; font-size: 1.1rem; padding: 12px 20px; font-weight: bold;" onclick="openMotorCreditModal()">💳 አሁን ክሬዲት ይሙሉ</button>
+        </div>
 
-        <section class="dashboard">
-            <div class="card" style="border-left: 4px solid var(--success-color);">
-                <h3>የስራ ሁኔታ (Status)</h3>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px;">
-                    <span id="motorStatusText" style="font-weight: bold; color: var(--success-color);">ኦንላይን (Online)</span>
-                    <label class="switch">
-                        <input type="checkbox" id="motorStatusToggle" onchange="toggleMotorOnlineStatus()" checked>
-                        <span class="slider round"></span>
-                    </label>
+        <div id="motorMainContent">
+            <section id="motorSettingsSection" class="section-box hidden" style="border-color: var(--accent-color);">
+                <h3 style="color: var(--accent-color); margin-bottom: 10px;">⚙️ የሞተረኛ ሲቲንግ / ማስተካከያ</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="email" id="motSetEmail" placeholder="ኢሜል (Gmail)">
+                    <input type="tel" id="motSetPhone" placeholder="ስልክ ቁጥር">
+                    <input type="password" id="motSetPassword" placeholder="አዲስ የይለፍ ቃል (Password)">
+                    <input type="text" id="motSetTelegram" placeholder="Telegram Token">
                 </div>
-            </div>
-            
-            <div class="card" style="border-left: 4px solid #3b82f6;">
-                <h3>ከገዥ የተላከ ክፍያ</h3>
-                <p id="motorIncomingFeeDisplay" style="color: #3b82f6; font-size: 1.5rem; font-weight: bold;">0.00 ETB</p>
-                <button id="btnMotorClearFee" class="btn-config btn-sm hidden" style="margin-top: 10px; width: 100%; background: #10b981; color: black; font-weight: bold;" onclick="clearIncomingFee()">✅ ክፍያ ተቀብያለሁ (ወደ 0.00 መልስ)</button>
-            </div>
-            
-            <div class="card" style="border-left: 4px solid #f59e0b;">
-                <h3>ቀሪ ክሬዲት (Balance)</h3>
-                <p id="motorCreditDisplay" style="color: #f59e0b;">0.00 ETB</p>
-            </div>
-            <div class="card" style="border-left: 4px solid #ec4899;">
-                <h3>ያደረስካቸው (Total Delivered)</h3>
-                <p id="motorTotalDelivered" style="color: #ec4899;">0</p>
-            </div>
-        </section>
+                <button class="btn-sell btn-block" style="margin-top: 10px;" onclick="saveMotorSettings()">💾 ማስተካከያውን አስቀምጥ</button>
+            </section>
 
-        <section class="section-box" style="border-color: var(--success-color);">
-            <h2 style="color: var(--success-color);">📦 አዲስ እና የአሁን ትዕዛዞች (Active Deliveries)</h2>
-            <div class="table-responsive">
-                <table>
-                    <thead><tr><th>የሱቅ መረጃ (ማፕ/ስልክ)</th><th>የገዥ መረጃ (ማፕ/ስልክ)</th><th>ዕቃ እና ሂሳብ</th><th>እርምጃ / ሁኔታ</th></tr></thead>
-                    <tbody id="motorActiveOrdersBody">
-                        <tr><td colspan="4" style="text-align:center; color:#94a3b8;">በአሁኑ ሰዓት የተመደበ ምንም ትዕዛዝ የለም</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+            <section class="dashboard">
+                <div class="card" style="border-left: 4px solid var(--success-color);">
+                    <h3>የስራ ሁኔታ (Status)</h3>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px;">
+                        <span id="motorStatusText" style="font-weight: bold; color: var(--success-color);">ኦንላይን (Online)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="motorStatusToggle" onchange="toggleMotorOnlineStatus()" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="card" style="border-left: 4px solid #3b82f6;">
+                    <h3>ከገዥ የተላከ ክፍያ</h3>
+                    <p id="motorIncomingFeeDisplay" style="color: #3b82f6; font-size: 1.5rem; font-weight: bold;">0.00 ETB</p>
+                    <button id="btnMotorClearFee" class="btn-config btn-sm hidden" style="margin-top: 10px; width: 100%; background: #10b981; color: black; font-weight: bold;" onclick="clearIncomingFee()">✅ ክፍያ ተቀብያለሁ (ወደ 0.00 መልስ)</button>
+                </div>
+                
+                <div class="card" style="border-left: 4px solid #f59e0b;">
+                    <h3>ቀሪ ክሬዲት (Balance)</h3>
+                    <p id="motorCreditDisplay" style="color: #f59e0b; font-weight: bold;">0.00 ETB</p>
+                </div>
+                
+                <div class="card" style="border-left: 4px solid #8b5cf6;">
+                    <h3>የሲስተም ኮሚሽን</h3>
+                    <p id="motorCommissionRateDisplay" style="color: #8b5cf6; font-weight: bold;">0%</p>
+                </div>
+                
+                <div class="card" style="border-left: 4px solid #ec4899;">
+                    <h3>ያደረስካቸው (Total Delivered)</h3>
+                    <p id="motorTotalDelivered" style="color: #ec4899;">0</p>
+                </div>
+            </section>
 
-        <section class="section-box">
-            <h2>📜 የስራ ታሪክ (History)</h2>
-            <div class="table-responsive">
-                <table>
-                    <thead><tr><th>ቀን</th><th>ሱቅ</th><th>ገዥ</th><th>ያገኘኸው ሂሳብ</th></tr></thead>
-                    <tbody id="motorHistoryBody">
-                        <tr><td colspan="4" style="text-align:center; color:#94a3b8;">ባዶ ነው</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+            <section class="section-box" style="border-color: var(--success-color);">
+                <h2 style="color: var(--success-color);">📦 አዲስ እና የአሁን ትዕዛዞች (Active Deliveries)</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>የሱቅ መረጃ (ማፕ/ስልክ)</th><th>የገዥ መረጃ (ማፕ/ስልክ)</th><th>ዕቃ እና ሂሳብ</th><th>እርምጃ / ሁኔታ</th></tr></thead>
+                        <tbody id="motorActiveOrdersBody">
+                            <tr><td colspan="4" style="text-align:center; color:#94a3b8;">በአሁኑ ሰዓት የተመደበ ምንም ትዕዛዝ የለም</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="section-box">
+                <h2>📜 የስራ ታሪክ (History)</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead><tr><th>ቀን</th><th>ሱቅ</th><th>ገዥ</th><th>ያገኘኸው ሂሳብ</th></tr></thead>
+                        <tbody id="motorHistoryBody">
+                            <tr><td colspan="4" style="text-align:center; color:#94a3b8;">ባዶ ነው</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
     </section>
+
     <section id="appPage" class="hidden">
         
         <header class="welcome-header">
@@ -585,6 +601,7 @@
                 <h3>የአሁን ካፒታል (ዕቃ ላይ)</h3>
                 <p id="totalCapital" style="color: var(--accent-color);">0.00</p>
             </div>
+            
             <div class="card">
                 <h3>የዛሬ ትርፍ</h3>
                 <p id="todayNetProfit">0.00</p>
@@ -908,6 +925,18 @@
         <div class="modal-footer" style="margin-top: 15px;">
             <button class="btn-expense" onclick="closeActiveModal()">ሰርዝ</button>
             <button class="btn-sell" onclick="submitMotorCredit()">ገንዘብ አስገባ</button>
+        </div>
+    </div>
+
+    <div id="motorTariffModal" class="modal-card hidden" style="max-width: 400px; border-top: 5px solid #f43f5e;">
+        <div class="modal-header"><h3 style="color: #f43f5e; margin: 0;">🏍️ የሞተረኛ ኮሚሽን ማስተካከያ</h3></div>
+        <div class="modal-body" style="padding-top: 15px;">
+            <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:15px;">ሞተረኛ ከሚያገኘው ክፍያ ላይ ሲስተሙ የሚቆርጠውን የኮሚሽን መጠን (ፐርሰንት %) ያስገቡ።</p>
+            <input type="number" id="adminMotorCommissionInput" placeholder="የኮሚሽን ፐርሰንት (ምሳሌ: 10)">
+        </div>
+        <div class="modal-footer" style="margin-top: 15px;">
+            <button class="btn-expense" onclick="closeActiveModal()">ሰርዝ</button>
+            <button class="btn-sell" onclick="if(typeof saveMotorTariffSettings === 'function') saveMotorTariffSettings()">💾 ፐርሰንቱን አስቀምጥ</button>
         </div>
     </div>
 
