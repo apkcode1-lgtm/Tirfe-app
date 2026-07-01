@@ -1,7 +1,7 @@
 // 1. ሞተረኛ ሎጊን ሲያደርግ ገፁን መረጃዎች ማሳያ (ከ main_auth.js ጋር የሚገናኝ)
 function renderMotorPage() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
-    
+
     // ሀ. የፕሮፋይል ባጅ መሙላት
     const badge = document.getElementById('motorProfileBadge');
     if (badge) {
@@ -15,7 +15,8 @@ function renderMotorPage() {
     document.getElementById('motSetPassword').value = currentMotor.password || '';
 
     // ሐ. አዲስ የተጨመረ (25 ብር እገዳ እና ኮሚሽን ማሳያ)
-    let commRate = (localDB.adminSettings && localDB.adminSettings.deliveryCommissionRate) ? localDB.adminSettings.deliveryCommissionRate : 10;
+    let commRate = (localDB.adminSettings && localDB.adminSettings.deliveryCommissionRate) ?
+localDB.adminSettings.deliveryCommissionRate : 10;
     let commDisplay = document.getElementById('motorCommissionRateDisplay');
     if (commDisplay) commDisplay.innerText = commRate + '%';
 
@@ -33,12 +34,13 @@ function renderMotorPage() {
     let mainContent = document.getElementById('motorMainContent');
     let statusToggle = document.getElementById('motorStatusToggle');
     let statusText = document.getElementById('motorStatusText');
-
+    
     if (currentMotor.status === 'blocked') {
         if (overlay) overlay.classList.remove('hidden');
         if (mainContent) mainContent.classList.add('hidden');
         if (statusToggle) { statusToggle.checked = false; statusToggle.disabled = true; }
-        if (statusText) { statusText.innerText = 'ታግዷል (Blocked)'; statusText.style.color = 'var(--danger-color)'; }
+        if (statusText) { statusText.innerText = 'ታግዷል (Blocked)';
+statusText.style.color = 'var(--danger-color)'; }
     } else {
         if (overlay) overlay.classList.add('hidden');
         if (mainContent) mainContent.classList.remove('hidden');
@@ -47,7 +49,8 @@ function renderMotorPage() {
         let isOnline = currentMotor.status === 'online';
         if (statusToggle) statusToggle.checked = isOnline;
         if (statusText) {
-            statusText.innerText = isOnline ? 'ኦንላይን (Online)' : 'ኦፍላይን (Offline)';
+            statusText.innerText = isOnline ?
+'ኦንላይን (Online)' : 'ኦፍላይን (Offline)';
             statusText.style.color = isOnline ? 'var(--success-color)' : 'var(--danger-color)';
         }
     }
@@ -116,12 +119,12 @@ function toggleMotorOnlineStatus() {
 
     const isChecked = document.getElementById('motorStatusToggle').checked;
     
-    currentMotor.status = isChecked ? 'online' : 'offline';
+    currentMotor.status = isChecked ?
+'online' : 'offline';
     localDB.motors[currentMotor.username] = currentMotor;
     
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') pushToFirebase();
-    
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, `🔄 የስራ ሁኔታዎ ወደ ${isChecked ? 'ኦንላይን (Online)' : 'ኦፍላይን (Offline)'} ተቀይሯል።`);
     }
@@ -131,16 +134,26 @@ function toggleMotorOnlineStatus() {
 
 // 5. ክሬዲት ሞዳል መክፈቻ
 function openMotorCreditModal() {
+    const overlay = document.getElementById('modalOverlay');
     const modal = document.getElementById('motorCreditModal');
+    
+    if (overlay) overlay.classList.remove('hidden');
+    
+    // ሌሎች ክፍት የሆኑ ሞዳሎች ካሉ መዝጊያ
+    document.querySelectorAll('.modal-card').forEach(m => {
+        if(m.id !== 'motorCreditModal') m.classList.add('hidden');
+    });
+
     if (modal) {
         modal.classList.remove('hidden');
         document.getElementById('motorCreditAmount').value = '';
     }
 }
 
-// 6. ክሬዲት ሲሞላ ገንዘቡን ወደ አካውንቱ ማስገቢያ (አውቶማቲክ አይከፍትም - በማንዋል ይከፈታል)
+// 6. ክሬዲት ሲሞላ ገንዘቡን ወደ አካውንቱ ማስገቢያ 
 function submitMotorCredit() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
+    
     const amountInput = document.getElementById('motorCreditAmount').value;
     const amount = parseFloat(amountInput);
 
@@ -152,6 +165,12 @@ function submitMotorCredit() {
     if (typeof currentMotor.credit === 'undefined') currentMotor.credit = 0;
     currentMotor.credit += amount;
 
+    // ማስተካከያ: ክሬዲቱ ከ25 ብር በላይ ከሆነ አውቶማቲካሊ ብሎኩን ያነሳዋል
+    let wasBlocked = currentMotor.status === 'blocked';
+    if (wasBlocked && currentMotor.credit > 25) {
+        currentMotor.status = 'offline';
+    }
+
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') pushToFirebase();
@@ -160,10 +179,19 @@ function submitMotorCredit() {
         sendMotorTelegramAlert(currentMotor.username, `💰 ሂሳብዎ ላይ ${amount} ብር ክሬዲት ተሞልቷል!\nአጠቃላይ ክሬዲት፡ ${currentMotor.credit} ETB`);
     }
 
-    if (typeof closeActiveModal === 'function') closeActiveModal();
-    
-    if (currentMotor.status === 'blocked') {
-        alert(`በትክክል ${amount} ብር ክሬዲት ተሞልቷል!\n\n⚠️ ሆኖም አካውንትዎ ስለተዘጋ፣ አስተዳዳሪ (Admin) ክፍያውን አረጋግጦ እስኪከፍትልዎ (Unblock) ድረስ በትዕግስት ይጠብቁ።`);
+    if (typeof closeActiveModal === 'function') {
+        closeActiveModal();
+    } else {
+        let overlay = document.getElementById('modalOverlay');
+        let modal = document.getElementById('motorCreditModal');
+        if(overlay) overlay.classList.add('hidden');
+        if(modal) modal.classList.add('hidden');
+    }
+
+    if (wasBlocked && currentMotor.credit <= 25) {
+        alert(`በትክክል ${amount} ብር ክሬዲት ተሞልቷል!\n\n⚠️ ሆኖም አሁንም ክሬዲትዎ ከ25 ብር በታች ስለሆነ እገዳው (Block) አልተነሳም። እባክዎ ተጨማሪ ክሬዲት ይሙሉ!`);
+    } else if (wasBlocked && currentMotor.credit > 25) {
+        alert(`በትክክል ${amount} ብር ክሬዲት ተሞልቷል!\n\n✅ አሁን ክሬዲትዎ ከ25 ብር በላይ ስለሆነ ሲስተሙ እገዳውን አንስቶልዎታል! አሁን ስራ መቀጠል ይችላሉ።`);
     } else {
         alert(`በትክክል ${amount} ብር ክሬዲት ተሞልቷል!`);
     }
@@ -245,7 +273,8 @@ window.acceptMotorOrder = function(index) {
         let shopOrders = localDB.tenants[shopKey].data.deliveryOrders;
         let sOrd = shopOrders.find(o => o.orderId == acceptedOrder.orderId || (o.buyerPhone == acceptedOrder.buyerPhone && o.itemName == acceptedOrder.itemName));
         if (sOrd) {
-            sOrd.motorUser = currentMotor.username; // ሞተረኛው ተመዝግቧል
+            sOrd.motorUser = currentMotor.username;
+            // ሞተረኛው ተመዝግቧል
             sOrd.status = 'accepted';
             if (typeof db !== 'undefined' && isOnline) {
                 db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(shopOrders);
@@ -262,7 +291,7 @@ window.acceptMotorOrder = function(index) {
                     `🛍️ የዕቃው አይነት: ${acceptedOrder.itemName || '-'}\n` +
                     `🔢 የዕቃው ብዛት: ${acceptedOrder.qty || '-'}\n\n` +
                     `መልካም ስራ!\nአድራሻውን ተጠቅመው እቃውን ያድርሱ።`;
-    
+                    
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, tgMessage);
     }
@@ -270,6 +299,7 @@ window.acceptMotorOrder = function(index) {
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') pushToFirebase();
+    
     alert("ትዕዛዙን በተሳካ ሁኔታ ተቀብለዋል! ዝርዝር መረጃው በቴሌግራም ተልኮልዎታል።");
     renderMotorPage();
 };
@@ -277,6 +307,7 @@ window.acceptMotorOrder = function(index) {
 // አዲስ የተጨመረ: ሞተረኛው ብሩን ሲቀበል (ኮሚሽን ቆርጦ 0.00 ያደርጋል፣ ከ 25 በታች ከሆነም ይዘጋል)
 window.clearIncomingFee = function() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
+    
     if(!confirm("እርግጠኛ ነዎት ክፍያውን ከገዥው ተቀብለዋል? ይህ ማሳያውን ወደ 0.00 ይመልሰዋል።")) return;
     
     let feeCollected = currentMotor.incomingFee || 0;
@@ -285,8 +316,10 @@ window.clearIncomingFee = function() {
     let commRate = (localDB.adminSettings && localDB.adminSettings.deliveryCommissionRate) ? (localDB.adminSettings.deliveryCommissionRate / 100) : 0.10;
     let commissionAmount = feeCollected * commRate;
     
-    currentMotor.credit = (currentMotor.credit || 0) - commissionAmount; // ኮሚሽኑን ከክሬዲት ቀንሶታል
-    currentMotor.incomingFee = 0; // ማሳያውን ወደ 0.00 ይመልሳል (Recycle)
+    currentMotor.credit = (currentMotor.credit || 0) - commissionAmount;
+    // ኮሚሽኑን ከክሬዲት ቀንሶታል
+    currentMotor.incomingFee = 0;
+    // ማሳያውን ወደ 0.00 ይመልሳል (Recycle)
     
     // ክሬዲቱ 25 እና ከዚያ በታች ከሆነ አካውንቱን እገደው (Block)
     if (currentMotor.credit <= 25) {
@@ -298,7 +331,8 @@ window.clearIncomingFee = function() {
     if (typeof pushToFirebase === 'function') pushToFirebase();
     
     if (typeof sendMotorTelegramAlert === 'function') {
-        let blockMsg = currentMotor.status === 'blocked' ? "\n\n⚠️ ክሬዲትዎ 25 ብር ስለደረሰ አካውንትዎ ታግዷል! እባክዎ ክሬዲት ይሙሉ።" : "\n\nአሁን አዲስ ትዕዛዝ መቀበል ይችላሉ!";
+        let blockMsg = currentMotor.status === 'blocked' ?
+"\n\n⚠️ ክሬዲትዎ 25 ብር ስለደረሰ አካውንትዎ ታግዷል! እባክዎ ክሬዲት ይሙሉ።" : "\n\nአሁን አዲስ ትዕዛዝ መቀበል ይችላሉ!";
         sendMotorTelegramAlert(currentMotor.username, `✅ ክፍያ ተረጋግጧል!\n\nገዥው የከፈለው: ${feeCollected} ETB\nየተቆረጠ ኮሚሽን: ${commissionAmount} ETB` + blockMsg);
     }
     
@@ -339,6 +373,7 @@ function renderMotorHistory() {
 // 10. ትዕዛዝ ማድረሱን ማረጋገጫ
 function completeMotorOrder(index) {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
+    
     if(!confirm("እርግጠኛ ነዎት እቃውን ለደንበኛው አስረክበዋል? (ገዥው አሁን ሲስተሙ ላይ ክፍያውን ይሞላል)")) return;
     
     let order = currentMotor.activeOrders[index];
@@ -433,6 +468,7 @@ async function processMotorRegistration() {
 
     btn.innerText = "ፎቶዎችን በማዘጋጀት ላይ...";
     btn.disabled = true;
+    
     try {
         if (typeof isSystemDataTaken === 'function') {
             let checkUser = await isSystemDataTaken(user, phone, "", "");
@@ -469,12 +505,14 @@ async function processMotorRegistration() {
                         if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); 
                         return; 
                     }
+  
                     await finalizeMotorRegistration(res.newPass, idBase64, licBase64);
                 });
             };
         } else {
             let defaultPass = prompt("እባክዎ ለመግቢያ የሚሆን የይለፍ ቃል ይፍጠሩ:");
-            if(!defaultPass) { alert("ፓስዎርድ አልፈጠሩም!"); btn.innerText = originalText; btn.disabled = false; return; }
+            if(!defaultPass) { alert("ፓስዎርድ አልፈጠሩም!"); btn.innerText = originalText; btn.disabled = false; return;
+            }
             await finalizeMotorRegistration(defaultPass, idBase64, licBase64);
         }
 
@@ -533,6 +571,7 @@ async function processMotorRegistration() {
             }
 
             document.getElementById('unifiedMotorForm').querySelectorAll('input').forEach(i => i.value = '');
+            
             if(typeof goToGateway === 'function') goToGateway();
             else if(typeof switchView === 'function') switchView('welcomeGateway');
             
