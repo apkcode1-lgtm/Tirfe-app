@@ -104,7 +104,6 @@ async function isSystemDataTaken(u, p, skipTenantUser, skipBuyerUser) {
     u = u ? u.toLowerCase() : "";
     if (u === "admin") return "ይህ ዩዘርኔም በዋና አስተዳዳሪ (Admin) ተይዟል (ትይዟል)!";
     
-    // ኢንተርኔት ካለ ብቻ ዳታቤዙን ቼክ እንዲያደርግ ተስተካክሏል
     if(isOnline && typeof db !== 'undefined') {
         try {
             let tSnap = await db.ref(`tirfe_system/tenants/${u}`).once('value');
@@ -126,7 +125,7 @@ async function isSystemDataTaken(u, p, skipTenantUser, skipBuyerUser) {
     if (localDB.tenants) {
         for(let k in localDB.tenants) {
             let t = localDB.tenants[k];
-            if (t.username !== skipTenantUser) {
+            if (t && t.username !== skipTenantUser) {
                 if (t.username === u) return "ዩዘርኔም (Username) በሌላ የሱቅ ባለቤት ተይዟል (ትይዟል)!";
                 if (t.phone === p) return "ስልክ ቁጥር በሌላ የሱቅ ባለቤት ተይዟል (ትይዟል)!";
                 if (t.staffUser === u) return "ዩዘርኔም በሌላ ሰራተኛ ተይዟል (ትይዟል)!";
@@ -142,7 +141,7 @@ async function isSystemDataTaken(u, p, skipTenantUser, skipBuyerUser) {
     if (localDB.buyers) {
         for(let k in localDB.buyers) {
             let b = localDB.buyers[k];
-            if (b.username !== skipBuyerUser) {
+            if (b && b.username !== skipBuyerUser) {
                 if (b.username === u) return "ዩዘርኔም በሌላ ደንበኛ (ገዥ) ተይዟል (ትይዟል)!";
                 if (b.phone === p) return "ስልክ ቁጥር በሌላ ደንበኛ (ገዥ) ተይዟል (ትይዟል)!";
             }
@@ -151,7 +150,7 @@ async function isSystemDataTaken(u, p, skipTenantUser, skipBuyerUser) {
     if (localDB.revenueAuthorities) {
         for(let k in localDB.revenueAuthorities) {
             let r = localDB.revenueAuthorities[k];
-            if (r.username !== skipTenantUser) {
+            if (r && r.username !== skipTenantUser) {
                 if (r.username === u) return "ይህ ዩዘርኔም በገቢዎች ባለስልጣን ተይዟል!";
                 if (r.phone === p || r.contactPhone === p) return "ይህ ስልክ ቁጥር በገቢዎች ባለስልጣን ተይዟል!";
             }
@@ -160,8 +159,8 @@ async function isSystemDataTaken(u, p, skipTenantUser, skipBuyerUser) {
     if (localDB.motors) {
         for(let k in localDB.motors) {
             let m = localDB.motors[k];
-            if (m.username === u) return "ይህ ዩዘርኔም በሌላ ሞተረኛ ተይዟል!";
-            if (m.phone === p) return "ይህ ስልክ ቁጥር በሌላ ሞተረኛ ተይዟል!";
+            if (m && m.username === u) return "ይህ ዩዘርኔም በሌላ ሞተረኛ ተይዟል!";
+            if (m && m.phone === p) return "ይህ ስልክ ቁጥር በሌላ ሞተረኛ ተይዟል!";
         }
     }
     return false;
@@ -224,6 +223,7 @@ async function handleUnifiedLogin() {
     let pass = document.getElementById('loginUnifiedPass').value.trim();
     let err = document.getElementById('loginUnifiedError');
     let loginBtn = document.getElementById('loginBtn');
+    
     if(!user || !email || !pass) { 
         err.innerText = "❌ እባክዎ ዩዘርኔም፣ ኢሜል እና የይለፍ ቃል በትክክል ያስገቡ!";
         return; 
@@ -263,7 +263,6 @@ async function handleUnifiedLogin() {
     err.innerText = "🔄 በማረጋገጥ ላይ...";
     try {
         let t = null;
-        // ፋየርቤዝ ኮዱን try...catch ውስጥ በማድረግ ችግሩ ተቀርፏል
         if(isOnline && typeof db !== 'undefined') {
             try {
                 let tSnap = await db.ref(`tirfe_system/tenants/${user}`).once('value');
@@ -272,15 +271,15 @@ async function handleUnifiedLogin() {
         }
         if(!t && localDB.tenants && localDB.tenants[user]) t = localDB.tenants[user];
         if(t) {
-            if((t.gmail || "").toLowerCase() === email.toLowerCase() && String(t.password).trim() === pass) {
+            if(String(t.gmail || "").toLowerCase() === email.toLowerCase() && String(t.password).trim() === pass) {
                 if(isTenantExpired(t, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
                 currentUserRole = "owner";
                 localDB.tenants[user] = t; 
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
-                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 launchApp(t);
+                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 return;
             }
         }
@@ -294,16 +293,17 @@ async function handleUnifiedLogin() {
         }
         if(!b && localDB.buyers && localDB.buyers[user]) b = localDB.buyers[user];
         if(b) {
-            if((b.email || "").toLowerCase() === email.toLowerCase() && String(b.password).trim() === pass) {
+            if(String(b.email || "").toLowerCase() === email.toLowerCase() && String(b.password).trim() === pass) {
                 if(b.status === "blocked") { err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)!";
-                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
+                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
+                }
                 currentBuyer = b;
                 localDB.buyers[user] = b;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: user }));
-                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 switchView('buyerPage');
+                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 return;
             }
         }
@@ -317,17 +317,17 @@ async function handleUnifiedLogin() {
         }
         if(!r && localDB.revenueAuthorities && localDB.revenueAuthorities[user]) r = localDB.revenueAuthorities[user];
         if(r) {
-            let rEmail = r.authEmail || r.email || r.gmail || ""; 
+            let rEmail = String(r.authEmail || r.email || r.gmail || ""); 
             let rPass = String(r.authPass || r.password || r.pass || "").trim();
             if(rEmail.toLowerCase() === email.toLowerCase() && rPass === pass) {
                 currentRevenueOfficer = r;
                 currentUserRole = "revenue";
                 localDB.revenueAuthorities[user] = r;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'revenue', loginMode: 'revenue', username: user }));
-                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 switchView('revenuePage');
+                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 if(typeof renderRevenuePanel === "function") renderRevenuePanel();
                 return;
             }
@@ -342,7 +342,7 @@ async function handleUnifiedLogin() {
         }
         if(!m && localDB.motors && localDB.motors[user]) m = localDB.motors[user];
         if(m) {
-            if((m.email || "").toLowerCase() === email.toLowerCase() && String(m.password).trim() === pass) {
+            if(String(m.email || "").toLowerCase() === email.toLowerCase() && String(m.password).trim() === pass) {
                 if(m.status === "blocked") { 
                     err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)!";
                     if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
@@ -355,10 +355,10 @@ async function handleUnifiedLogin() {
                 currentUserRole = "motor";
                 localDB.motors[user] = m;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'motor', loginMode: 'motor', username: user }));
-                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 switchView('motorPage');
+                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 return;
             }
         }
@@ -366,16 +366,16 @@ async function handleUnifiedLogin() {
         if(localDB.tenants) {
             for(let tKey in localDB.tenants) {
                 let tLocal = localDB.tenants[tKey];
-                if(tLocal.staffAccounts) {
-                    let found = tLocal.staffAccounts.find(s => s.user === user && (s.gmail || "").toLowerCase() === email.toLowerCase() && String(s.pass).trim() === pass);
+                if(tLocal && tLocal.staffAccounts) {
+                    let found = tLocal.staffAccounts.find(s => s.user === user && String(s.gmail || "").toLowerCase() === email.toLowerCase() && String(s.pass).trim() === pass);
                     if(found) {
                         if (isTenantExpired(tLocal, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
                         currentUserRole = "staff";
                         localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: tLocal.username }));
-                        if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                         err.innerText = "";
                         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                         launchApp(tLocal);
+                        if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                         return;
                     }
                 }
@@ -387,7 +387,7 @@ async function handleUnifiedLogin() {
         
     } catch (error) {
         console.error("Login Error: ", error);
-        err.innerText = "❌ ከሰርቨር ጋር መገናኘት አልተቻለም! ኢንተርኔትዎን ያረጋግጡ።";
+        err.innerText = "❌ ስህተት አጋጥሟል! እባክዎ ኢንተርኔትዎን ያረጋግጡ (" + error.message + ")";
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
     }
 }
@@ -395,6 +395,7 @@ async function handleUnifiedLogin() {
 async function triggerUnifiedRegistration() {
     let role = document.getElementById('unifiedRegRole').value;
     let regSubmitBtn = document.getElementById('regSubmitBtn');
+    
     if(role === 'buyer') {
         let name = document.getElementById('pubBuyerName').value.trim();
         let email = document.getElementById('pubBuyerEmail').value.trim();
@@ -463,7 +464,7 @@ async function triggerUnifiedRegistration() {
         let registrationFee = parseFloat(document.getElementById('pub_newRegistrationFee').value) || 0;
         let contractType = document.getElementById('pub_newContractType').value;
         let expiryDate = document.getElementById('pub_newExpiryDate').value;
-
+        
         if(!shop || !user || !expiryDate || !fullName || !phone || !newEmail || !region || !zone || !woreda || !kebele || !houseNo || !tinNum || !tradeReg || !businessType) { 
             showCustomAlert("ስህተት", "እባክዎ መሠረታዊ እና አስገዳጅ መረጃዎችን ሙሉ በሙሉ ያሟሉ!");
             return; 
@@ -499,23 +500,24 @@ async function triggerUnifiedRegistration() {
                         status: "active", theme: "theme-deepblue", staffAccounts: [],
                         data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, accumulatedVat: 0, lastMonthlyResetDate: timestampNow } 
                     };
-
+                    
                     if(isOnline && typeof db !== 'undefined') {
                         db.ref(`tirfe_system/tenants/${user}`).set(localDB.tenants[user]).catch(err => console.log(err));
                     }
                     pushToFirebase();
+                    
                     let capitalTierAmh = "ያልተመረጠ";
                     if (capitalTier === 'low') capitalTierAmh = "ዝቅተኛ (Low)";
                     else if (capitalTier === 'medium') capitalTierAmh = "መካከለኛ (Medium)";
                     else if (capitalTier === 'high') capitalTierAmh = "ከፍተኛ (High)";
-
+                    
                     let bankHint = (localDB.adminSettings && localDB.adminSettings.bankAccount) ? `\n\n🏦 የክፍያ ማረጋገጫ (ባንክ): ${localDB.adminSettings.bankAccount}` : "";
                     let tgMsg = `🔔 አዲስ ተከራይ በራሱ ተመዝግቧል!\n\n👤 የተከራይ ስም: ${fullName}\n🔑 ዩዘርኔም: ${user}\n📧 ኢሜል (Gmail): ${newEmail}\n📞 ስልክ: ${phone}\n💰 የካፒታል መጠን: ${capitalTierAmh}\n🏢 የንግድ ዘርፍ: ${businessType}${bankHint}`;
-                    
                     if(typeof sendAdminTelegramAlert === 'function') sendAdminTelegramAlert(tgMsg);
                     
                     let adminBankInfo = (localDB.adminSettings && localDB.adminSettings.bankAccount) ? localDB.adminSettings.bankAccount : "አልተሞላም";
                     let successMsg = `ሱቅዎ በተሳካ ሁኔታ ተመዝግቧል!\n\nእባክዎ ክፍያዎን በሚከተለው የባንክ ሂሳብ ቁጥር ይፈፅሙ፦\n🏦 ሂሳብ ቁጥር: ${adminBankInfo}\n💵 የሚከፈል መጠን: ${registrationFee} ETB\n\nክፍያው እንደተረጋገጠ አከራዩ አካውንትዎን ሙሉ በሙሉ ይከፍተዋል።`;
+                    
                     showCustomAlert("✅ ተሳክቷል", successMsg);
                     if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
                     switchView('welcomeGateway');
@@ -585,12 +587,12 @@ async function triggerUnifiedRegistration() {
                     joinDate: new Date().getTime(),
                     status: "pending" 
                 };
-
+                
                 if(isOnline && typeof db !== 'undefined') {
                     db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
                 }
                 pushToFirebase();
-
+                
                 let tgMsg = `🏍️ አዲስ ሞተረኛ ተመዝግቧል!\n\n👤 ስም: ${firstName} ${lastName}\n🔑 ዩዘርኔም: ${user}\n📞 ስልክ: ${phone}\n📍 አድራሻ: ${region} / ${zone} / ${woreda}\n\nአስተዳዳሪ (Admin) ገፅ ላይ በመግባት ማረጋገጥ ይችላሉ።`;
                 if(typeof sendAdminTelegramAlert === 'function') sendAdminTelegramAlert(tgMsg);
 
@@ -618,18 +620,18 @@ async function triggerForgotPassword() {
         try {
             if (isOnline && typeof db !== 'undefined') {
                 let tSnap = await db.ref(`tirfe_system/tenants/${u}`).once('value');
-                if(tSnap.exists() && tSnap.val().gmail.toLowerCase() === e.toLowerCase()) {
+                if(tSnap.exists() && String(tSnap.val().gmail || "").toLowerCase() === e.toLowerCase()) {
                     foundAccount = tSnap.val(); accType = 'tenant';
                     localDB.tenants[u] = foundAccount; 
                 } else {
                     let bSnap = await db.ref(`tirfe_system/buyers/${u}`).once('value');
-                    if(bSnap.exists() && bSnap.val().email.toLowerCase() === e.toLowerCase()) {
+                    if(bSnap.exists() && String(bSnap.val().email || "").toLowerCase() === e.toLowerCase()) {
                         foundAccount = bSnap.val();
                         accType = 'buyer';
                         localDB.buyers[u] = foundAccount;
                     } else {
                         let mSnap = await db.ref(`tirfe_system/motors/${u}`).once('value');
-                        if(mSnap.exists() && mSnap.val().email.toLowerCase() === e.toLowerCase()) {
+                        if(mSnap.exists() && String(mSnap.val().email || "").toLowerCase() === e.toLowerCase()) {
                             foundAccount = mSnap.val();
                             accType = 'motor';
                             if(!localDB.motors) localDB.motors = {};
