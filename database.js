@@ -8,7 +8,6 @@ let localDB = {
     tariffs: { low: 500, medium: 1000, high: 2000 }, 
     businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"] 
 };
-
 let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
 
 window.addEventListener('online', handleOnlineStatus);
@@ -20,6 +19,7 @@ function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
+    
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -32,6 +32,7 @@ function handleOnlineStatus() {
 
 function loadLocalStorageBackup() {
     let backup = localStorage.getItem('tirfe_local_db');
+    
     if(backup) {
         let parsedBackup = JSON.parse(backup);
         
@@ -55,6 +56,7 @@ function saveToLocalStorage() {
 
 function pushToFirebase() { 
     saveToLocalStorage();
+    
     if(isOnline && typeof db !== 'undefined') { 
         
         const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
@@ -104,6 +106,7 @@ function pushToFirebase() {
             if(localDB.taxReceipts) updates.taxReceipts = cleanData(localDB.taxReceipts);
             if(localDB.tariffs) updates.tariffs = cleanData(localDB.tariffs);
             if(localDB.businessTypes) updates.businessTypes = cleanData(localDB.businessTypes);
+            
             if(Object.keys(updates).length > 0) {
                 db.ref('tirfe_system').update(updates).catch(err => console.error("Firebase Global Updates Error:", err));
             }
@@ -133,9 +136,23 @@ function sendTelegramAlert(message) {
     }).catch(err => console.log("Telegram API Error: ", err));
 }
 
+// አዲሱ የሞተረኛ ቴሌግራም ኖቲፊኬሽን መላኪያ
+function sendMotorTelegramAlert(username, message) {
+    const backendAPIUrl = "https://tirfe-app.vercel.app/api/sendMotorTelegram";
+    fetch(backendAPIUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            username: username, 
+            text: message 
+        })
+    }).catch(err => console.log("Motor Telegram API Error: ", err));
+}
+
 if(typeof db !== 'undefined') {
     
     const publicNodes = ['tariffs', 'businessTypes', 'adminSettings'];
+    
     publicNodes.forEach(node => {
         db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
             if(snapshot.exists()) {
@@ -149,7 +166,7 @@ if(typeof db !== 'undefined') {
             handleOnlineStatus();
         });
     });
-
+    
     window.setupSecureUserListeners = function() {
         if(typeof currentTenant !== 'undefined' && currentTenant) {
             db.ref(`tirfe_system/tenants/${currentTenant.username}`).on('value', (snapshot) => {
@@ -202,6 +219,7 @@ if(typeof db !== 'undefined') {
                 return; 
             }
             currentTenant = checkTenant;
+            
             if(typeof renderApp === 'function') renderApp();
             if(typeof renderTenantTaxReceipts === 'function') renderTenantTaxReceipts();
         }
@@ -211,7 +229,7 @@ if(typeof db !== 'undefined') {
             if(checkBuyer) currentBuyer = checkBuyer;
         }
         if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-
+        
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
