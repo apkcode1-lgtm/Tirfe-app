@@ -6,7 +6,7 @@
 function renderMotorPage() {
     // currentMotor በሎጊን ጊዜ (main_auth.js) የሚፈጠር ግሎባል ቬርያብል ነው
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
-    
+
     // ሀ. የፕሮፋይል ባጅ መሙላት
     const badge = document.getElementById('motorProfileBadge');
     if (badge) {
@@ -55,12 +55,10 @@ function saveMotorSettings() {
     const phone = document.getElementById('motSetPhone').value.trim();
     const pass = document.getElementById('motSetPassword').value.trim();
     const tg = document.getElementById('motSetTelegram').value.trim();
-    
     if (email) currentMotor.email = email;
     if (phone) currentMotor.phone = phone;
     if (tg) currentMotor.tgToken = tg;
     if (pass) currentMotor.password = pass;
-    
     // ዳታቤዝ ላይ አፕዴት ማድረግ
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -190,7 +188,6 @@ function completeMotorOrder(index) {
         buyerName: order.buyerName,
         earned: order.deliveryFee || 0
     });
-    
     // ለ. ከአክቲቭ ኦርደር ላይ ማጥፋት
     currentMotor.activeOrders.splice(index, 1);
     
@@ -232,11 +229,13 @@ function compressMotorImage(file) {
         reader.onload = event => {
             const img = new Image();
             img.src = event.target.result;
+        
             img.onload = () => {
                 const canvas = document.createElement('canvas');
                 const MAX_WIDTH = 800; // ከፍተኛው የስፋት መጠን
                 const MAX_HEIGHT = 800; // ከፍተኛው የቁመት መጠን
                 let width = img.width;
+        
                 let height = img.height;
 
                 if (width > height) {
@@ -256,7 +255,7 @@ function compressMotorImage(file) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
                 // ፎቶውን ወደ 60% ጥራት ዝቅ በማድረግ ሚሞሪ እንዳይጨናነቅ ያደርጋል
-                resolve(canvas.toDataURL('image/jpeg', 0.6)); 
+                resolve(canvas.toDataURL('image/jpeg', 0.6));
             };
             img.onerror = error => reject(error);
         };
@@ -264,13 +263,13 @@ function compressMotorImage(file) {
     });
 }
 
-// 12. የሞተረኛን ምዝገባ ማካሄጃ ዋና ኮድ (ከሌላው ሲስተም የተነጠለ)
+// 12. የሞተረኛን ምዝገባ ማካሄጃ ዋና ኮድ (በOTP እና Password የተስተካከለ)
 async function processMotorRegistration() {
     const fName = document.getElementById('mot_firstName').value.trim();
     const lName = document.getElementById('mot_lastName').value.trim();
     const phone = document.getElementById('mot_phone').value.trim();
     const email = document.getElementById('mot_email').value.trim();
-    const user = document.getElementById('mot_username').value.trim();
+    const user = document.getElementById('mot_username').value.trim().toLowerCase();
     const tg = document.getElementById('mot_tgToken').value.trim();
     const plate = document.getElementById('mot_plateNumber').value.trim();
     const region = document.getElementById('mot_region').value;
@@ -282,69 +281,129 @@ async function processMotorRegistration() {
 
     // ክፍት ቦታዎች መኖራቸውን ማረጋገጥ
     if (!fName || !lName || !phone || !email || !user || !tg || !plate || !region || !idFile || !licFile) {
-        alert("እባክዎ ሁሉንም የሞተረኛ መረጃዎች እና ፎቶዎች በትክክል ያስገቡ!");
+        if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "እባክዎ ሁሉንም የሞተረኛ መረጃዎች እና ፎቶዎች በትክክል ያስገቡ!");
+        else alert("እባክዎ ሁሉንም የሞተረኛ መረጃዎች እና ፎቶዎች በትክክል ያስገቡ!");
         return;
     }
 
     const btn = document.getElementById('regSubmitBtn');
     const originalText = btn.innerText;
 
-    try {
-        btn.innerText = "እየመዘገበ ነው... እባክዎ ይጠብቁ";
-        btn.disabled = true;
+    btn.innerText = "በማረጋገጥ ላይ...";
+    btn.disabled = true;
 
-        if (typeof localDB.motors === 'undefined') localDB.motors = {};
-        
-        if (localDB.motors[user]) {
-            alert("ይህ ዩዘርኔም (Username) በሌላ ሰው ተይዟል። እባክዎ ሌላ ይሞክሩ።");
+    // ዩዘርኔም ወይም ስልክ መያዙን ማረጋገጥ (ከ main_auth.js ሎጂክ ጋር የተገናኘ)
+    if (typeof isSystemDataTaken === 'function') {
+        let checkUser = await isSystemDataTaken(user, phone, "", "");
+        if (checkUser) { 
+            if(typeof showCustomAlert === 'function') showCustomAlert("⚠️ ምዝገባው አልተሳካም", checkUser);
+            else alert(checkUser);
             btn.innerText = originalText;
             btn.disabled = false;
             return;
         }
-
-        // ፎቶዎችን ሚሞሪ በማያጨናንቅ መልኩ ፕሮሰስ ማድረግ
-        const idBase64 = await compressMotorImage(idFile);
-        const licBase64 = await compressMotorImage(licFile);
-
-        // መረጃውን ወደ ቋት (Database) ማስገባት
-        localDB.motors[user] = {
-            role: 'motor',
-            firstName: fName,
-            lastName: lName,
-            phone: phone,
-            email: email,
-            username: user,
-            tgToken: tg,
-            plateNumber: plate,
-            region: region,
-            zone: zone,
-            woreda: woreda,
-            idCardPhoto: idBase64,
-            licensePhoto: licBase64,
-            credit: 0,
-            totalDelivered: 0,
-            status: 'offline',
-            activeOrders: [],
-            history: [],
-            registeredDate: new Date().toLocaleDateString('am-ET')
-        };
-
-        if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-        if (typeof pushToFirebase === 'function') pushToFirebase();
-
-        alert("የሞተረኛ ምዝገባዎ በተሳካ ሁኔታ ተጠናቋል! አሁን መግባት (Login) ይችላሉ።");
-
-        // ፎርሙን ባዶ ማድረግ
-        document.getElementById('unifiedMotorForm').querySelectorAll('input').forEach(i => i.value = '');
-        if(typeof goToGateway === 'function') goToGateway();
-
+    } else if (typeof localDB.motors !== 'undefined' && localDB.motors[user]) {
+        if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "ይህ ዩዘርኔም (Username) በሌላ ሰው ተይዟል። እባክዎ ሌላ ይሞክሩ።");
+        else alert("ይህ ዩዘርኔም (Username) በሌላ ሰው ተይዟል። እባክዎ ሌላ ይሞክሩ።");
         btn.innerText = originalText;
         btn.disabled = false;
-
-    } catch (err) {
-        alert("በፎቶው መጠን ወይም ጥራት የተነሳ ችግር ተፈጥሯል። እባክዎ አነስ ያለ ፎቶ ይምረጡ።");
-        console.error(err);
-        btn.innerText = originalText;
-        btn.disabled = false;
+        return;
     }
+
+    // 1. OTP ወደ ኢሜል መላክ
+    if(typeof triggerOTPFlow === 'function') {
+        pendingRegType = 'motor';
+        triggerOTPFlow(email);
+        
+        // 2. OTP በትክክል ሲረጋገጥ
+        onVerifySuccess = () => {
+            // 3. የይለፍ ቃል (Password) እንዲፈጥር ማድረግ
+            showFormModal("🔒 የይለፍ ቃል ይፍጠሩ", [
+                { id: "newPass", label: "ለሞተረኛ አካውንትዎ አዲስ የይለፍ ቃል ይፍጠሩ፦", type: "password", placeholder: "ሚስጥራዊ ፓስዎርድ" }
+            ], async (res) => {
+                if(!res.newPass) { 
+                    if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); 
+                    return; 
+                }
+                await finalizeMotorRegistration(res.newPass);
+            });
+        };
+    } else {
+        // እንደ አጋጣሚ የ OTP ሎጂክ ከሌለ ፎልባክ (Fallback)
+        let defaultPass = prompt("እባክዎ ለመግቢያ የሚሆን የይለፍ ቃል ይፍጠሩ:");
+        if(!defaultPass) { alert("ፓስዎርድ አልፈጠሩም!"); btn.innerText = originalText; btn.disabled = false; return; }
+        await finalizeMotorRegistration(defaultPass);
+    }
+
+    // ዳታውን እና ፎቶውን ፕሮሰስ አድርጎ ሴቭ የሚያደርገው ዋና ሎጂክ
+    async function finalizeMotorRegistration(passwordToSave) {
+        try {
+            btn.innerText = "እየመዘገበ ነው... እባክዎ ይጠብቁ";
+            btn.disabled = true;
+
+            // 4. ፎቶዎችን ሚሞሪ በማያጨናንቅ መልኩ ፕሮሰስ ማድረግ
+            const idBase64 = await compressMotorImage(idFile);
+            const licBase64 = await compressMotorImage(licFile);
+
+            if (typeof localDB.motors === 'undefined') localDB.motors = {};
+            
+            // 5. መረጃውን ወደ ቋት (Database) ማስገባት
+            localDB.motors[user] = {
+                role: 'motor',
+                firstName: fName,
+                lastName: lName,
+                phone: phone,
+                email: email,
+                username: user,
+                password: passwordToSave, // <=== አዲሱ የይለፍ ቃል እዚህ ይገባል
+                tgToken: tg,
+                plateNumber: plate,
+                region: region,
+                zone: zone,
+                woreda: woreda,
+                idCardPhoto: idBase64,
+                licensePhoto: licBase64,
+                credit: 0,
+                totalDelivered: 0,
+                status: 'offline', // መግባት (Login) እንዲችል ሆን ተብሎ 'offline' ተብሏል (ከድሮው ጋር ተመሳሳይ)
+                activeOrders: [],
+                history: [],
+                registeredDate: new Date().toLocaleDateString('am-ET')
+            };
+
+            // ወደ ሎካል እና ኦንላይን ዳታቤዝ መላክ
+            if (typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
+                db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
+            }
+            if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+            if (typeof pushToFirebase === 'function') pushToFirebase();
+
+            // ለአድሚን ቴሌግራም ላይ ኖቲፊኬሽን መላክ
+            let tgMsg = `🏍️ አዲስ ሞተረኛ ተመዝግቧል!\n\n👤 ስም: ${fName} ${lName}\n🔑 ዩዘርኔም: ${user}\n📞 ስልክ: ${phone}\n📍 አድራሻ: ${region} / ${zone} / ${woreda}\n\nአስተዳዳሪ (Admin) ገፅ ላይ በመግባት ማረጋገጥ ይችላሉ።`;
+            if(typeof sendAdminTelegramAlert === 'function') sendAdminTelegramAlert(tgMsg);
+
+            if(typeof showCustomAlert === 'function') {
+                showCustomAlert("✅ ተሳክቷል", "የሞተረኛ ምዝገባዎ በተሳካ ሁኔታ ተጠናቋል! አሁን መግባት (Login) ይችላሉ።");
+            } else {
+                alert("የሞተረኛ ምዝገባዎ በተሳካ ሁኔታ ተጠናቋል! አሁን መግባት (Login) ይችላሉ።");
+            }
+
+            // ፎርሙን ባዶ ማድረግ
+            document.getElementById('unifiedMotorForm').querySelectorAll('input').forEach(i => i.value = '');
+            if(typeof goToGateway === 'function') goToGateway();
+            else if(typeof switchView === 'function') switchView('welcomeGateway');
+
+        } catch (err) {
+            if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "በፎቶው መጠን ወይም ጥራት የተነሳ ችግር ተፈጥሯል። እባክዎ አነስ ያለ ፎቶ ይምረጡ።");
+            else alert("በፎቶው መጠን ወይም ጥራት የተነሳ ችግር ተፈጥሯል። እባክዎ አነስ ያለ ፎቶ ይምረጡ።");
+            console.error(err);
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // OTP Flow ሲጠራ በተኑ ወደ ነበረበት ይመለሳል
+    btn.innerText = originalText;
+    btn.disabled = false;
 }
