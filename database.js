@@ -4,11 +4,11 @@ let localDB = {
     revenueAuthorities: {}, 
     motors: {}, // አዲሱ የሞተረኞች ዳታቤዝ
     taxReceipts: [], 
-    adminSettings: { bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 }, // የዴሊቨሪ ኮሚሽን (10%) ተጨምሯል
+    // የዴሊቨሪ ኮሚሽን (10%) በዲፎልት ተጨምሯል
+    adminSettings: { bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 }, 
     tariffs: { low: 500, medium: 1000, high: 2000 }, 
     businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"] 
 };
-
 let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
 
 window.addEventListener('online', handleOnlineStatus);
@@ -20,6 +20,7 @@ function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
+    
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -42,7 +43,13 @@ function loadLocalStorageBackup() {
         if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
         if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
         if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
-        if(parsedBackup.adminSettings) localDB.adminSettings = parsedBackup.adminSettings;
+        if(parsedBackup.adminSettings) {
+            localDB.adminSettings = parsedBackup.adminSettings;
+            // ዲፎልት ኮሚሽን መጠን ከሌለው 10% እንዲሆን
+            if (localDB.adminSettings.deliveryCommissionRate === undefined) {
+                localDB.adminSettings.deliveryCommissionRate = 10;
+            }
+        }
 
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
         if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
@@ -104,6 +111,7 @@ function pushToFirebase() {
             if(localDB.taxReceipts) updates.taxReceipts = cleanData(localDB.taxReceipts);
             if(localDB.tariffs) updates.tariffs = cleanData(localDB.tariffs);
             if(localDB.businessTypes) updates.businessTypes = cleanData(localDB.businessTypes);
+            
             if(Object.keys(updates).length > 0) {
                 db.ref('tirfe_system').update(updates).catch(err => console.error("Firebase Global Updates Error:", err));
             }
@@ -123,6 +131,7 @@ function sendAdminTelegramAlert(message) {
 function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant) return;
     const backendAPIUrl = "https://tirfe-app.vercel.app/api/sendTenantTelegram";
+    
     fetch(backendAPIUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -136,6 +145,7 @@ function sendTelegramAlert(message) {
 // አዲሱ የሞተረኛ ቴሌግራም ኖቲፊኬሽን መላኪያ
 function sendMotorTelegramAlert(username, message) {
     const backendAPIUrl = "https://tirfe-app.vercel.app/api/sendMotorTelegram";
+    
     fetch(backendAPIUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -149,6 +159,7 @@ function sendMotorTelegramAlert(username, message) {
 if(typeof db !== 'undefined') {
     
     const publicNodes = ['tariffs', 'businessTypes', 'adminSettings'];
+    
     publicNodes.forEach(node => {
         db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
             if(snapshot.exists()) {
