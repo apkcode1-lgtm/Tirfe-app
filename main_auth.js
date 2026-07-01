@@ -186,6 +186,7 @@ function toggleUnifiedRegForm() {
     document.getElementById('unifiedTenantForm').classList.add('hidden');
     let motorForm = document.getElementById('unifiedMotorForm');
     if(motorForm) motorForm.classList.add('hidden');
+    
     if(role === 'buyer') {
         document.getElementById('unifiedBuyerForm').classList.remove('hidden');
     } else if(role === 'tenant') {
@@ -202,6 +203,7 @@ function autoFillPubCapitalFee() {
     let contractType = document.getElementById('pub_newContractType').value;
     let feeInput = document.getElementById('pub_newRegistrationFee');
     let tariffs = localDB.tariffs || { low: 500, medium: 1000, high: 2000 };
+    
     let baseFee = 0;
     if (capital === 'low') baseFee = tariffs.low;
     else if (capital === 'medium') baseFee = tariffs.medium;
@@ -295,8 +297,7 @@ async function handleUnifiedLogin() {
         if(b) {
             if(String(b.email || "").toLowerCase() === email.toLowerCase() && String(b.password).trim() === pass) {
                 if(b.status === "blocked") { err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)!";
-                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
-                }
+                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
                 currentBuyer = b;
                 localDB.buyers[user] = b;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: user }));
@@ -317,7 +318,7 @@ async function handleUnifiedLogin() {
         }
         if(!r && localDB.revenueAuthorities && localDB.revenueAuthorities[user]) r = localDB.revenueAuthorities[user];
         if(r) {
-            let rEmail = String(r.authEmail || r.email || r.gmail || ""); 
+            let rEmail = String(r.authEmail || r.email || r.gmail || "");
             let rPass = String(r.authPass || r.password || r.pass || "").trim();
             if(rEmail.toLowerCase() === email.toLowerCase() && rPass === pass) {
                 currentRevenueOfficer = r;
@@ -345,11 +346,11 @@ async function handleUnifiedLogin() {
             if(String(m.email || "").toLowerCase() === email.toLowerCase() && String(m.password).trim() === pass) {
                 if(m.status === "blocked") { 
                     err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)!";
-                    if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
+                    if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; 
                 }
                 if(m.status === "pending") {
                     err.innerText = "⏳ መረጃዎ በአስተዳዳሪ እየተገመገመ ነው። እባክዎ ትንሽ ይጠብቁ።";
-                    if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
+                    if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; 
                 }
                 currentMotor = m;
                 currentUserRole = "motor";
@@ -401,9 +402,9 @@ async function triggerUnifiedRegistration() {
         let email = document.getElementById('pubBuyerEmail').value.trim();
         let phone = document.getElementById('pubBuyerPhone').value.trim();
         let user = document.getElementById('pubBuyerUser').value.trim().toLowerCase();
-
+        
         if(!name || !email || !phone || !user) { showCustomAlert("ስህተት", "እባክዎ መረጃዎን ሙሉ በሙሉ ይሙሉ!");
-            return; 
+            return;
         }
 
         if(regSubmitBtn) { regSubmitBtn.disabled = true; regSubmitBtn.innerText = "በማረጋገጥ ላይ..."; }
@@ -418,6 +419,7 @@ async function triggerUnifiedRegistration() {
         pendingRegType = 'buyer';
         pendingRegistrationData = { name, email, phone, user };
         triggerOTPFlow(email);
+        
         onVerifySuccess = () => {
             showFormModal("🔒 የይለፍ ቃል ይፍጠሩ", [
                 { id: "newPass", label: "ለአካውንትዎ አዲስ የይለፍ ቃል ይፍጠሩ፦", type: "password", placeholder: "ሚስጥራዊ ፓስዎርድ" }
@@ -481,8 +483,10 @@ async function triggerUnifiedRegistration() {
 
         let fileInput = document.getElementById('pub_newShopLogoFile');
         let file = fileInput ? fileInput.files[0] : null;
+        
         pendingRegType = 'tenant';
         triggerOTPFlow(newEmail);
+        
         onVerifySuccess = () => {
             showFormModal("🔒 የይለፍ ቃል ይፍጠሩ", [
                 { id: "newPass", label: "ለሱቅዎ አዲስ ጠንካራ የይለፍ ቃል ይፍጠሩ፦", type: "password", placeholder: "ሚስጥራዊ ፓስዎርድ" }
@@ -500,7 +504,6 @@ async function triggerUnifiedRegistration() {
                         status: "active", theme: "theme-deepblue", staffAccounts: [],
                         data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, accumulatedVat: 0, lastMonthlyResetDate: timestampNow } 
                     };
-                    
                     if(isOnline && typeof db !== 'undefined') {
                         db.ref(`tirfe_system/tenants/${user}`).set(localDB.tenants[user]).catch(err => console.log(err));
                     }
@@ -552,7 +555,7 @@ async function triggerUnifiedRegistration() {
             return; 
         }
 
-        if(regSubmitBtn) { regSubmitBtn.disabled = true; regSubmitBtn.innerText = "በማረጋገጥ ላይ..."; }
+        if(regSubmitBtn) { regSubmitBtn.disabled = true; regSubmitBtn.innerText = "ፎቶ በማዘጋጀት ላይ..."; }
         
         let checkUser = await isSystemDataTaken(user, phone, "", "");
         if (checkUser) { 
@@ -561,29 +564,37 @@ async function triggerUnifiedRegistration() {
             return;
         }
 
+        // ፎቶውን ከ OTP በፊት ቀድሞ ማሳነስ (Compress)
+        const processImg = (file) => new Promise(res => {
+            if(typeof processImageUpload === 'function') {
+                processImageUpload(file, res);
+            } else {
+                let r = new FileReader(); 
+                r.onload = e => res(e.target.result); 
+                r.readAsDataURL(file);
+            }
+        });
+
+        let idCardBase64 = await processImg(idCardInput.files[0]);
+        let licenseBase64 = await processImg(licenseInput.files[0]);
+
+        if(regSubmitBtn) { regSubmitBtn.innerText = "OTP በመላክ ላይ..."; }
+
         pendingRegType = 'motor';
         triggerOTPFlow(email);
+        
         onVerifySuccess = () => {
             showFormModal("🔒 የይለፍ ቃል ይፍጠሩ", [
                 { id: "newPass", label: "ለሞተረኛ አካውንትዎ አዲስ የይለፍ ቃል ይፍጠሩ፦", type: "password", placeholder: "ሚስጥራዊ ፓስዎርድ" }
             ], async (res) => {
                 if(!res.newPass) { showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); return; }
 
-                const readFileAsBase64 = (file) => new Promise(resolve => {
-                    const reader = new FileReader();
-                    reader.onload = e => resolve(e.target.result);
-                    reader.readAsDataURL(file);
-                });
-
-                let idCardBase64 = await readFileAsBase64(idCardInput.files[0]);
-                let licenseBase64 = await readFileAsBase64(licenseInput.files[0]);
-
                 if(!localDB.motors) localDB.motors = {};
                 localDB.motors[user] = {
                     firstName: firstName, lastName: lastName, phone: phone, email: email,
                     username: user, password: res.newPass, telegramToken: tgToken, plateNumber: plateNumber,
                     region: region, zone: zone, woreda: woreda,
-                    idCardImage: idCardBase64, licenseImage: licenseBase64,
+                    idCardImage: idCardBase64, licenseImage: licenseBase64, // ቀድሞ የተዘጋጀው ፎቶ
                     joinDate: new Date().getTime(),
                     status: "pending" 
                 };
@@ -646,6 +657,7 @@ async function triggerForgotPassword() {
 
         pendingRegType = 'forgot_pass';
         triggerOTPFlow(e);
+        
         onVerifySuccess = () => {
             showFormModal("🔑 አዲስ የይለፍ ቃል ማስተካከያ", [
                 { id: "newPass", label: "አዲሱን የይለፍ ቃልዎን ያስገቡ፦", type: "password" }
@@ -724,16 +736,19 @@ function checkMonthlyAccessReset() {
     
     let diffTime = Math.abs(currentTimestamp - currentTenant.data.lastMonthlyResetDate);
     let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
     if (diffDays >= 30) {
         let d = currentTenant.data;
         let expensesList = d.expenses || []; let totalMonthlyExp = 0;
         expensesList.forEach(e => totalMonthlyExp += parseFloat(e.amount) || 0);
+        
         let totalMonthlySales = 0; let totalMonthlyProfit = 0;
         let inv = d.inventory || [];
         inv.forEach(item => {
             totalMonthlySales += (item.price * item.sold);
             totalMonthlyProfit += (item.price - item.cost) * item.sold;
         });
+        
         let finalMonthlyNetProfit = totalMonthlyProfit - totalMonthlyExp;
         
         if(!d.history) d.history = [];
@@ -745,6 +760,7 @@ function checkMonthlyAccessReset() {
             expenses: totalMonthlyExp, draws: 0, reportedCash: d.reportedCash || 0, expectedCash: d.expectedCash || 0,
             variance: d.variance || 0, isMonthlyArchive: true
         });
+        
         d.expenses = []; d.lastMonthlyResetDate = currentTimestamp; 
         
         localDB.tenants[currentTenant.username] = currentTenant; saveToLocalStorage(); pushToFirebase();
