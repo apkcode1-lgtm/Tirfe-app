@@ -14,21 +14,24 @@ window.saveAdminSystemSettings = function() {
     let tgToken = document.getElementById('adminTgToken').value.trim();
     let tgChatId = document.getElementById('adminTgChatId').value.trim();
     let bankAccount = document.getElementById('adminBankInfo').value.trim();
+    
     if(!localDB.adminSettings) localDB.adminSettings = {};
     localDB.adminSettings.tgToken = tgToken;
     localDB.adminSettings.tgChatId = tgChatId;
     localDB.adminSettings.bankAccount = bankAccount;
     pushToFirebase();
+    
     showCustomAlert("ተሳክቷል", "የዋና አከራይ ቴሌግራም እና ባንክ መረጃ በተሳካ ሁኔታ ተቀምጧል!");
 };
 
 window.openVATSettings = function() {
     let currentVat = (localDB.adminSettings && localDB.adminSettings.vatRate) ? localDB.adminSettings.vatRate : 0;
+    
     showFormModal("🧾 የቫት (VAT) ማስተካከያ", [
         { id: "vatRate", label: "የቫት መጠን በመቶኛ (%) ያስገቡ፦", type: "number", placeholder: "ምሳሌ: 15", defaultValue: currentVat }
     ], (res) => {
         let vat = parseFloat(res.vatRate) || 0;
-        if(!localDB.adminSettings) localDB.adminSettings = { tgToken: '', tgChatId: '', bankAccount: '', vatRate: 0, motorTariff: 0 };
+        if(!localDB.adminSettings) localDB.adminSettings = { tgToken: '', tgChatId: '', bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 };
         localDB.adminSettings.vatRate = vat;
         pushToFirebase();
         showCustomAlert("ተሳክቷል", `የቫት መጠን ወደ ${vat}% በተሳካ ሁኔታ ተስተካክሏል! ይህ መጠን በተከራዮች ገፅ ላይ ይታያል።`);
@@ -51,11 +54,14 @@ window.openTariffSettings = function() {
 window.populateAllBizTypeDropdowns = function() {
     let bizTypes = localDB.businessTypes || ["አጠቃላይ ንግድ"];
     let optionsHTML = `<option value="">-- የንግድ ዘርፍ ይምረጡ (ግዴታ) --</option>`;
+    
     // Sort alphabetically for better UX
     let sortedBizTypes = [...bizTypes].sort((a, b) => a.localeCompare(b));
+    
     sortedBizTypes.forEach(b => {
         optionsHTML += `<option value="${b}">${b}</option>`;
     });
+    
     let pubSelect = document.getElementById('pub_newBusinessType');
     let adminSelect = document.getElementById('newBusinessType');
     
@@ -88,6 +94,7 @@ window.renderBizTypesList = function() {
     container.innerHTML = '';
     
     let sortedBizTypes = [...localDB.businessTypes].sort((a, b) => a.localeCompare(b));
+    
     if(sortedBizTypes.length === 0) {
         container.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:0.9rem;">ምንም የተመዘገበ የንግድ ዘርፍ የለም።</p>';
         return;
@@ -106,12 +113,14 @@ window.renderBizTypesList = function() {
 window.addNewBizType = function() {
     let inputField = document.getElementById('newBizTypeName');
     let newType = inputField.value.trim();
+    
     if(!newType) {
         showCustomAlert("ስህተት", "እባክዎ የንግድ ዘርፍ ስም ያስገቡ!");
         return;
     }
     
     if(!localDB.businessTypes) localDB.businessTypes = [];
+    
     // Duplicate Check
     if(localDB.businessTypes.includes(newType)) {
         showCustomAlert("ማሳሰቢያ", `"${newType}" የሚለው የንግድ ዘርፍ ከዚህ በፊት ተመዝግቧል! አዲስ ያስገቡ።`);
@@ -180,13 +189,15 @@ async function registerTenant() {
     }
 
     let checkUser = await isSystemDataTaken(user, phone, "", "");
-    if (checkUser) { showCustomAlert("⚠️ ምዝገባው አልተሳካም", checkUser); return; }
+    if (checkUser) { showCustomAlert("⚠️ ምዝገባው አልተሳካም", checkUser);
+        return; }
 
     pendingRegType = 'admin_tenant';
     triggerOTPFlow(newEmail);
     onVerifySuccess = () => {
         let fileInput = document.getElementById('newShopLogoFile');
         let file = fileInput.files[0];
+        
         let proceedRegistration = function(shopLogoBase64) {
             let genCode = generateRandomCode();
             let timestampNow = new Date().getTime();
@@ -199,6 +210,7 @@ async function registerTenant() {
                 status: "active", theme: "theme-deepblue", staffAccounts: [],
                 data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, accumulatedVat: 0, lastMonthlyResetDate: timestampNow } 
             };
+            
             pushToFirebase(); renderAdminPanel();
             
             document.getElementById('newShopName').value = ''; document.getElementById('newFullName').value = '';
@@ -215,6 +227,7 @@ async function registerTenant() {
             
             showCustomAlert("ተሳክቷል", "አዲሱ ተከራይ በተሳካ ሁኔታ ተመዝግቧል! መግቢያ ኮዳቸው: " + genCode + " ነው::");
         };
+        
         if(file) processImageUpload(file, proceedRegistration); else proceedRegistration("");
     };
 }
@@ -222,6 +235,7 @@ async function registerTenant() {
 function openAdminTenantEditor(user) {
     let t = localDB.tenants[user];
     let bizOptions = (localDB.businessTypes || ["አጠቃላይ ንግድ"]).map(b => ({ value: b, label: b }));
+    
     showFormModal(`✍️ የተከራይ መረጃ ማሻሻያ (${t.shopName})`, [
         { id: "shopName", label: "የሱቅ ስም", type: "text", defaultValue: t.shopName },
         { id: "fullName", label: "የተከራይ ሙሉ ስም", type: "text", defaultValue: t.fullName },
@@ -249,7 +263,7 @@ function openAdminTenantEditor(user) {
 window.toggleAdminBuyersView = function() {
     let main = document.getElementById('adminDashboardMain'); let section = document.getElementById('adminBuyersSection');
     if(main && section) { main.classList.toggle('hidden');
-    section.classList.toggle('hidden'); renderAdminBuyers(); }
+        section.classList.toggle('hidden'); renderAdminBuyers(); }
 };
 
 window.toggleTenantListView = function() {
@@ -286,7 +300,8 @@ window.openRevenueRegistrationModal = function() {
 
         if(!localDB.revenueAuthorities) localDB.revenueAuthorities = {};
  
-        if(localDB.revenueAuthorities[user]) { showCustomAlert("ስህተት", "ይህ ዩዘርኔም አስቀድሞ ተይዟል!"); return; }
+        if(localDB.revenueAuthorities[user]) { showCustomAlert("ስህተት", "ይህ ዩዘርኔም አስቀድሞ ተይዟል!");
+            return; }
 
         localDB.revenueAuthorities[user] = {
             username: user,
@@ -337,6 +352,7 @@ window.renderAdminRevenueList = function() {
             </td>
         </tr>`;
     });
+    
     if(!hasData) {
         tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">ምንም የተመዘገበ የገቢዎች ባለስልጣን የለም።</td></tr>`;
     }
@@ -368,15 +384,18 @@ window.toggleAdminMotorsView = function() {
 };
 
 window.openMotorTariffSettings = function() {
-    let currentMotorTariff = (localDB.adminSettings && localDB.adminSettings.motorTariff) ? localDB.adminSettings.motorTariff : 0;
-    showFormModal("🏍️ የሞተረኛ ኮሚሽን / ታሪፍ ማስተካከያ", [
-        { id: "motorTariff", label: "የሞተረኛ ታሪፍ መጠን (%) ያስገቡ፦", type: "number", placeholder: "ምሳሌ: 10", defaultValue: currentMotorTariff }
+    // ፐርሰንቱን ከዳታቤዝ አውጣ፣ ከሌለ 10% ይሁን
+    let currentComm = (localDB.adminSettings && localDB.adminSettings.deliveryCommissionRate) !== undefined ? localDB.adminSettings.deliveryCommissionRate : 10;
+    
+    showFormModal("🏍️ የሞተረኛ ኮሚሽን ማስተካከያ", [
+        { id: "deliveryCommissionRate", label: "የሞተረኛ ኮሚሽን መጠን (%) ያስገቡ፦", type: "number", placeholder: "ምሳሌ: 10", defaultValue: currentComm }
     ], (res) => {
-        let tariff = parseFloat(res.motorTariff) || 0;
-        if(!localDB.adminSettings) localDB.adminSettings = { tgToken: '', tgChatId: '', bankAccount: '', vatRate: 0, motorTariff: 0 };
-        localDB.adminSettings.motorTariff = tariff;
+        let rate = parseFloat(res.deliveryCommissionRate) || 0;
+        if(!localDB.adminSettings) localDB.adminSettings = { tgToken: '', tgChatId: '', bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 };
+        localDB.adminSettings.deliveryCommissionRate = rate;
         pushToFirebase();
-        showCustomAlert("ተሳክቷል", `የሞተረኛ ታሪፍ መጠን ወደ ${tariff}% በተሳካ ሁኔታ ተስተካክሏል!`);
+       
+        showCustomAlert("ተሳክቷል", `የሞተረኛ ኮሚሽን መጠን ወደ ${rate}% በተሳካ ሁኔታ ተስተካክሏል! ይህ መጠን ሞተረኞች ክፍያ ሲቀበሉ ይቆረጣል።`);
     });
 };
 
@@ -385,10 +404,10 @@ window.renderAdminMotors = function() {
     if(!tbody) return;
     tbody.innerHTML = '';
     if(!localDB.motors) localDB.motors = {};
-
+    
     let query = document.getElementById('adminMotorSearchInput') ? document.getElementById('adminMotorSearchInput').value.trim().toLowerCase() : "";
     let hasData = false;
-
+    
     Object.keys(localDB.motors).forEach(key => {
         let m = localDB.motors[key];
         if (query !== "" && !m.username.toLowerCase().includes(query)) return;
@@ -397,6 +416,7 @@ window.renderAdminMotors = function() {
         let mName = `${m.firstName} ${m.lastName}`;
         let mContact = `📞 ${m.phone}<br>📧 ${m.email}`;
         let mLocation = `<b>ሰሌዳ:</b> ${m.plateNumber}<br>📍 ${m.region}/${m.zone}/${m.woreda}`;
+        let creditDisp = `<br><span style="color: #f59e0b; font-weight: bold; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">💳 ክሬዲት: ${(m.credit || 0).toFixed(2)} ETB</span>`;
         
         let statusBadge = "";
         let actionText = "";
@@ -417,7 +437,7 @@ window.renderAdminMotors = function() {
         }
 
         tbody.innerHTML += `<tr>
-            <td>👤 <b>${mName}</b><br><code>${m.username}</code></td>
+            <td>👤 <b>${mName}</b><br><code>${m.username}</code>${creditDisp}</td>
             <td>${mContact}</td>
             <td>${mLocation}</td>
             <td>
@@ -439,11 +459,13 @@ window.renderAdminMotors = function() {
 window.toggleMotorStatus = function(username) {
     if(localDB.motors && localDB.motors[username]) {
         let m = localDB.motors[username];
+        
         if (m.status === "pending" || m.status === "blocked") {
             m.status = "active";
         } else {
             m.status = "blocked";
         }
+        
         pushToFirebase(); 
         renderAdminMotors(); 
         showCustomAlert("ተስተካክሏል", "የሞተረኛው ሁኔታ በተሳካ ሁኔታ ተቀይሯል።");
@@ -461,12 +483,15 @@ window.deleteMotor = function(username) {
 window.viewMotorDocs = function(username) {
     if(localDB.motors && localDB.motors[username]) {
         let m = localDB.motors[username];
+        
         let htmlContent = `
             <div style="text-align: center;">
                 <h4 style="color:var(--accent-color); margin-bottom: 5px;">የነዋሪነት መታወቂያ</h4>
-                <img src="${m.idCardImage}" style="max-width:100%; border-radius:8px; border:2px solid #38bdf8; margin-bottom: 15px; cursor: pointer;" onclick="viewImageFullscreen('${m.idCardImage}')">
+                <img src="${m.idCardImage}" style="max-width:100%; border-radius:8px; border:2px solid #38bdf8; margin-bottom: 15px; cursor: pointer;"
+                onclick="viewImageFullscreen('${m.idCardImage}')">
                 <h4 style="color:var(--accent-color); margin-bottom: 5px;">መንጃፍቃድ</h4>
-                <img src="${m.licenseImage}" style="max-width:100%; border-radius:8px; border:2px solid #38bdf8; cursor: pointer;" onclick="viewImageFullscreen('${m.licenseImage}')">
+                <img src="${m.licenseImage}" style="max-width:100%; border-radius:8px; border:2px solid #38bdf8; cursor: pointer;"
+                onclick="viewImageFullscreen('${m.licenseImage}')">
                 <p style="font-size: 0.8rem; color:#94a3b8; margin-top: 10px;">ለማጉላት ፎቶዎቹን ይጫኑ</p>
             </div>
         `;
@@ -475,8 +500,9 @@ window.viewMotorDocs = function(username) {
         document.getElementById('alertMessage').innerHTML = htmlContent;
         openModalContainer();
         document.getElementById('alertModal').classList.remove('hidden');
+        
         document.querySelector('#alertModal .btn-add').onclick = function() { 
-            closeActiveModal(); 
+            closeActiveModal();
             document.getElementById('alertMessage').innerHTML = ""; 
         };
     }
@@ -498,6 +524,7 @@ function renderAdminPanel() {
     let tbody = document.getElementById('tenantTableBody');
     tbody.innerHTML = '';
     let query = document.getElementById('adminSearchInput') ? document.getElementById('adminSearchInput').value.trim().toLowerCase() : "";
+    
     let totalTenants = 0; let activeTenants = 0;
     let totalFeesCollected = 0; let alertsHTML = '';
     let needsPush = false;
@@ -524,6 +551,7 @@ function renderAdminPanel() {
         }
 
         if (query !== "" && !t.username.toLowerCase().includes(query)) return;
+        
         let statusBadge = t.status === "active" ? `<span class="badge-success">Active</span>` : `<span class="badge-danger">Blocked</span>`;
         let profileInfo = `👤 <b>${t.fullName || '-'}</b><br>📞 ${t.phone || '-'}<br>📍 ${t.address || '-'}<br>✈️ ${t.telegram || '-'}`;
         
@@ -538,6 +566,7 @@ function renderAdminPanel() {
         let loginInfo = `👤 አባል ስም: <code>${t.username}</code><br>${codeDisplay}<br>🛠️ ሰራተኛ: <code>${staffCnt} የተመዘገቡ</code>`;
         let contractDisplay = `<span>${t.contractType || 'በወር'}</span><br><b class="text-warning">${t.registrationFee || 0} ETB</b>`;
         let bType = t.businessType || 'አጠቃላይ ንግድ';
+        
         tbody.innerHTML += `<tr>
             <td><b>${t.shopName}</b><br><span style="color:var(--accent-color); font-size:0.8rem;">[${bType}]</span></td>
             <td>${profileInfo}</td><td>${loginInfo}</td><td>${contractDisplay}</td>
@@ -570,6 +599,7 @@ window.deleteBuyer = function(username) {
 function renderAdminBuyers() {
     let tbody = document.getElementById('adminBuyersTableBody'); if(!tbody) return;
     tbody.innerHTML = ''; if(!localDB.buyers) return;
+    
     Object.values(localDB.buyers).forEach(b => {
         let status = b.status === "blocked" ? '<span class="badge-danger">Blocked / ታግዷል</span>' : '<span class="badge-success">Active / ይሰራል</span>';
         let actionText = b.status === "blocked" ? "Unblock" : "Block";
