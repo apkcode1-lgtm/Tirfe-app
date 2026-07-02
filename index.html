@@ -197,16 +197,31 @@
         </section>
         
         <section class="section-box">
-            <h2>📦 የጠየቋቸው ትዕዛዞች (Orders) እና ደረሰኞች</h2>
+            <h2 style="color: var(--success-color);">📦 የአሁን ትዕዛዞች (Active Delivery Orders)</h2>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>የሱቅ ስም</th><th>ዕቃና ብዛት</th><th>ዋጋ</th><th>ቀን</th><th>ሁኔታ</th></tr></thead>
-                    <tbody id="buyerOrdersBody"></tbody>
+                    <thead><tr><th>የሱቅ ስም</th><th>ዕቃና ብዛት</th><th>ዋጋ (ከነ ቫት)</th><th>ቀን</th><th>ሁኔታ</th></tr></thead>
+                    <tbody id="buyerActiveOrdersBody"></tbody>
                 </table>
             </div>
             
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 10px;">
-                <h3 style="font-size: 1rem; color: var(--success-color); margin: 0;">🧾 የተቆረጡ ደረሰኞች (Receipts)</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; flex-wrap: wrap; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                <h3 style="font-size: 1.1rem; color: #94a3b8; margin: 0;">📜 ያለቁ የትዕዛዝ ታሪክ (Order History)</h3>
+                <div style="display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <label style="font-size:0.8rem; color:var(--accent-color); margin:0;">ቀን ምረጥ፦</label>
+                    <input type="date" id="buyerOrderHistoryDateFilter" onchange="renderBuyerCatalog()" style="padding: 4px; margin: 0; width: auto; font-size: 0.8rem; background: transparent; border: 1px solid #3a506b; color: white;">
+                    <button class="btn-expense btn-sm" onclick="document.getElementById('buyerOrderHistoryDateFilter').value=''; renderBuyerCatalog();" style="padding: 4px 8px;">ሁሉንም እይ</button>
+                </div>
+            </div>
+            <div class="table-responsive" style="margin-top: 10px;">
+                <table>
+                    <thead><tr><th>የሱቅ ስም</th><th>ዕቃና ብዛት</th><th>ዋጋ (ከነ ቫት)</th><th>ቀን</th><th>ሁኔታ</th></tr></thead>
+                    <tbody id="buyerHistoryOrdersBody"></tbody>
+                </table>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; flex-wrap: wrap; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                <h3 style="font-size: 1.1rem; color: var(--success-color); margin: 0;">🧾 የተቆረጡ ደረሰኞች (Receipts)</h3>
                 <div style="display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
                     <label style="font-size:0.8rem; color:var(--accent-color); margin:0;">ቀን ምረጥ፦</label>
                     <input type="date" id="buyerReceiptDateFilter" onchange="renderBuyerCatalog()" style="padding: 4px; margin: 0; width: auto; font-size: 0.8rem; background: transparent; border: 1px solid #3a506b; color: white;">
@@ -236,7 +251,6 @@
             <div id="buyerShopsContainer" class="shops-grid"></div>
         </section>
     </section>
-
     <section id="adminPage" class="hidden">
         <header class="welcome-header">
             <h1>👑 የባለቤቱ ማዕከላዊ ቁጥጥር ፓነል</h1>
@@ -350,7 +364,7 @@
                             <tr>
                                 <th>የሱቅ ስም / ዘርፍ / ካፒታል</th>
                                 <th>የተከራይ መገለጫ (Profile)</th>
-                               <th>የመግቢያ ዝርዝር / ኮድ</th>
+                                <th>የመግቢያ ዝርዝር / ኮድ</th>
                                 <th>የውል ዓይነት / ክፍያ</th>
                                 <th>የማብቂያ ቀን</th>
                                 <th>የአሁን ሁኔታ</th>
@@ -572,7 +586,6 @@
     </section>
 
     <section id="appPage" class="hidden">
-        
         <header class="welcome-header">
             <h1 id="shopTitle">እንኳን ደህና መጡ ወደ " ትርፌ " መቆጣጠሪያ መተግበሪያ</h1>
             <p id="roleSubTitle">ቀልጣፋ፣ ዘመናዊ እና አስተማማኝ የሱቅዎ የሂሳብ ረዳት</p>
