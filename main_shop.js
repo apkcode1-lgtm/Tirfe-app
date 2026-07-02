@@ -242,7 +242,6 @@ function renderHistoryTable() {
     }
 }
 
-// ============== ማስተካከያ የተደረገበት ክፍል (የሞተረኛ ዴሊቨሪ ማፅደቂያ) ==============
 window.acceptDelivery = function(idx) {
     let ord = currentTenant.data.deliveryOrders[idx];
     let item = currentTenant.data.inventory[ord.itemIdx];
@@ -279,14 +278,12 @@ window.acceptDelivery = function(idx) {
                     });
                     matchedMotorsCount++;
 
-                    // --- አዲስ የተጨመረው የዳታቤዝ እና የቴሌግራም መላኪያ ኮድ ---
                     if(typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
                         db.ref(`tirfe_system/motors/${mUser}`).set(motor).catch(err => console.error(err));
                     }
                     if (typeof sendMotorTelegramAlert === 'function') {
                         sendMotorTelegramAlert(mUser, `🔔 አዲስ የዴሊቨሪ ትዕዛዝ!\n\nሱቅ: ${currentTenant.shopName}\nአድራሻ: ${currentTenant.region} / ${currentTenant.zone} / ${currentTenant.woreda}\nዕቃ: ${ord.itemName} (ብዛት: ${ord.qty})\n\nእባክዎ ሲስተም ውስጥ ገብተው ትዕዛዙን ይቀበሉ።`);
                     }
-                    // -----------------------------------------------------
                 }
             });
         }
@@ -302,7 +299,6 @@ window.acceptDelivery = function(idx) {
 
     saveAndRefresh();
 };
-// =========================================================================
 
 window.completeDelivery = function(idx) {
     let ord = currentTenant.data.deliveryOrders[idx];
@@ -953,6 +949,13 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
         if(displayBuyerName && localDB.buyers && localDB.buyers[displayBuyerName]) {
             if(!localDB.buyers[displayBuyerName].receipts) localDB.buyers[displayBuyerName].receipts = [];
             localDB.buyers[displayBuyerName].receipts.push(recObj);
+
+            // ================== ማስተካከያ የተደረገበት (1) ==================
+            // የሻጭ ዳታ ብቻ ሳይሆን የገዥም ደረሰኝ በቀጥታ ወደ ፋየርቤዝ (ገዥው አካውንት) እንዲላክ ተደርጓል
+            if (typeof db !== 'undefined' && typeof isOnline !== 'undefined' && isOnline) {
+                db.ref(`tirfe_system/buyers/${displayBuyerName}`).set(JSON.parse(JSON.stringify(localDB.buyers[displayBuyerName]))).catch(err => console.error(err));
+            }
+            // ==========================================================
         }
         saveAndRefresh();
     }
