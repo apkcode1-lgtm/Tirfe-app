@@ -11,6 +11,7 @@ function logoutBuyer() {
 
 window.openBuyerProfileSettings = function() {
     if(!currentBuyer) return;
+    
     showFormModal("⚙️ የፕሮፋይል ሲቲንግ", [
         { id: "b_name", label: "ሙሉ ስም (Name)", type: "text", defaultValue: currentBuyer.name },
         { id: "b_username", label: "መግቢያ ስም (Username)", type: "text", defaultValue: currentBuyer.username },
@@ -30,7 +31,8 @@ window.openBuyerProfileSettings = function() {
         currentBuyer.name = res.b_name.trim();
         currentBuyer.username = newU;
         currentBuyer.email = res.b_email.trim();
-        currentBuyer.phone = newP; currentBuyer.password = res.b_password.trim();
+        currentBuyer.phone = newP; 
+        currentBuyer.password = res.b_password.trim();
         
         if(oldU !== newU) {
             localDB.buyers[newU] = currentBuyer;
@@ -40,15 +42,14 @@ window.openBuyerProfileSettings = function() {
             localDB.buyers[newU] = currentBuyer;
         }
         
-        pushToFirebase(); renderBuyerCatalog();
+        pushToFirebase(); 
+        renderBuyerCatalog();
         showCustomAlert("✅ ተሳክቷል", "ፕሮፋይልዎ በትክክል ተስተካክሏል!");
     });
 };
 
 window.openDeliveryOrderModal = function(shopKey, itemIdx, itemName, price) {
-    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!");
-        return; 
-    }
+    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return; }
     
     showFormModal("🚚 " + itemName + " - ዴሊቨሪ ማዘዣ", [
         { id: "phone", label: "ስልክ ቁጥርዎ (ግዴታ)", type: "text", defaultValue: currentBuyer.phone },
@@ -60,8 +61,7 @@ window.openDeliveryOrderModal = function(shopKey, itemIdx, itemName, price) {
             { value: "motor", label: "🏍️ ሞተረኛ" },
             { value: "car", label: "🚗 መኪና" }
         ]}
-    ], 
-    (res) => {
+    ], (res) => {
         let qty = parseFloat(res.qty) || 0;
         
         if(qty <= 0 || !res.address || !res.phone || !res.transport) { 
@@ -69,30 +69,55 @@ window.openDeliveryOrderModal = function(shopKey, itemIdx, itemName, price) {
             return;
         }
 
-        let t = localDB.tenants[shopKey];
-        if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
-        let orderId = Math.floor(100000 + Math.random() * 900000);
-        t.data.deliveryOrders.push({
-            orderId: orderId, buyerUser: currentBuyer.username, buyerPhone: res.phone,
-            address: res.address, mapLink: res.mapLink, itemIdx: itemIdx, itemName: itemName,
-            qty: qty, price: price, total: qty * price, status: "pending", date: getTodayFormatted(),
-            transport: res.transport, deliveryFeePaid: 0
-        });
-        
-        localDB.tenants[shopKey] = t; 
-        pushToFirebase();
-        
-        // ማስተካከያ:- ትዕዛዙን በቀጥታ ለሻጩ ሰርቨር መላክ
-        if (typeof db !== 'undefined' && navigator.onLine) {
-            db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(t.data.deliveryOrders);
-        }
+        // ማስተካከያ:- የቫት ስሌት እና ማረጋገጫ ለገዥው ማሳየት
+        let subTotal = qty * price;
+        let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
+        let vatAmount = (subTotal * vatRate) / 100;
+        let finalTotal = subTotal + vatAmount;
 
-        showCustomAlert("ተሳክቷል", "ትዕዛዝዎ ለሻጩ ተልኳል። ሻጩ ሲቀበለው በገጽዎ ላይ 'በመንገድ ላይ ነው' የሚል ምልክት ያያሉ።");
-        renderBuyerCatalog();
+        let confirmMsg = `
+            <div style="text-align:left; font-size:0.95rem; line-height:1.6;">
+                <div><b>ዕቃ:</b> ${itemName} (x${qty})</div>
+                <div><b>የትራንስፖርት:</b> ${res.transport === 'car' ? '🚗 መኪና' : '🏍️ ሞተረኛ'}</div>
+                <hr style="border:1px dashed #555; margin:10px 0;">
+                <div><b>የዕቃ ሂሳብ (Subtotal):</b> ${subTotal.toFixed(2)} ETB</div>
+                <div style="color:var(--danger-color);"><b>ቫት (${vatRate}%):</b> ${vatAmount.toFixed(2)} ETB</div>
+                <div style="color:var(--success-color); font-size:1.1rem; margin-top:5px;"><b>ጠቅላላ የሚጠበቅ ሂሳብ:</b> ${finalTotal.toFixed(2)} ETB</div>
+                <hr style="border:1px dashed #555; margin:10px 0;">
+                <div style="font-size:0.85rem; color:#aaa;">ይህንን ትዕዛዝ ወደ ሻጩ መላክ እርግጠኛ ነዎት?</div>
+            </div>
+        `;
+
+        showCustomConfirm("📦 የትዕዛዝ ማረጋገጫ (Order Checkout)", confirmMsg, () => {
+            let t = localDB.tenants[shopKey];
+            if(!t) return;
+            
+            // ማስተካከያ:- ሱቁ አዲስ ከሆነ ዳታ ፎልደር መፍጠር (ትዕዛዙ እንዳይቋረጥ)
+            if(!t.data) t.data = {};
+            if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
+
+            let orderId = Math.floor(100000 + Math.random() * 900000);
+            t.data.deliveryOrders.push({
+                orderId: orderId, buyerUser: currentBuyer.username, buyerPhone: res.phone,
+                address: res.address, mapLink: res.mapLink, itemIdx: itemIdx, itemName: itemName,
+                qty: qty, price: price, total: subTotal, // የሻጭ ዳሽቦርድ ቫቱን ራሱ ስለሚደምር subtotal ብቻ እንልካለን
+                status: "pending", date: getTodayFormatted(),
+                transport: res.transport, deliveryFeePaid: 0
+            });
+            
+            localDB.tenants[shopKey] = t; 
+            pushToFirebase();
+            
+            if (typeof db !== 'undefined' && navigator.onLine) {
+                db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(t.data.deliveryOrders);
+            }
+
+            showCustomAlert("ተሳክቷል", "ትዕዛዝዎ ለሻጩ ተልኳል። ሻጩ ሲቀበለው በገጽዎ ላይ 'በመንገድ ላይ ነው' የሚል ምልክት ያያሉ።");
+            renderBuyerCatalog();
+        });
     });
 };
 
-// ማስተካከያ የተደረገበት የክፍያ ማስገቢያ ኮድ
 window.submitDeliveryFee = function(shopKey, orderId) {
     let feeInput = document.getElementById(`delFee_${shopKey}_${orderId}`);
     if(!feeInput) return;
@@ -107,8 +132,6 @@ window.submitDeliveryFee = function(shopKey, orderId) {
         let ord = t.data.deliveryOrders.find(o => o.orderId == orderId);
         if(ord) {
             ord.deliveryFeePaid = fee;
-            
-            // የሞላውን ብር በቀጥታ ትዕዛዙን ለያዘው ሞተረኛ ዳሽቦርድ መላክ
             let motorAssigned = false;
             
             if (ord.motorUser && localDB.motors[ord.motorUser]) {
@@ -121,7 +144,6 @@ window.submitDeliveryFee = function(shopKey, orderId) {
                 }
                 motorAssigned = true;
             } else {
-                // ትዕዛዙን የያዘው ሞተረኛ motorUser ከሌለው በማፈላለግ ፈልጎ ያስገባል (Fallback)
                 Object.values(localDB.motors).forEach(m => {
                     if (m.activeOrders) {
                         let matched = m.activeOrders.find(mo => mo.orderId == orderId || mo.buyerPhone == ord.buyerPhone);
@@ -130,7 +152,7 @@ window.submitDeliveryFee = function(shopKey, orderId) {
                             if (typeof db !== 'undefined' && navigator.onLine) {
                                 db.ref(`tirfe_system/motors/${m.username}`).set(m);
                             }
-                            ord.motorUser = m.username; // ለቀጣይ ያገናኘዋል
+                            ord.motorUser = m.username; 
                             motorAssigned = true;
                             if (typeof sendMotorTelegramAlert === 'function') {
                                 sendMotorTelegramAlert(m.username, `💸 አዲስ የዴሊቨሪ ክፍያ ተልኮልዎታል!\n\nገዥው ${fee} ETB ሲስተሙ ላይ አስገብቷል። እባክዎ ዳሽቦርድዎን ያረጋግጡ።`);
@@ -146,7 +168,6 @@ window.submitDeliveryFee = function(shopKey, orderId) {
 
             localDB.tenants[shopKey] = t;
             pushToFirebase();
-            
             if (typeof db !== 'undefined' && navigator.onLine) {
                 db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(t.data.deliveryOrders);
             }
@@ -158,9 +179,7 @@ window.submitDeliveryFee = function(shopKey, orderId) {
 };
 
 window.buyFromShop = function(shopKey, itemIdx, itemName, price, availableRem) {
-    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!");
-        return; 
-    }
+    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return; }
     
     showFormModal("🛒 " + itemName + " - ወደ ቅርጫት (Cart) ማስገቢያ", [
         { id: "qty", label: "የሚፈልጉት ብዛት", type: "number", defaultValue: "1" }
@@ -197,7 +216,6 @@ window.renderBuyerCart = function() {
 
     section.style.display = 'block'; listBody.innerHTML = '';
     let grandTotal = 0;
-    
     window.buyerCartData.forEach((c, i) => {
         grandTotal += c.total;
         let shopName = localDB.tenants[c.shopKey] ? localDB.tenants[c.shopKey].shopName : "ሱቅ";
@@ -241,6 +259,10 @@ window.checkoutBuyerCart = function() {
         
         for(let sKey in shops) {
             let t = localDB.tenants[sKey];
+            if(!t) continue;
+            
+            // ማስተካከያ:- አዲስ ዳታ ስትራክቸር መፍጠር
+            if(!t.data) t.data = {};
             if(!t.data.remoteCarts) t.data.remoteCarts = {};
             if(!t.data.remoteCarts[currentBuyer.username]) t.data.remoteCarts[currentBuyer.username] = [];
             
@@ -294,7 +316,9 @@ async function renderBuyerCatalog() {
     let query = document.getElementById('buyerSearchInput') ? document.getElementById('buyerSearchInput').value.trim().toLowerCase() : "";
     let categories = new Set();
     
-    if (localDB.tenants) { Object.values(localDB.tenants).forEach(t => { if (t.status === "active") { categories.add(t.businessType || "አጠቃላይ ንግድ"); } }); }
+    if (localDB.tenants) { 
+        Object.values(localDB.tenants).forEach(t => { if (t.status === "active") { categories.add(t.businessType || "አጠቃላይ ንግድ"); } });
+    }
     
     let catContainer = document.getElementById('buyerCategoryContainer');
     if (catContainer) {
@@ -303,7 +327,12 @@ async function renderBuyerCatalog() {
         catContainer.innerHTML = catHTML;
     }
 
-    let myOrdersHTML = ""; let myReceiptsHTML = "";
+    // ማስተካከያ:- Active Orders እና History Orders መለያየት
+    let activeOrdersHTML = ""; 
+    let historyOrdersHTML = "";
+    let myReceiptsHTML = "";
+    
+    let historyDateFilter = document.getElementById('buyerOrderHistoryDateFilter') ? document.getElementById('buyerOrderHistoryDateFilter').value : "";
     let liveBuyer = (currentBuyer && localDB.buyers) ? localDB.buyers[currentBuyer.username] : currentBuyer;
 
     let allItems = [];
@@ -328,12 +357,7 @@ async function renderBuyerCatalog() {
                                           item.name.toLowerCase().includes(query) ||
                                           (item.model && item.model.toLowerCase().includes(query));
                         if (isItemMatch) {
-                            allItems.push({
-                                ...item,
-                                originalIdx: index,
-                                shopKey: tKey,
-                                tenant: t
-                            });
+                            allItems.push({ ...item, originalIdx: index, shopKey: tKey, tenant: t });
                         }
                     });
                 }
@@ -343,12 +367,13 @@ async function renderBuyerCatalog() {
                         if(ord.buyerUser === liveBuyer.username) {
                             let st = ord.status;
                             let badge = st === "pending" ? "በመጠባበቅ ላይ" : (st === "accepted" ? "በመንገድ ላይ" : (st === "completed" ? "ተረክበዋል" : "ተመልሷል"));
-                            let cl = st === "pending" ? "text-warning" : (st === "accepted" ? "text-success" : "text-danger");
+                            let cl = st === "pending" ? "text-warning" : (st === "accepted" ? "text-success" : (st === "completed" ? "text-success" : "text-danger"));
                             
                             let transportBadge = ord.transport === 'car' ? '🚗 መኪና' : (ord.transport === 'motor' ? '🏍️ ሞተረኛ' : '');
 
                             let feeSection = "";
-                            if(ord.transport === "motor") {
+                            // ፊ (Fee) የሚያስገባው አክቲቭ ላሉት ትዕዛዞች ብቻ ነው
+                            if(ord.transport === "motor" && (st === "pending" || st === "accepted")) {
                                 let feeValue = ord.deliveryFeePaid > 0 ? ord.deliveryFeePaid : "";
                                 let isDisabled = ord.deliveryFeePaid > 0 ? "disabled" : "";
                                 let btnText = ord.deliveryFeePaid > 0 ? "ገብቷል" : "አስገባ";
@@ -358,13 +383,26 @@ async function renderBuyerCatalog() {
                                     <button class="btn-sell btn-sm" onclick="submitDeliveryFee('${tKey}', '${ord.orderId}')" ${isDisabled} style="padding: 6px 12px; white-space:nowrap;">${btnText}</button>
                                 </div>`;
                             }
+                            
+                            let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
+                            let ordVat = (ord.total * vatRate) / 100;
+                            let ordTotalWithVat = ord.total + ordVat;
 
-                            myOrdersHTML += `<tr>
+                            let rowHtml = `<tr>
                                 <td>${t.shopName}<br><small style="color:var(--accent-color)">${transportBadge}</small></td>
                                 <td>${ord.itemName} (x${ord.qty})</td>
-                                <td>${ord.total} ETB</td><td>${ord.date}</td>
+                                <td>${ordTotalWithVat.toFixed(2)} ETB <br><small style="color:gray; font-size:0.7rem;">(ከነ ቫት)</small></td>
+                                <td>${ord.date}</td>
                                 <td class="${cl}"><b>${badge}</b>${feeSection}</td>
                             </tr>`;
+                            
+                            if(st === "pending" || st === "accepted") {
+                                activeOrdersHTML += rowHtml;
+                            } else {
+                                if (!historyDateFilter || ord.date === historyDateFilter) {
+                                    historyOrdersHTML += rowHtml;
+                                }
+                            }
                         }
                     });
                 }
@@ -377,7 +415,7 @@ async function renderBuyerCatalog() {
         let scoreB = (b.name.charCodeAt(0) || 0) + (b.shopKey.charCodeAt(0) || 0) + b.originalIdx;
         return (scoreA % 7) - (scoreB % 7) || scoreA - scoreB;
     });
-    
+
     let carouselHTML = '';
     if (allItems.length > 0) {
         hasData = true;
@@ -390,7 +428,6 @@ async function renderBuyerCatalog() {
             </h3>
             <div class="carousel-track-container" style="width: 100%; overflow-x: auto; display: flex; gap: 12px; padding-bottom: 4px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
         `;
-        
         carouselItems.forEach(item => {
             let itemImg = item.imgUrl || "https://cdn-icons-png.flaticon.com/512/3342/3342137.png";
             carouselHTML += `
@@ -418,7 +455,6 @@ async function renderBuyerCatalog() {
             let t = item.tenant;
             let itemImg = item.imgUrl || "https://cdn-icons-png.flaticon.com/512/3342/3342137.png";
             let modelDisplay = item.model && item.model !== "-" ? `<br><small style="color:var(--accent-color)">ሞዴል: ${item.model}</small>` : '';
-        
             let unitLabel = item.unitType === 'kg' ? 'ኪሎ' : (item.isAdvanced ? 'ሜትር' : 'ፍሬ');
             let rem = item.qty - item.sold;
             let shopLogo = t.shopLogo || "https://cdn-icons-png.flaticon.com/512/869/869636.png";
@@ -482,7 +518,6 @@ async function renderBuyerCatalog() {
         let filterDate = document.getElementById('buyerReceiptDateFilter') ? document.getElementById('buyerReceiptDateFilter').value : "";
         reversed.forEach(rec => {
             if (filterDate && rec.date !== filterDate) return;
-            
             myReceiptsHTML += `<tr>
                 <td><b>#${rec.recId}</b></td><td>${rec.date}</td>
                 <td>${rec.itemName} (${rec.count})</td>
@@ -492,10 +527,17 @@ async function renderBuyerCatalog() {
         });
     }
 
-    let ordersBody = document.getElementById('buyerOrdersBody');
-    if(ordersBody) {
-        if(myOrdersHTML === "") ordersBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">ምንም የዴሊቨሪ ትዕዛዝ አልጠየቁም።</td></tr>`;
-        else ordersBody.innerHTML = myOrdersHTML;
+    // ማስተካከያ:- Active እና History ቴብሎችን ወደ html ማያያዝ
+    let activeOrdersBody = document.getElementById('buyerActiveOrdersBody');
+    if(activeOrdersBody) {
+        if(activeOrdersHTML === "") activeOrdersBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">በአሁኑ ሰዓት ምንም ትዕዛዝ የለም።</td></tr>`;
+        else activeOrdersBody.innerHTML = activeOrdersHTML;
+    }
+
+    let historyOrdersBody = document.getElementById('buyerHistoryOrdersBody');
+    if(historyOrdersBody) {
+        if(historyOrdersHTML === "") historyOrdersBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">በተመረጠው ቀን ያለቀ/የተመለሰ ትዕዛዝ የለም።</td></tr>`;
+        else historyOrdersBody.innerHTML = historyOrdersHTML;
     }
     
     let receiptsBody = document.getElementById('buyerReceiptsBody');
