@@ -251,6 +251,7 @@
             <div id="buyerShopsContainer" class="shops-grid"></div>
         </section>
     </section>
+    
     <section id="adminPage" class="hidden">
         <header class="welcome-header">
             <h1>👑 የባለቤቱ ማዕከላዊ ቁጥጥር ፓነል</h1>
@@ -509,7 +510,7 @@
 
         <div id="motorBlockedOverlay" class="hidden" style="background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px;">
             <h2 style="color: #ef4444; margin-bottom: 10px;">⚠️ አካውንትዎ ታግዷል (Blocked)</h2>
-            <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.5;">ክሬዲትዎ 25 ብር እና ከዚያ በታች ስለደረሰ ሲስተሙ በራስ-ሰር አግዶታል። እባክዎ ክሬዲት ይሙሉ እና አስተዳዳሪ (Admin) ክፍያውን አረጋግጦ አካውንትዎን እስኪከፍትልዎ ድረስ ይጠብቁ።</p>
+            <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.5;">ክሬዲትዎ 25 ብር እና ከዚያ በታች ስለደረሰ ሲስተሙ በራስ-ሰር አግዶታል። እባክዎ ክሬዲት ይሙሉ እና አስተዳዳሪ (Admin) ክፍያውን አረጋግጦ አካውንትዎን እስኪከፍትልዎ ድረስ ይጠብቁ。</p>
             <button class="btn-sell" style="background-color: #f59e0b; color: black; margin-top: 15px; font-size: 1.1rem; padding: 12px 20px; font-weight: bold;" onclick="openMotorCreditModal()">💳 አሁን ክሬዲት ይሙሉ</button>
         </div>
 
@@ -553,6 +554,16 @@
                     <p id="motorCommissionRateDisplay" style="color: #8b5cf6; font-weight: bold;">0%</p>
                 </div>
                 
+                <div class="card" style="border-left: 4px solid #10b981;">
+                    <h3>የዛሬ ገቢ (Daily Income)</h3>
+                    <p id="motorDailyIncome" style="color: #10b981; font-weight: bold;">0.00 ETB</p>
+                </div>
+                
+                <div class="card" style="border-left: 4px solid #38bdf8;">
+                    <h3>የወሩ ገቢ (Monthly Income)</h3>
+                    <p id="motorMonthlyIncome" style="color: #38bdf8; font-weight: bold;">0.00 ETB</p>
+                </div>
+                
                 <div class="card" style="border-left: 4px solid #ec4899;">
                     <h3>ያደረስካቸው (Total Delivered)</h3>
                     <p id="motorTotalDelivered" style="color: #ec4899;">0</p>
@@ -572,7 +583,15 @@
             </section>
 
             <section class="section-box">
-                <h2>📜 የስራ ታሪክ (History)</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h2 style="margin: 0;">📜 የስራ ታሪክ (History)</h2>
+                    <div style="display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <label style="font-size:0.8rem; color:var(--accent-color); margin:0;">ቀን ምረጥ፦</label>
+                        <input type="date" id="motorHistoryDateFilter" onchange="renderMotorHistory()" style="padding: 4px; margin: 0; width: auto; font-size: 0.8rem; background: transparent; border: 1px solid #3a506b; color: white;">
+                        <button class="btn-expense btn-sm" onclick="document.getElementById('motorHistoryDateFilter').value=''; renderMotorHistory();" style="padding: 4px 8px;">የዛሬውን እይ</button>
+                    </div>
+                </div>
+
                 <div class="table-responsive">
                     <table>
                         <thead><tr><th>ቀን</th><th>ሱቅ</th><th>ገዥ</th><th>ያገኘኸው ሂሳብ</th></tr></thead>
@@ -751,7 +770,7 @@
                 <input type="text" id="inventorySearchInput" class="search-input" placeholder="🔍 የዕቃ ስም በመጻፍ በፍጥነት ይፈልጉ..." oninput="renderApp()">
             </div>
             <div class="table-responsive">
-                <table>
+                 <table>
                     <thead>
                         <tr id="inventoryTableHeader"></tr>
                     </thead>
