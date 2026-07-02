@@ -193,7 +193,10 @@
             <div class="cart-total-bar">
                 አጠቃላይ ሂሳብ: <span id="buyerCartTotalSum" style="color: var(--success-color);">0</span> ብር
             </div>
-            <button class="btn-sell btn-block" style="background-color: #f59e0b; color: #000; font-size: 1.1rem; border-radius: 8px;" onclick="checkoutBuyerCart()">✅ እርግጠኛ ነኝ ትዕዛዙን ወደ ሱቆች ላክ</button>
+            <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                <button class="btn-sell btn-block" style="flex:1; background-color: #f59e0b; color: #000; font-size: 1.1rem; border-radius: 8px; padding: 12px;" onclick="checkoutBuyerCart('shop')">🛒 ሱቅ ነኝ (Shop Pickup)</button>
+                <button class="btn-add btn-block" style="flex:1; background-color: #10b981; color: #000; font-size: 1.1rem; border-radius: 8px; padding: 12px;" onclick="checkoutBuyerCart('delivery')">🚚 ዴሊቨሪ (Delivery)</button>
+            </div>
         </section>
         
         <section class="section-box">
@@ -770,7 +773,7 @@
                 <input type="text" id="inventorySearchInput" class="search-input" placeholder="🔍 የዕቃ ስም በመጻፍ በፍጥነት ይፈልጉ..." oninput="renderApp()">
             </div>
             <div class="table-responsive">
-                 <table>
+                  <table>
                     <thead>
                         <tr id="inventoryTableHeader"></tr>
                     </thead>
@@ -800,7 +803,7 @@
                     </thead>
                     <tbody id="receiptHistoryTableBody"></tbody>
                 </table>
-            </div>
+             </div>
         </section>
 
         <section class="section-box" style="border-color: #3b82f6;">
@@ -927,7 +930,7 @@
             <button class="btn-expense" onclick="closeActiveModal()">ሰርዝ</button>
             <button class="btn-sell" onclick="saveAllStaff()">💾 መዝግብ</button>
         </div>
-    </div>
+     </div>
 
     <div id="emailVerifyModal" class="modal-card hidden" style="text-align: center; max-width: 400px;">
         <div style="font-size:3rem; color:var(--accent-color); margin-bottom:10px;">📧</div>
@@ -983,7 +986,7 @@
         <div class="modal-body"><p id="confirmMessage"></p></div>
         <div class="modal-footer">
             <button class="btn-expense" id="confirmYesBtn">አዎ</button>
-            <button class="btn-add" onclick="closeActiveModal()">አይ</button>
+             <button class="btn-add" onclick="closeActiveModal()">አይ</button>
         </div>
     </div>
 
