@@ -108,6 +108,13 @@ window.payTenantVat = function(username) {
         t.data.accumulatedVat = 0;
         localDB.tenants[username] = t;
     
+        // ================== ማስተካከያ የተደረገበት (2 እና 3) ==================
+        // የግብር ሰብሳቢው (Revenue) ዳታ ብቻ ሳይሆን፣ የሻጩ/ተከራዩ 0.00 የሆነው የቫት ዳታ እና ደረሰኝ በቀጥታ ወደ ሻጩ ገፅ (Firebase) እንዲገባ
+        if(typeof db !== 'undefined' && typeof isOnline !== 'undefined' && isOnline) {
+            db.ref(`tirfe_system/tenants/${username}`).set(JSON.parse(JSON.stringify(t))).catch(err => console.error(err));
+        }
+        // ==========================================================
+
         pushToFirebase();
         renderRevenuePanel();
         showCustomAlert("ተሳክቷል", "ክፍያው በተሳካ ሁኔታ ተሰብስቧል! የነጋዴው የተሰበሰበ ቫት 0.00 ሆኗል፤ እንዲሁም የግብር ደረሰኝ አውቶማቲክ ወደ ተከራዩ ተልኳል።");
