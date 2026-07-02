@@ -2,10 +2,13 @@
 // ==========================================
 
 window.buyerCartData = window.buyerCartData || [];
+
 function logoutBuyer() {
     currentBuyer = null;
+    window.buyerCartData = [];
     localStorage.removeItem('tirfe_active_session');
-    switchView('welcomeGateway');
+    // የሎግ አውት (Logout) ችግርን ለመፍታት ሙሉ በሙሉ ፔጁን ሪፍሬሽ ያደርገዋል
+    location.reload();
 }
 
 window.openBuyerProfileSettings = function() {
@@ -31,7 +34,7 @@ window.openBuyerProfileSettings = function() {
         currentBuyer.email = res.b_email.trim();
         currentBuyer.phone = newP; 
         currentBuyer.password = res.b_password.trim();
-        
+
         if(oldU !== newU) {
             localDB.buyers[newU] = currentBuyer;
             delete localDB.buyers[oldU];
@@ -152,7 +155,6 @@ window.renderBuyerCart = function() {
 
     section.style.display = 'block'; listBody.innerHTML = '';
     let grandTotal = 0;
-    
     window.buyerCartData.forEach((c, i) => {
         grandTotal += c.total;
         let shopName = localDB.tenants[c.shopKey] ? localDB.tenants[c.shopKey].shopName : "ሱቅ";
@@ -239,19 +241,9 @@ window.checkoutBuyerCart = function(orderType) {
             let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
             let vatAmount = (grandTotal * vatRate) / 100;
             let finalTotal = grandTotal + vatAmount;
-
-            let confirmMsg = `
-                <div style="text-align:left; font-size:0.95rem; line-height:1.6;">
-                    <div><b>የታዘዙ ዕቃዎች:</b> ${combinedItems}</div>
-                    <div><b>የትራንስፖርት:</b> ${res.transport === 'car' ? '🚗 መኪና' : '🏍️ ሞተረኛ'}</div>
-                    <hr style="border:1px dashed #555; margin:10px 0;">
-                    <div><b>የዕቃ ሂሳብ (Subtotal):</b> ${grandTotal.toFixed(2)} ETB</div>
-                    <div style="color:var(--danger-color);"><b>ቫት (${vatRate}%):</b> ${vatAmount.toFixed(2)} ETB</div>
-                    <div style="color:var(--success-color); font-size:1.1rem; margin-top:5px;"><b>ጠቅላላ የሚጠበቅ ሂሳብ:</b> ${finalTotal.toFixed(2)} ETB</div>
-                    <hr style="border:1px dashed #555; margin:10px 0;">
-                    <div style="font-size:0.85rem; color:#aaa;">ይህንን ትዕዛዝ ወደ ሻጩ መላክ እርግጠኛ ነዎት?</div>
-                </div>
-            `;
+            
+            // የኤችቲኤምኤል ታጎች እንዳይታዩ ወደ ንፁህ ፅሁፍ (Plain Text) ተቀይሯል፣ እና አላስፈላጊ የቫት ትንታኔ ወጥቷል
+            let confirmMsg = `የታዘዙ ዕቃዎች: ${combinedItems}\nየትራንስፖርት: ${res.transport === 'car' ? '🚗 መኪና' : '🏍️ ሞተረኛ'}\n\nጠቅላላ የሚጠበቅ ሂሳብ: ${finalTotal.toFixed(2)} ETB\n\nይህንን ትዕዛዝ ወደ ሻጩ መላክ እርግጠኛ ነዎት?`;
 
             showCustomConfirm("📦 የትዕዛዝ ማረጋገጫ (Order Checkout)", confirmMsg, () => {
                 if(!t.data) t.data = {};
@@ -270,7 +262,7 @@ window.checkoutBuyerCart = function(orderType) {
                     transport: res.transport, deliveryFeePaid: 0,
                     cartItems: window.buyerCartData // Preserving original array
                 });
-
+                
                 localDB.tenants[shopKey] = t;
                 pushToFirebase();
 
@@ -333,10 +325,9 @@ async function renderBuyerCatalog() {
     let activeOrdersHTML = "";
     let historyOrdersHTML = "";
     let myReceiptsHTML = "";
-    
     let historyDateFilter = document.getElementById('buyerOrderHistoryDateFilter') ? document.getElementById('buyerOrderHistoryDateFilter').value : "";
     let liveBuyer = (currentBuyer && localDB.buyers) ? localDB.buyers[currentBuyer.username] : currentBuyer;
-
+    
     let allItems = [];
     if (localDB.tenants) {
         Object.keys(localDB.tenants).forEach(tKey => {
@@ -352,8 +343,9 @@ async function renderBuyerCatalog() {
                                   (t.shopName && t.shopName.toLowerCase().includes(query)) ||
                                   (t.phone && t.phone.includes(query));
                 }
+                
                 if (t.data && t.data.inventory) {
-                    t.data.inventory.forEach((item, index) => {
+                     t.data.inventory.forEach((item, index) => {
                         let isItemMatch = query === "" || isShopMatch || 
                                           item.name.toLowerCase().includes(query) ||
                                           (item.model && item.model.toLowerCase().includes(query));
@@ -387,7 +379,6 @@ async function renderBuyerCatalog() {
                             let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
                             let ordVat = (ord.total * vatRate) / 100;
                             let ordTotalWithVat = ord.total + ordVat;
-                            
                             let displayItemName = ord.cartItems ? ord.itemName : `${ord.itemName} (x${ord.qty})`;
                             
                             let rowHtml = `<tr>
@@ -396,7 +387,7 @@ async function renderBuyerCatalog() {
                                 <td>${ordTotalWithVat.toFixed(2)} ETB <br><small style="color:gray; font-size:0.7rem;">(ከነ ቫት)</small></td>
                                 <td>${ord.date}</td>
                                 <td class="${cl}"><b>${badge}</b>${feeSection}</td>
-                            </tr>`;
+                             </tr>`;
                             
                             if(st === "pending" || st === "accepted") {
                                 activeOrdersHTML += rowHtml;
@@ -430,6 +421,7 @@ async function renderBuyerCatalog() {
             </h3>
             <div class="carousel-track-container" style="width: 100%; overflow-x: auto; display: flex; gap: 12px; padding-bottom: 4px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
         `;
+        
         carouselItems.forEach(item => {
             let itemImg = item.imgUrl || "https://cdn-icons-png.flaticon.com/512/3342/3342137.png";
             carouselHTML += `
