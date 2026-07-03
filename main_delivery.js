@@ -235,7 +235,7 @@ function submitMotorCredit() {
     renderMotorPage();
 }
 
-// 7. ትዕዛዞችን ማሳያ (Active Deliveries)
+// 7. ትዕዛዞችን ማሳያ (Active Deliveries) - አዲስ ማስተካከያ (Point 1)
 function renderMotorOrders() {
     const tbody = document.getElementById('motorActiveOrdersBody');
     if (!tbody) return;
@@ -247,17 +247,24 @@ function renderMotorOrders() {
         return;
     }
 
+    // ማስተካከያ: ሞተረኛው አስቀድሞ የተቀበለው ትዕዛዝ ወይም ያልተወራረደ ክፍያ ካለው ማረጋገጫ
+    let feeReceived = (currentMotor.incomingFee && parseFloat(currentMotor.incomingFee) > 0);
+    let hasActiveJob = activeOrders.some(o => o.status === 'accepted') || feeReceived;
+
     activeOrders.forEach((order, index) => {
         let tr = document.createElement('tr');
         let actionBtn = "";
         let statusBadge = "";
 
-        // ማስተካከያ 2: ከገዥ የተላከ ክፍያ ከ 0.00 በላይ መሆኑን ማረጋገጫ
-        let feeReceived = (currentMotor.incomingFee && parseFloat(currentMotor.incomingFee) > 0);
-
         if(order.status === 'pending_motor') {
             statusBadge = `<span class="badge-warning">አዲስ ጥሪ (በመጠባበቅ ላይ)</span><br>`;
-            actionBtn = `<button class="btn-add btn-sm" onclick="acceptMotorOrder(${index})">✋ ተቀበል (Accept)</button>`;
+            
+            // ሌላ የተቀበለው ስራ ካለ አዳዲስ ጥሪዎች ላይ በተኑን እናፈዝዘዋለን (Disable)
+            if (hasActiveJob) {
+                actionBtn = `<button class="btn-add btn-sm" style="background-color: #64748b; color: #cbd5e1; cursor: not-allowed; opacity: 0.5;" disabled>🔒 በስራ ላይ ነዎት</button>`;
+            } else {
+                actionBtn = `<button class="btn-add btn-sm" onclick="acceptMotorOrder(${index})">✋ ተቀበል (Accept)</button>`;
+            }
         } else {
             statusBadge = `<span class="badge-success">በእርስዎ የተያዘ</span><br>`;
             
@@ -287,6 +294,13 @@ window.acceptMotorOrder = function(index) {
     // ክፍያ ሳይጨርስ አዲስ እንዳይቀበል መቆለፊያ
     if (currentMotor.incomingFee > 0) {
         alert("⚠️ እባክዎ መጀመሪያ የያዙትን ትዕዛዝ በማድረስ ከገዥ የተላከውን ክፍያ ያረጋግጡ (ዳሽቦርድዎ ላይ 0.00 ይሁን)! ከዚያ በኋላ ብቻ አዲስ ትዕዛዝ መቀበል ይችላሉ።");
+        return;
+    }
+
+    // ተጨማሪ ማረጋገጫ: ሌላ የተቀበለው ትዕዛዝ ካለ ይከለክላል
+    let hasActiveJob = currentMotor.activeOrders.some(o => o.status === 'accepted');
+    if (hasActiveJob) {
+        alert("⚠️ አስቀድመው የተቀበሉት ሌላ ትዕዛዝ አለ! እባክዎ መጀመሪያ ያንን ያድርሱ።");
         return;
     }
     
