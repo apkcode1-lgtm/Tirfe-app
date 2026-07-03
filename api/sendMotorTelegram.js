@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-    // የ CORS ፖሊሲ
+    // የ CORS ፖሊሲ (ከየትኛውም ዶሜይን ጥያቄዎችን ለመቀበል)
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -30,17 +30,22 @@ export default async function handler(req, res) {
             return res.status(404).json({ success: false, message: 'የሞተረኛው መረጃ አልተገኘም' });
         }
 
-        // ሞተረኛው ሲመዘገብ ያስገባው Token እንደ Chat ID እና Token ሆኖ እንዲያገለግል
-        const token = motor.telegramToken || motor.tgToken;
-        const chatId = motor.telegramChatId || token; 
+        // ሞተረኛው ሲመዘገብ ወይም ሴቲንግ ላይ ያስገባው የቴሌግራም ቶከን (Bot Token)
+        const userProvidedToken = motor.telegramToken || motor.tgToken;
         
-        if (!token) {
-            return res.status(404).json({ success: false, message: 'የሞተረኛው የቴሌግራም መረጃ (Token) አልተገኘም' });
+        if (!userProvidedToken) {
+            return res.status(404).json({ success: false, message: 'የሞተረኛው የቴሌግራም ቶከን (Token) ዳታቤዝ ላይ አልተገኘም' });
         }
 
-        // ማሳሰቢያ፡ ራሱን የቻለ ቦት ለሞተረኞች ካለህ process.env.MOTOR_BOT_TOKEN በ Vercel ላይ ማስገባት ትችላለህ
-        const botToken = process.env.MOTOR_BOT_TOKEN || token;
+        // ማስተካከያ:- ምንም አይነት Environment Variable (process.env) አንጠቀምም! 
+        // በቀጥታ እያንዳንዱ ሞተረኛ የራሱን ያስገባውን ቶከን እንደ ቦት ቶከን እንጠቀማለን።
+        const botToken = userProvidedToken;
+        
+        // ሞተረኞች ቻት አይዲ (Chat ID) አይጠቀሙም ስላልክ፣ በዲፎልት ቶከኑን እንደ ቻት አይዲ እንጠቀመዋለን
+        // (ቴሌግራም chat_id ስለሚጠይቅ Error እንዳይፈጥር የተደረገ ነው)
+        const chatId = motor.telegramChatId || userProvidedToken;
 
+        // የቴሌግራም ኤፒአይ መልዕክት መላኪያ ዩአርኤል
         const tgUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
         const response = await fetch(tgUrl, {
             method: 'POST',
@@ -49,10 +54,15 @@ export default async function handler(req, res) {
         });
         
         const data = await response.json();
+        
+        if (!response.ok) {
+            console.error("Telegram API Error Response:", data);
+            return res.status(response.status).json({ success: false, error: data });
+        }
+
         res.status(200).json({ success: true, data });
     } catch (error) {
         console.error("Motor Telegram Error:", error);
         res.status(500).json({ success: false, error: error.message });
     }
 }
-
