@@ -9,6 +9,8 @@ function openTenantProfileEditor() {
         { id: "phone", label: "የሱቅ ስልክ ቁጥር", type: "text", defaultValue: currentTenant.phone },
         { id: "gmail", label: "ኢሜል (Gmail)", type: "email", defaultValue: currentTenant.gmail || "" },
         { id: "mapsLink", label: "የጎግል ማፕ ሊንክ (Google Maps URL)", type: "text", defaultValue: currentTenant.googleMapsLink || "" },
+        { id: "telegramToken", label: "የቴሌግራም ቦት ቶከን (Telegram Bot Token)", type: "text", defaultValue: currentTenant.telegramToken || "" },
+        { id: "telegramChatId", label: "የቴሌግራም ቻት አይዲ (Telegram Chat ID)", type: "text", defaultValue: currentTenant.telegramChatId || "" },
         { id: "newLogo", label: "የሱቅ ፎቶ/ሎጎ ለመቀየር (አማራጭ)", type: "file" },
         { id: "newPassword", label: "አዲስ ምስጢራዊ ኮድ / ፓስዎርድ ለመቀየር (ባዶ ከሆነ አይቀየርም)", type: "password", placeholder: "አዲስ ነባር ኮድ" }
     ], (res, fileInput) => {
@@ -17,6 +19,9 @@ function openTenantProfileEditor() {
             currentTenant.phone = res.phone.trim();
             currentTenant.gmail = res.gmail.trim();
             currentTenant.googleMapsLink = res.mapsLink.trim();
+            currentTenant.telegramToken = res.telegramToken.trim();
+            currentTenant.telegramChatId = res.telegramChatId.trim();
+            
             if(base64Logo) currentTenant.shopLogo = base64Logo;
             if (res.newPassword && res.newPassword.trim() !== "") { 
                 currentTenant.password = res.newPassword.trim();
@@ -78,7 +83,8 @@ function openExpenseModal() {
 function openDebtModal() {
     let inv = currentTenant.data.inventory || [];
     if (inv.length === 0) { 
-        showCustomAlert("⚠️ ዕቃ አልተገኘም", "ዕዳ ለመመዝገብ አስቀድሞ በዕቃዎች ዝርዝር ውስጥ ቢያንስ አንድ ዕቃ መኖር አለበት!"); return;
+        showCustomAlert("⚠️ ዕቃ አልተገኘም", "ዕዳ ለመመዝገብ አስቀድሞ በዕቃዎች ዝርዝር ውስጥ ቢያንስ አንድ ዕቃ መኖር አለበት!");
+        return;
     }
 
     let itemOptions = inv.map((item, index) => { return { value: index, label: `${item.name} (${item.price} ETB)` }; });
@@ -155,9 +161,11 @@ function openSettlementModal() {
 }
 
 function startNewDaySession() {
-    if(currentUserRole === "staff") return; let d = currentTenant.data || {};
+    if(currentUserRole === "staff") return;
+    let d = currentTenant.data || {};
     if(d.sessionActive && !d.shiftClosed) { 
-        showCustomAlert("ክልክል!", "መጀመሪያ የትላንቱን (ወይም የዛሬውን) የዕለት ሂሳብ 'የዕለት ሂሳብ ዝጋ' በሚለው ዘግተው ሪፖርት ማቅረብ አለብዎት!"); return;
+        showCustomAlert("ክልክል!", "መጀመሪያ የትላንቱን (ወይም የዛሬውን) የዕለት ሂሳብ 'የዕለት ሂሳብ ዝጋ' በሚለው ዘግተው ሪፖርት ማቅረብ አለብዎት!");
+        return;
     }
 
     showCustomConfirm("አዲስ ቀን መጀመር", "የዛሬውን ቀን ሂሳብ ሙሉ በሙሉ አጽድተው ለአዲስ ቀን ማዘጋጀት ይፈልጋሉ? (የወር ትርፍዎ አይጠፋም)", () => {
@@ -181,8 +189,10 @@ function initChart() {
     let canvasElement = document.getElementById('businessChart');
     if (!canvasElement || currentUserRole === "staff") return;
     let ctx = canvasElement.getContext('2d');
-    if (myChart) myChart.destroy();
-    myChart = new Chart(ctx, {
+    
+    if (window.myChart) window.myChart.destroy();
+    
+    window.myChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: ['ካፒታል', 'የዛሬ ሽያጭ', 'የዛሬ ትርፍ'],
@@ -221,6 +231,7 @@ function openAdvancedRegistration() {
         let packCount = parseFloat(res.packCount) || 0; let unitPerPack = parseFloat(res.unitPerPack) || 0;
         let totalQtyInMeters = packCount * unitPerPack;
         let totalCost = parseFloat(res.totalCost) || 0; let retailPrice = parseFloat(res.retailPrice) || 0;
+        
         if(!name || packCount <= 0 || unitPerPack <= 0 || totalCost <= 0 || retailPrice <= 0) { 
             showCustomAlert("ስህተት", "እባክዎ የተሟላ እና ትክክለኛ መረጃ ያስገቡ!");
             return; 
@@ -252,4 +263,3 @@ function deleteInventoryItem(idx) {
         currentTenant.data.inventory.splice(idx, 1); saveAndRefresh(); 
     });
 }
-
