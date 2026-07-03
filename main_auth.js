@@ -35,8 +35,8 @@ function checkAutomaticLogin() {
         currentLoginMode = session.loginMode || 'unified';
         
         if (session.role === 'admin') {
-            currentUserRole = 'admin'; // ማስተካከያ:- አድሚን መሆኑን ያረጋግጣል
-            if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners(); // ዳታቤዝ እንዲያነብ ያዛል
+            currentUserRole = 'admin';
+            if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
             setTimeout(() => { switchView('adminPage'); renderAdminPanel(); }, 300);
         } else if (session.role === 'revenue' && localDB.revenueAuthorities && localDB.revenueAuthorities[session.username]) {
             currentRevenueOfficer = localDB.revenueAuthorities[session.username];
@@ -118,6 +118,9 @@ async function isSystemDataTaken(u, p, skipTenantUser, skipBuyerUser) {
             
             let mSnap = await db.ref(`tirfe_system/motors/${u}`).once('value');
             if (mSnap.exists()) return "ይህ ዩዘርኔም በሌላ ሞተረኛ ተይዟል!";
+
+            let stSnap = await db.ref(`tirfe_system/staffAccounts/${u}`).once('value');
+            if (stSnap.exists() && u !== skipTenantUser) return "ዩዘርኔም በሌላ ሰራተኛ ተይዟል (ትይዟል)!";
         } catch(e) {
             console.warn("Firebase Read Error:", e);
         }
@@ -244,8 +247,8 @@ async function handleUnifiedLogin() {
 
             if(data.success) {
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'admin', loginMode: 'admin', username: 'admin' }));
-                currentUserRole = 'admin'; // ማስተካከያ:- አድሚን መሆኑን ያሳውቃል
-                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners(); // ዳታቤዝ እንዲያነብ ያዛል
+                currentUserRole = 'admin'; 
+                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 switchView('adminPage');
                 renderAdminPanel();
@@ -298,7 +301,8 @@ async function handleUnifiedLogin() {
         if(b) {
             if(String(b.email || "").toLowerCase() === email.toLowerCase() && String(b.password).trim() === pass) {
                 if(b.status === "blocked") { err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)!";
-                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
+                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
+                }
                 currentBuyer = b;
                 localDB.buyers[user] = b;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: user }));
@@ -347,11 +351,11 @@ async function handleUnifiedLogin() {
             if(String(m.email || "").toLowerCase() === email.toLowerCase() && String(m.password).trim() === pass) {
                 if(m.status === "blocked") { 
                     err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)!";
-                    if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
+                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
                 }
                 if(m.status === "pending") {
                     err.innerText = "⏳ መረጃዎ በአስተዳዳሪ እየተገመገመ ነው። እባክዎ ትንሽ ይጠብቁ።";
-                    if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
+                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
                 }
                 currentMotor = m;
                 currentUserRole = "motor";
@@ -365,11 +369,53 @@ async function handleUnifiedLogin() {
             }
         }
 
+        // ================== አዲሱ የሰራተኛ መፈለጊያ ከፋየርቤዝ ==================
+        let s = null;
+        if(isOnline && typeof db !== 'undefined') {
+            try {
+                let sSnap = await db.ref(`tirfe_system/staffAccounts/${user}`).once('value');
+                if(sSnap.exists()) s = sSnap.val();
+            } catch(fbErr) { console.warn("Firebase Error on Staff:", fbErr); }
+        }
+        
+        if (s) {
+            if (String(s.gmail || "").toLowerCase() === email.toLowerCase() && String(s.pass).trim() === pass) {
+                let parentTenant = null;
+                try {
+                    if (isOnline && typeof db !== 'undefined') {
+                        let ptSnap = await db.ref(`tirfe_system/tenants/${s.tenantUsername}`).once('value');
+                        if(ptSnap.exists()) parentTenant = ptSnap.val();
+                    }
+                } catch(e) {}
+                
+                if(!parentTenant && localDB.tenants && localDB.tenants[s.tenantUsername]) {
+                    parentTenant = localDB.tenants[s.tenantUsername];
+                }
+                
+                if (parentTenant) {
+                    if(isTenantExpired(parentTenant, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
+                    currentUserRole = "staff";
+                    localDB.tenants[s.tenantUsername] = parentTenant;
+                    localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: parentTenant.username }));
+                    err.innerText = "";
+                    if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
+                    launchApp(parentTenant);
+                    if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
+                    return;
+                } else {
+                    err.innerText = "❌ የሱቁ ባለቤት መረጃ ሲስተም ውስጥ አልተገኘም!";
+                    if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
+                    return;
+                }
+            }
+        }
+        
+        // እንደ ተጨማሪ የድሮ ሎካል ዳታቤዝ ሰራተኛ ፍለጋ
         if(localDB.tenants) {
             for(let tKey in localDB.tenants) {
                 let tLocal = localDB.tenants[tKey];
                 if(tLocal && tLocal.staffAccounts) {
-                    let found = tLocal.staffAccounts.find(s => s.user === user && String(s.gmail || "").toLowerCase() === email.toLowerCase() && String(s.pass).trim() === pass);
+                    let found = tLocal.staffAccounts.find(st => st.user === user && String(st.gmail || "").toLowerCase() === email.toLowerCase() && String(st.pass).trim() === pass);
                     if(found) {
                         if (isTenantExpired(tLocal, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
                         currentUserRole = "staff";
@@ -383,6 +429,7 @@ async function handleUnifiedLogin() {
                 }
             }
         }
+        // =========================================================
 
         err.innerText = "❌ መረጃው ስህተት ነው! አካውንት አልተገኘም።";
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
@@ -558,7 +605,6 @@ async function triggerUnifiedRegistration() {
             return;
         }
 
-        // ፎቶውን ከ OTP በፊት ቀድሞ ማሳነስ (Compress)
         const processImg = (file) => new Promise(res => {
             if(typeof processImageUpload === 'function') {
                 processImageUpload(file, res);
@@ -586,7 +632,7 @@ async function triggerUnifiedRegistration() {
                     firstName: firstName, lastName: lastName, phone: phone, email: email,
                     username: user, password: res.newPass, telegramToken: tgToken, plateNumber: plateNumber,
                     region: region, zone: zone, woreda: woreda,
-                    idCardImage: idCardBase64, licenseImage: licenseBase64, // ቀድሞ የተዘጋጀው ፎቶ
+                    idCardImage: idCardBase64, licenseImage: licenseBase64,
                     joinDate: new Date().getTime(),
                     status: "pending" 
                 };
@@ -794,6 +840,8 @@ window.renderStaffForms = function() {
     });
 };
 
+// ================== ማስተካከያ የተደረገበት ==================
+// ሰራተኛ ሲፈጠር በቀጥታ ወደ ፋየርቤዝ እንዲላክ እና ከማንኛውም ስልክ መግባት እንዲችል ታክሏል
 window.saveAllStaff = async function() {
     for(let i=0; i<tempStaffForms.length; i++) {
         tempStaffForms[i].name = document.getElementById(`s_name_${i}`).value.trim();
@@ -815,6 +863,23 @@ window.saveAllStaff = async function() {
     }
     currentTenant.staffAccounts = tempStaffForms;
     saveAndRefresh(); closeActiveModal();
+    
+    // የሰራተኛውን መረጃ በቀጥታ ወደ ፋየርቤዝ መላክ
+    if(isOnline && typeof db !== 'undefined') {
+        tempStaffForms.forEach(staff => {
+            if(staff.user && staff.pass) {
+                db.ref(`tirfe_system/staffAccounts/${staff.user}`).set({
+                    name: staff.name,
+                    gmail: staff.gmail,
+                    phone: staff.phone,
+                    user: staff.user,
+                    pass: staff.pass,
+                    tenantUsername: currentTenant.username
+                }).catch(err => console.error("Staff Save Error:", err));
+            }
+        });
+    }
+
     showCustomAlert("ተሳክቷል", "የሰራተኞች መረጃ በተሳካ ሁኔታ ተመዝግቧል!");
 };
 
