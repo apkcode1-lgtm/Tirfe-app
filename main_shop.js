@@ -20,8 +20,8 @@ function renderHistoryTable() {
     historyBody.innerHTML = '<tr><th>ቀን/ዓይነት</th><th>ሰራተኛ/ወቅት</th><th>ሽያጭ</th><th>ትርፍ</th><th>ሪፖርት ካሽ</th><th>ልዩነት</th></tr>';
     let historyList = d.history || []; let filterValue = document.getElementById('historyDateFilter').value;
     let filtered = historyList.filter(h => { if(!filterValue) return true; return h.date === filterValue; });
-    if(filtered.length === 0) { historyBody.innerHTML += '<tr><td colspan="6" style="text-align:center; color:#94a3b8;">በተፈለገው ቀን ምንም ታሪክ የለም</td></tr>';
-    } 
+    
+    if(filtered.length === 0) { historyBody.innerHTML += '<tr><td colspan="6" style="text-align:center; color:#94a3b8;">በተፈለገው ቀን ምንም ታሪክ የለም</td></tr>'; } 
     else {
         filtered.forEach(h => {
             let vColor = h.variance === 0 ? 'var(--success-color)' : 'var(--danger-color)';
@@ -46,6 +46,7 @@ window.acceptDelivery = function(idx) {
         let matchedMotorsCount = 0;
         let poolId = "POOL_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
         ord.poolId = poolId;
+        
         if(localDB.motors) {
             Object.keys(localDB.motors).forEach(mUser => {
                 let motor = localDB.motors[mUser];
@@ -96,6 +97,7 @@ window.completeDelivery = function(idx) {
     let item = currentTenant.data.inventory[ord.itemIdx];
     let neededMeters = item.isAdvanced && item.unitType !== 'kg' ? ord.qty * item.unitPerPack : ord.qty;
     item.sold += neededMeters; ord.status = "completed";
+    
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
     let collectedVat = 0;
     if(vatRate > 0) {
@@ -148,13 +150,16 @@ window.renderTenantTaxReceipts = function() {
     let tbody = document.getElementById('tenantTaxReceiptsBody');
     if(!tbody) return;
     tbody.innerHTML = '';
+    
     let receipts = currentTenant.data.taxReceipts || [];
     let filterDateInput = document.getElementById('tenantTaxReceiptDateFilter');
     let filterDate = filterDateInput ? filterDateInput.value : "";
+    
     let filtered = receipts.filter(r => {
         if(!filterDate) return true;
         return r.date === filterDate;
     });
+    
     if(filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8;">ምንም የተቆረጠ የግብር ደረሰኝ የለም</td></tr>`;
         return;
@@ -177,6 +182,7 @@ window.viewTaxReceiptDetail = function(idx) {
     if(!currentTenant || !currentTenant.data || !currentTenant.data.taxReceipts) return;
     let rec = currentTenant.data.taxReceipts[idx];
     if(!rec) return;
+    
     let detailHtml = `
         <div style="text-align:center; border-bottom: 2px dashed #3b82f6; padding-bottom: 10px; margin-bottom: 10px;">
             <h2 style="margin: 0; color: #000; font-size: 1.4rem;">የግብር ክፍያ ደረሰኝ</h2>
@@ -215,15 +221,18 @@ function renderApp() {
 
     let tbody = document.getElementById('inventoryBody');
     tbody.innerHTML = '';
+    
     let collectedCredit = parseFloat(d.collectedCreditToday) || 0;
     let tSales = collectedCredit; let todayProfit = 0;
-    let tExp = 0; let tDraw = 0; let currentTotalCapital = 0;
+    let tExp = 0;
+    let tDraw = 0; let currentTotalCapital = 0;
     let expensesList = d.expenses || [];
     expensesList.forEach(e => tExp += parseFloat(e.amount) || 0);
     
     let drawsList = d.drawerLog || []; drawsList.forEach(dr => tDraw += parseFloat(dr.amount) || 0);
     let query = document.getElementById('inventorySearchInput') ? document.getElementById('inventorySearchInput').value.trim().toLowerCase() : "";
     let inv = d.inventory || [];
+    
     inv.forEach((item, idx) => {
         let remaining = Math.max(0, item.qty - item.sold); 
         let profit = (item.price - item.cost) * item.sold; 
@@ -285,12 +294,14 @@ function renderApp() {
     if (currentUserRole === "owner") {
         let monthlyProfit = todayProfit - todayExpensesTotal;
         let historyList = d.history || []; historyList.forEach(h => { if(!h.isMonthlyArchive) monthlyProfit += parseFloat(h.profit) || 0; });
+        
         document.getElementById('totalCapital').innerText = currentTotalCapital.toFixed(1) + " ETB";
         document.getElementById('todayNetProfit').innerText = (todayProfit - todayExpensesTotal).toFixed(1) + " ETB";
         document.getElementById('monthlyNetProfit').innerText = monthlyProfit.toFixed(1) + " ETB";
         document.getElementById('monthlyExpenses').innerText = tExp.toFixed(1) + " ETB";
         document.getElementById('totalDraws').innerText = tDraw.toFixed(1) + " ETB";
-        if (myChart) { myChart.data.datasets[0].data = [currentTotalCapital, tSales, todayProfit - todayExpensesTotal]; myChart.update(); }
+        
+        if (window.myChart) { window.myChart.data.datasets[0].data = [currentTotalCapital, tSales, todayProfit - todayExpensesTotal]; window.myChart.update(); }
         renderHistoryTable();
     }
 
@@ -298,6 +309,7 @@ function renderApp() {
     if(remoteBody) {
         remoteBody.innerHTML = "";
         let remoteCarts = d.remoteCarts || {}; let hasRemotes = false;
+        
         Object.keys(remoteCarts).forEach(bUser => {
             let items = remoteCarts[bUser];
             if(items && items.length > 0) {
@@ -322,6 +334,7 @@ function renderApp() {
         delBody.innerHTML = "";
         let orders = d.deliveryOrders || [];
         let hasDel = false;
+        
         orders.forEach((ord, idx) => {
             if(ord.status === "completed" || ord.status === "returned") return;
             hasDel = true;
@@ -336,6 +349,7 @@ function renderApp() {
             let invItem = d.inventory[ord.itemIdx];
             let modelTxt = (invItem && invItem.model && invItem.model !== "-") ? `(ሞዴል: ${invItem.model})` : "";
             let transportBadge = ord.transport === 'car' ? '<br><span style="color:var(--accent-color);">🚗 መኪና</span>' : (ord.transport === 'motor' ? '<br><span style="color:var(--accent-color);">🏍️ ሞተረኛ</span>' : '');
+            
             delBody.innerHTML += `<tr>
                 <td>👤 ${ord.buyerUser}<br>📞 ${ord.buyerPhone}${transportBadge}</td>
                 <td>📍 ${ord.address} <br> ${ord.mapLink ? `<a href="${ord.mapLink}" target="_blank" style="color:var(--accent-color);">Map Link</a>` : ''}</td>
@@ -348,9 +362,9 @@ function renderApp() {
 
     let creditBody = document.getElementById('creditBody');
     creditBody.innerHTML = '<tr><th>ባለዕዳ / ስልክ</th><th>የወሰደው ዕቃ (ብዛት)</th><th>ጠቅላላ ዕዳ</th><th>ቀሪ</th><th>ድርጊት</th></tr>';
+    
     let debts = d.debts || [];
-    if(debts.length === 0) { creditBody.innerHTML += '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">ምንም የዕዳ መዝገብ የለም</td></tr>';
-    } 
+    if(debts.length === 0) { creditBody.innerHTML += '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">ምንም የዕዳ መዝገብ የለም</td></tr>'; } 
     else {
         debts.forEach((debt, idx) => {
             let remaining = debt.amount - debt.paid;
@@ -368,8 +382,8 @@ function renderApp() {
 
     let drawBody = document.getElementById('drawBody');
     drawBody.innerHTML = '<tr><th>ምክንያት</th><th>የተወሰደው</th><th>ሰዓት</th></tr>';
-    if(drawsList.length === 0) { drawBody.innerHTML += '<tr><td colspan="3" style="text-align:center; color:#94a3b8;">ምንም የተነሳ ገንዘብ የለም</td></tr>';
-    } 
+    
+    if(drawsList.length === 0) { drawBody.innerHTML += '<tr><td colspan="3" style="text-align:center; color:#94a3b8;">ምንም የተነሳ ገንዘብ የለም</td></tr>'; } 
     else {
         drawsList.forEach(dr => {
             let isReturn = dr.amount < 0; let displayAmt = isReturn ? Math.abs(dr.amount) + " ETB (መለሰ)" : dr.amount + " ETB";
@@ -381,14 +395,14 @@ function renderApp() {
 
     let receiptHistoryBody = document.getElementById('receiptHistoryTableBody');
     receiptHistoryBody.innerHTML = '';
+    
     let pastReceipts = d.receipts || [];
     let receiptFilterDate = document.getElementById('receiptDateFilter').value;
-    if (!receiptFilterDate) { receiptHistoryBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8; font-weight: bold;">📅 እባክዎ ደረሰኞችን ለማየት መጀመሪያ ቀን ይምረጡ!</td></tr>';
-    } 
+    
+    if (!receiptFilterDate) { receiptHistoryBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94a3b8; font-weight: bold;">📅 እባክዎ ደረሰኞችን ለማየት መጀመሪያ ቀን ይምረጡ!</td></tr>'; } 
     else {
         let filteredReceipts = pastReceipts.filter(rec => rec.date === receiptFilterDate);
-        if (filteredReceipts.length === 0) { receiptHistoryBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#94a3b8;">የመረጡት ቀን (${receiptFilterDate}) የተቆረጠ ምንም ደረሰኝ የለም።</td></tr>`;
-        } 
+        if (filteredReceipts.length === 0) { receiptHistoryBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#94a3b8;">የመረጡት ቀን (${receiptFilterDate}) የተቆረጠ ምንም ደረሰኝ የለም።</td></tr>`; } 
         else {
             let reversedReceipts = [...pastReceipts].reverse();
             reversedReceipts.forEach((rec, originalIdx) => {
@@ -464,6 +478,7 @@ window.renderMainCart = function() {
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
     let vatAmount = (grandTotal * vatRate) / 100;
     let finalTotal = grandTotal + vatAmount;
+    
     let summaryHtml = `
         <div style="text-align: right; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-top: 10px;">
             <div style="color: #bbb; font-size: 0.9rem;">Subtotal / ሂሳብ: <b>${grandTotal.toFixed(2)} ETB</b></div>
@@ -487,8 +502,10 @@ window.checkoutMainCart = function() {
         let item = currentTenant.data.inventory[c.index]; item.sold += c.deductedMeters; grandTotal += c.total;
         receiptItems.push({ name: c.name, count: c.qty, unitPrice: c.price, total: c.total });
     });
+    
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
     let collectedVat = 0;
+    
     if(vatRate > 0) {
         collectedVat = (grandTotal * vatRate) / 100;
         if(!currentTenant.data.accumulatedVat) currentTenant.data.accumulatedVat = 0;
@@ -538,6 +555,7 @@ window.generateStandaloneVatReceipt = function() {
     let iName = document.getElementById('specialVatItemName').value.trim() || "የተለያዩ ዕቃዎች";
     let iModel = document.getElementById('specialVatItemModel').value.trim() || "-";
     let iPrice = parseFloat(document.getElementById('specialVatItemPrice').value) || 0;
+    
     if(iPrice <= 0) { showCustomAlert("ስህተት", "እባክዎ ትክክለኛ የዕቃ ዋጋ ያስገቡ!"); return; }
     if(iPrice >= 3000) { showCustomAlert("ስህተት", "የብር መጠኑ ከ3000 እና ከዚያ በላይ ስለሆነ እባክዎ መደበኛውን ካርት (Cart) ይጠቀሙ!"); return; }
 
@@ -546,14 +564,17 @@ window.generateStandaloneVatReceipt = function() {
     let iQty = 1;
     let vatAmount = (subTotal * vatRate) / 100;
     let grandTotal = subTotal + vatAmount;
+    
     let recId = Math.floor(100000 + Math.random() * 900000);
     let dateStr = getTodayFormatted();
     
     if(!currentTenant.data.accumulatedVat) currentTenant.data.accumulatedVat = 0;
     currentTenant.data.accumulatedVat += vatAmount;
+    
     if(!currentTenant.data.receipts) currentTenant.data.receipts = [];
     let displayItemName = `${iName} (ሞዴል: ${iModel}) [ፈጣን የቫት ደረሰኝ]`;
     let currentSeller = currentUserRole === 'staff' ? 'ሰራተኛ' : 'ባለቤት';
+    
     let recObj = { 
         recId: recId, date: dateStr, itemName: displayItemName, count: iQty, 
         totalVal: grandTotal, subTotal: subTotal, vatAmount: vatAmount, 
@@ -590,6 +611,7 @@ window.generateStandaloneVatReceipt = function() {
         <td style="padding: 4px 0; text-align: right; border-bottom: 1px dashed #ccc;">${iPrice.toFixed(2)}</td>
         <td style="padding: 4px 0; text-align: right; border-bottom: 1px dashed #ccc;">${subTotal.toFixed(2)}</td>
     </tr>`;
+    
     document.getElementById('recPrintSubTotal').innerText = subTotal.toFixed(2);
     document.getElementById('recPrintVatPercent').innerText = vatRate;
     document.getElementById('recPrintVatAmount').innerText = vatAmount.toFixed(2);
@@ -613,21 +635,23 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
     let ownerName = givenOwnerName || (currentTenant ? currentTenant.fullName : "ያልተመዘገበ");
     let ownerPhone = givenOwnerPhone || (currentTenant ? currentTenant.phone : "ያልተመዘገበ");
     let shopLogo = (currentTenant && currentTenant.shopLogo) ? currentTenant.shopLogo : "https://cdn-icons-png.flaticon.com/512/869/869636.png";
+    
     let displayBuyerName = buyerName;
     let displayBuyerPhone = buyerPhone;
-    if (buyerName && localDB.buyers && localDB.buyers[buyerName] && !buyerPhone) { displayBuyerPhone = localDB.buyers[buyerName].phone;
-    } 
-    else if (currentBuyer && !buyerName) { displayBuyerName = currentBuyer.username; displayBuyerPhone = currentBuyer.phone;
-    }
+    if (buyerName && localDB.buyers && localDB.buyers[buyerName] && !buyerPhone) { displayBuyerPhone = localDB.buyers[buyerName].phone; } 
+    else if (currentBuyer && !buyerName) { displayBuyerName = currentBuyer.username; displayBuyerPhone = currentBuyer.phone; }
 
     let vatAmt = passedVat !== null ? passedVat : 0;
     let finalGrandTotal = subTotal + vatAmt;
+    
     let rawTextForShare = `======= ${shopName.toUpperCase()} =======\nየንግድ ዘርፍ: ${bType}\nደረሰኝ ቁጥር: #${recId}\nየሸጠው ሰው: ${currentSeller}\nቀን: ${dateStr}\n---------------------------\n`;
     let tableRows = "";
+    
     itemsArray.forEach(itm => {
         rawTextForShare += `ዕቃ: ${itm.name} | ብዛት: ${itm.count} | ዋጋ: ${itm.total} ETB\n`;
         tableRows += `<tr><td style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;"><b>${itm.name}</b></td><td style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">${itm.count}</td><td style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">${itm.unitPrice.toFixed(1)}</td><td style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;"><b>${itm.total} ETB</b></td></tr>`;
     });
+    
     rawTextForShare += `---------------------------\n`;
     rawTextForShare += `Subtotal (ያለ ቫት): ${subTotal.toFixed(2)} ETB\n`;
     if(vatAmt > 0) rawTextForShare += `VAT / ቫት: +${vatAmt.toFixed(2)} ETB\n`;
@@ -640,6 +664,7 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
         if(!currentTenant.data.receipts) currentTenant.data.receipts = [];
         let mainName = itemsArray.length === 1 ? itemsArray[0].name : "የተለያዩ ዕቃዎች (" + itemsArray.length + ")";
         let mainCount = itemsArray.length === 1 ? itemsArray[0].count : "-";
+        
         let recObj = { recId: recId, date: dateStr, itemName: mainName, count: mainCount, totalVal: finalGrandTotal, subTotal: subTotal, vatAmount: vatAmt, seller: currentSeller, advancedItems: itemsArray, shopName: shopName, bType: bType, buyerName: displayBuyerName, buyerPhone: displayBuyerPhone, ownerName: ownerName, ownerPhone: ownerPhone };
         currentTenant.data.receipts.push(recObj);
         
@@ -665,6 +690,7 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
         <div style="display:flex; justify-content:space-between; margin-top:5px; font-size: 0.9rem; color: #555;">
             <span>VAT / ቫት:</span> <span>+${vatAmt.toFixed(2)} ETB</span>
         </div>` : "";
+        
     let receiptHTML = `
     <div class="receipt-container" id="printableReceiptArea" style="background:#fff; color:#000; padding:15px; width:100%; max-width:350px; margin:0 auto;">
         <div class="receipt-header" style="display:flex; flex-direction:column; align-items:center;">
@@ -725,8 +751,10 @@ function generateDigitalReceipt(itemName, count, totalVal, recId = null, sellerR
 function launchApp(tenant) {
     currentTenant = tenant;
     switchView('appPage');
+    
     document.getElementById('shopTitle').innerText = tenant.shopName + (currentUserRole === "staff" ? " (የሰራተኛ ገጽ)" : " (የባለቤት ገጽ)");
     document.getElementById('roleSubTitle').innerText = currentUserRole === "staff" ? "🛠️ የተገደበ የሰራተኛ መሸጫ እና መመዝገቢያ ሞድ" : "👑 ሙሉ የሱቅና የኪራይ መቆጣጠሪያ ፓነል";
+    
     document.getElementById('profShopName').innerText = tenant.shopName;
     document.getElementById('profGmail').innerText = tenant.gmail || "-";
     document.getElementById('profExpiry').innerText = tenant.expiryDate ? `${tenant.expiryDate} (${tenant.contractType})` : "ያልተገደበ";
