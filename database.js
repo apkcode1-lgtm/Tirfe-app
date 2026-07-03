@@ -252,6 +252,15 @@ if(typeof db !== 'undefined') {
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
+
+        // ማስተካከያ 3:- ሞተረኛው ኦንላይን ሆኖ ዳታቤዝ ላይ ሌላ ሰው ትዕዛዝ ሲወስድ ስክሪኑ ሪፍሬሽ እንዲያደርግ (Point 1)
+        if(typeof currentMotor !== 'undefined' && currentMotor) {
+            let checkMotor = localDB.motors[currentMotor.username];
+            if(checkMotor) {
+                currentMotor = checkMotor;
+                if(typeof renderMotorPage === 'function') renderMotorPage();
+            }
+        }
         
         let adminPage = document.getElementById('adminPage');
         if(adminPage && !adminPage.classList.contains('hidden')) { 
