@@ -9,7 +9,6 @@ let localDB = {
     tariffs: { low: 500, medium: 1000, high: 2000 }, 
     businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"] 
 };
-
 let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
 
 window.addEventListener('online', handleOnlineStatus);
@@ -21,6 +20,7 @@ function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
+    
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -43,6 +43,7 @@ function loadLocalStorageBackup() {
         if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
         if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
         if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
+        
         if(parsedBackup.adminSettings) {
             localDB.adminSettings = parsedBackup.adminSettings;
             // ዲፎልት ኮሚሽን መጠን ከሌለው 10% እንዲሆን
@@ -119,7 +120,7 @@ function pushToFirebase() {
 }
 
 function sendAdminTelegramAlert(message) {
-    const backendAPIUrl = "https://tirfe-app.vercel.app/api/sendAdminTelegram";
+    const backendAPIUrl = "/api/sendAdminTelegram";
     fetch(backendAPIUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,7 +130,7 @@ function sendAdminTelegramAlert(message) {
 
 function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant) return;
-    const backendAPIUrl = "https://tirfe-app.vercel.app/api/sendTenantTelegram";
+    const backendAPIUrl = "/api/sendTenantTelegram";
     fetch(backendAPIUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -142,7 +143,7 @@ function sendTelegramAlert(message) {
 
 // አዲሱ የሞተረኛ ቴሌግራም ኖቲፊኬሽን መላኪያ
 function sendMotorTelegramAlert(username, message) {
-    const backendAPIUrl = "https://tirfe-app.vercel.app/api/sendMotorTelegram";
+    const backendAPIUrl = "/api/sendMotorTelegram";
     fetch(backendAPIUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -247,7 +248,7 @@ if(typeof db !== 'undefined') {
             if(checkBuyer) currentBuyer = checkBuyer;
         }
         if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-
+        
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
