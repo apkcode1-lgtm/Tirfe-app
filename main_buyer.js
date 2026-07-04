@@ -98,7 +98,7 @@ window.submitDeliveryFee = function(shopKey, orderId) {
         if(ord) {
             ord.deliveryFeePaid = fee;
             let motorAssigned = false;
-            
+
             if (ord.motorUser && localDB.motors[ord.motorUser]) {
                 localDB.motors[ord.motorUser].incomingFee = fee;
                 if (typeof db !== 'undefined' && navigator.onLine) {
@@ -166,7 +166,7 @@ window.renderBuyerCart = function() {
             <td><button class="btn-expense btn-sm" onclick="removeFromBuyerCart(${i})">❌ አጥፋ</button></td>
         </tr>`;
     });
-    
+
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
     let vatAmount = (grandTotal * vatRate) / 100;
     let finalTotal = grandTotal + vatAmount;
@@ -199,6 +199,7 @@ window.checkoutBuyerCart = function(orderType) {
         grandTotal += c.total;
         itemNamesArr.push(`${c.itemName} (x${c.qty})`);
     });
+
     let combinedItems = itemNamesArr.join("፣ ");
 
     if(orderType === 'shop') {
@@ -241,10 +242,10 @@ window.checkoutBuyerCart = function(orderType) {
             let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
             let vatAmount = (grandTotal * vatRate) / 100;
             let finalTotal = grandTotal + vatAmount;
-            
+
             // የኤችቲኤምኤል ታጎች እንዳይታዩ ወደ ንፁህ ፅሁፍ (Plain Text) ተቀይሯል፣ እና አላስፈላጊ የቫት ትንታኔ ወጥቷል
             let confirmMsg = `የታዘዙ ዕቃዎች: ${combinedItems}\nየትራንስፖርት: ${res.transport === 'car' ? '🚗 መኪና' : '🏍️ ሞተረኛ'}\n\nጠቅላላ የሚጠበቅ ሂሳብ: ${finalTotal.toFixed(2)} ETB\n\nይህንን ትዕዛዝ ወደ ሻጩ መላክ እርግጠኛ ነዎት?`;
-
+            
             showCustomConfirm("📦 የትዕዛዝ ማረጋገጫ (Order Checkout)", confirmMsg, () => {
                 if(!t.data) t.data = {};
                 if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
@@ -262,7 +263,7 @@ window.checkoutBuyerCart = function(orderType) {
                     transport: res.transport, deliveryFeePaid: 0,
                     cartItems: window.buyerCartData // Preserving original array
                 });
-                
+
                 localDB.tenants[shopKey] = t;
                 pushToFirebase();
 
@@ -280,6 +281,21 @@ window.checkoutBuyerCart = function(orderType) {
 };
 
 async function renderBuyerCatalog() {
+    // --- አዲስ የተጨመረ ማስተካከያ: ገፁ ሲከፈት የዛሬውን ቀን በራሱ (አውቶማቲክ) እንዲያስገባ ---
+    if (!window.buyerDateFiltersInitialized) {
+        let d = new Date();
+        let todayStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+        
+        let histFilter = document.getElementById('buyerOrderHistoryDateFilter');
+        if (histFilter && !histFilter.value) histFilter.value = todayStr;
+        
+        let recFilter = document.getElementById('buyerReceiptDateFilter');
+        if (recFilter && !recFilter.value) recFilter.value = todayStr;
+        
+        window.buyerDateFiltersInitialized = true;
+    }
+    // -------------------------------------------------------------------------
+
     if(currentBuyer) {
         let badge = document.getElementById('buyerProfileBadge');
         if(badge) badge.innerText = `👤 የተጠቃሚ ስም: ${currentBuyer.username} | 📱 ስልክ: ${currentBuyer.phone}`;
@@ -327,8 +343,8 @@ async function renderBuyerCatalog() {
     let myReceiptsHTML = "";
     let historyDateFilter = document.getElementById('buyerOrderHistoryDateFilter') ? document.getElementById('buyerOrderHistoryDateFilter').value : "";
     let liveBuyer = (currentBuyer && localDB.buyers) ? localDB.buyers[currentBuyer.username] : currentBuyer;
-    
     let allItems = [];
+
     if (localDB.tenants) {
         Object.keys(localDB.tenants).forEach(tKey => {
             let t = localDB.tenants[tKey];
@@ -371,7 +387,7 @@ async function renderBuyerCatalog() {
                                 let btnText = ord.deliveryFeePaid > 0 ? "ገብቷል" : "አስገባ";
                                 feeSection = `
                                 <div style="margin-top: 8px; display: flex; gap: 5px; align-items: center; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
-                                    <input type="number" id="delFee_${tKey}_${ord.orderId}" placeholder="የዴሊቨሪ ክፍያ (ብር)" style="width: 130px; padding: 6px; margin: 0; font-size: 0.85rem;" value="${feeValue}" ${isDisabled}>
+                                    <input type="number" id="delFee_${tKey}__${ord.orderId}" placeholder="የዴሊቨሪ ክፍያ (ብር)" style="width: 130px; padding: 6px; margin: 0; font-size: 0.85rem;" value="${feeValue}" ${isDisabled}>
                                     <button class="btn-sell btn-sm" onclick="submitDeliveryFee('${tKey}', '${ord.orderId}')" ${isDisabled} style="padding: 6px 12px; white-space:nowrap;">${btnText}</button>
                                 </div>`;
                             }
@@ -387,7 +403,7 @@ async function renderBuyerCatalog() {
                                 <td>${ordTotalWithVat.toFixed(2)} ETB <br><small style="color:gray; font-size:0.7rem;">(ከነ ቫት)</small></td>
                                 <td>${ord.date}</td>
                                 <td class="${cl}"><b>${badge}</b>${feeSection}</td>
-                             </tr>`;
+                            </tr>`;
                             
                             if(st === "pending" || st === "accepted") {
                                 activeOrdersHTML += rowHtml;
@@ -408,7 +424,7 @@ async function renderBuyerCatalog() {
         let scoreB = (b.name.charCodeAt(0) || 0) + (b.shopKey.charCodeAt(0) || 0) + b.originalIdx;
         return (scoreA % 7) - (scoreB % 7) || scoreA - scoreB;
     });
-    
+
     let carouselHTML = '';
     if (allItems.length > 0) {
         hasData = true;
@@ -421,7 +437,7 @@ async function renderBuyerCatalog() {
             </h3>
             <div class="carousel-track-container" style="width: 100%; overflow-x: auto; display: flex; gap: 12px; padding-bottom: 4px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
         `;
-        
+
         carouselItems.forEach(item => {
             let itemImg = item.imgUrl || "https://cdn-icons-png.flaticon.com/512/3342/3342137.png";
             carouselHTML += `
