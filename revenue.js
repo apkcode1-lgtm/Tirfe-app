@@ -16,6 +16,27 @@ window.saveRevenueProfileData = function() {
     showCustomAlert("ተሳክቷል", "የፕሮፋይል መረጃዎ (ስም፣ ኢሜል እና የይለፍ ቃል) በተሳካ ሁኔታ ተስተካክሏል!");
 };
 
+// አዲሱ የሞተረኛ ጣሪያ ማስተካከያ (Quota Limit)
+window.setMotorQuotaLimit = function() {
+    if(!currentRevenueOfficer) return;
+    let limitVal = document.getElementById('revMotorLimitInput').value;
+    if(limitVal === '' || limitVal < 0) {
+        showCustomAlert("ስህተት", "እባክዎ ትክክለኛ የሞተረኛ ብዛት (ቁጥር) ያስገቡ");
+        return;
+    }
+    
+    // ለዚህ ገቢዎች ምድብ (ክልል_ዞን_ወረዳ) የተለየ መለያ (Key) መስራት
+    let locKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
+    
+    if(!localDB.motorQuotas) localDB.motorQuotas = {};
+    localDB.motorQuotas[locKey] = parseInt(limitVal); // ወደ ዳታቤዝ ማስገባት
+    
+    pushToFirebase();
+    renderRevenuePanel();
+    showCustomAlert("ተሳክቷል", `በእርስዎ ምድብ የሚፈቀደው ከፍተኛ የሞተረኛ ብዛት ጣሪያ ወደ ${limitVal} በተሳካ ሁኔታ ተወስኗል!`);
+    document.getElementById('revMotorLimitInput').value = '';
+};
+
 function renderRevenuePanel() {
     if(!currentRevenueOfficer) return;
     document.getElementById('revOfficerName').value = currentRevenueOfficer.authName || "";
@@ -27,6 +48,29 @@ function renderRevenuePanel() {
     let aSum = currentRevenueOfficer.annualVat || 0;
     document.getElementById('revenueMonthlyVatSum').innerText = mSum.toFixed(2) + " ETB";
     document.getElementById('revenueAnnualVatSum').innerText = aSum.toFixed(2) + " ETB";
+
+    // ---- አዲሱ የሞተረኛ ጣሪያ እና አሁን ያሉ ሞተረኞች ማሳያ ሎጂክ ----
+    let locKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
+    let mCount = 0;
+    
+    if(localDB.motors) {
+        Object.values(localDB.motors).forEach(m => {
+            if(m.region === currentRevenueOfficer.authRegion && 
+               m.zone === currentRevenueOfficer.authZone && 
+               m.woreda === currentRevenueOfficer.authWoreda) {
+                mCount++;
+            }
+        });
+    }
+    
+    let mLimit = (localDB.motorQuotas && localDB.motorQuotas[locKey] !== undefined) ? localDB.motorQuotas[locKey] : "ያልተወሰነ (Unlimited)";
+    
+    let curElem = document.getElementById('revMotorCurrentCount');
+    let limElem = document.getElementById('revMotorMaxLimit');
+    if(curElem) curElem.innerText = mCount;
+    if(limElem) limElem.innerText = mLimit;
+    // ----------------------------------------------------
+
     let tbody = document.getElementById('revenueTenantsBody');
     tbody.innerHTML = '';
     let count = 0;
@@ -70,7 +114,8 @@ window.payTenantVat = function(username) {
         return;
     }
     
-    showCustomConfirm("ክፍያ ማረጋገጫ", `ከ ${t.fullName} (${t.shopName}) የተሰበሰበውን የቫት መጠን ${vatToPay.toFixed(2)} ETB መቀበልዎን እርግጠኛ ኖት?`, () => {
+    showCustomConfirm("ክፍያ ማረጋገጫ", `ከ ${t.fullName} (${t.shopName}) የተሰበሰበውን የቫት መጠን ${vatToPay.toFixed(2)} ETB መቀበልዎን እርግጠኛ ኖት?`, () => 
+    {
         if(!currentRevenueOfficer.monthlyVat) currentRevenueOfficer.monthlyVat = 0;
         if(!currentRevenueOfficer.annualVat) currentRevenueOfficer.annualVat = 0;
 
@@ -107,7 +152,6 @@ window.payTenantVat = function(username) {
 
         t.data.accumulatedVat = 0;
         localDB.tenants[username] = t;
-    
         // ================== ማስተካከያ የተደረገበት (2 እና 3) ==================
         // የግብር ሰብሳቢው (Revenue) ዳታ ብቻ ሳይሆን፣ የሻጩ/ተከራዩ 0.00 የሆነው የቫት ዳታ እና ደረሰኝ በቀጥታ ወደ ሻጩ ገፅ (Firebase) እንዲገባ
         if(typeof db !== 'undefined' && typeof isOnline !== 'undefined' && isOnline) {
@@ -120,7 +164,6 @@ window.payTenantVat = function(username) {
         showCustomAlert("ተሳክቷል", "ክፍያው በተሳካ ሁኔታ ተሰብስቧል! የነጋዴው የተሰበሰበ ቫት 0.00 ሆኗል፤ እንዲሁም የግብር ደረሰኝ አውቶማቲክ ወደ ተከራዩ ተልኳል።");
     });
 };
-
 window.closeRevenueBudgetAnnual = function() {
     showCustomConfirm("በጀት መዝጊያ", "በእርግጥ የአመቱን በጀት መዝጋት ይፈልጋሉ? ይህ ድርጊት የወሩን እና የአመቱን የቫት ድምር ወደ 0.00 ይመልሰዋል።", () => {
         if(currentRevenueOfficer) {
