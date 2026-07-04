@@ -3,12 +3,14 @@ let localDB = {
     buyers: {}, 
     revenueAuthorities: {}, 
     motors: {}, // አዲሱ የሞተረኞች ዳታቤዝ
+    motorQuotas: {}, // አዲሱ የሞተረኛ ብዛት መቆጣጠሪያ (ጣሪያ) ማከማቻ
     taxReceipts: [], 
     // የዴሊቨሪ ኮሚሽን (10%) በዲፎልት ተጨምሯል
     adminSettings: { bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 }, 
     tariffs: { low: 500, medium: 1000, high: 2000 }, 
     businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"] 
 };
+
 let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
 
 window.addEventListener('online', handleOnlineStatus);
@@ -20,7 +22,7 @@ function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
-    
+
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -33,6 +35,7 @@ function handleOnlineStatus() {
 
 function loadLocalStorageBackup() {
     let backup = localStorage.getItem('tirfe_local_db');
+
     if(backup) {
         let parsedBackup = JSON.parse(backup);
         
@@ -40,6 +43,7 @@ function loadLocalStorageBackup() {
         if(parsedBackup.buyers) localDB.buyers = parsedBackup.buyers;
         if(parsedBackup.revenueAuthorities) localDB.revenueAuthorities = parsedBackup.revenueAuthorities;
         if(parsedBackup.motors) localDB.motors = parsedBackup.motors;
+        if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas; // የኮታ ዳታ
         if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
         if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
         if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
@@ -73,6 +77,7 @@ function pushToFirebase() {
                 buyers: cleanData(localDB.buyers) || {},
                 revenueAuthorities: cleanData(localDB.revenueAuthorities) || {},
                 motors: cleanData(localDB.motors) || {},
+                motorQuotas: cleanData(localDB.motorQuotas) || {},
                 taxReceipts: cleanData(localDB.taxReceipts) || [],
                 tariffs: cleanData(localDB.tariffs) || {},
                 businessTypes: cleanData(localDB.businessTypes) || [],
@@ -98,6 +103,11 @@ function pushToFirebase() {
                 if(revData) {
                     db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).set(revData)
                     .catch(err => console.error("Firebase Revenue Sync Error:", err));
+                }
+                // ገቢዎች የወሰኑት የሞተረኛ ኮታ ወደ ፋየርቤዝ እንዲገባ
+                if(localDB.motorQuotas) {
+                    db.ref(`tirfe_system/motorQuotas`).set(cleanData(localDB.motorQuotas))
+                    .catch(err => console.error("Firebase Quota Sync Error:", err));
                 }
             }
             if(typeof currentMotor !== 'undefined' && currentMotor) {
@@ -156,8 +166,8 @@ function sendMotorTelegramAlert(username, message) {
 
 if(typeof db !== 'undefined') {
     
-    // ማስተካከያ 1:- revenueAuthorities ወደ publicNodes ተጨምሯል (ለክልል/ዞን ምርጫዎች)
-    const publicNodes = ['tariffs', 'businessTypes', 'adminSettings', 'revenueAuthorities'];
+    // ማስተካከያ 1:- revenueAuthorities እና motorQuotas ወደ publicNodes ተጨምሯል
+    const publicNodes = ['tariffs', 'businessTypes', 'adminSettings', 'revenueAuthorities', 'motorQuotas'];
     publicNodes.forEach(node => {
         db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
             if(snapshot.exists()) {
