@@ -301,7 +301,7 @@ async function handleUnifiedLogin() {
         if(b) {
             if(String(b.email || "").toLowerCase() === email.toLowerCase() && String(b.password).trim() === pass) {
                 if(b.status === "blocked") { err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)!";
-                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
+                    if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
                 }
                 currentBuyer = b;
                 localDB.buyers[user] = b;
@@ -351,11 +351,11 @@ async function handleUnifiedLogin() {
             if(String(m.email || "").toLowerCase() === email.toLowerCase() && String(m.password).trim() === pass) {
                 if(m.status === "blocked") { 
                     err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)!";
-                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
+                    if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
                 }
                 if(m.status === "pending") {
                     err.innerText = "⏳ መረጃዎ በአስተዳዳሪ እየተገመገመ ነው። እባክዎ ትንሽ ይጠብቁ።";
-                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
+                    if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
                 }
                 currentMotor = m;
                 currentUserRole = "motor";
@@ -369,7 +369,6 @@ async function handleUnifiedLogin() {
             }
         }
 
-        // ================== አዲሱ የሰራተኛ መፈለጊያ ከፋየርቤዝ ==================
         let s = null;
         if(isOnline && typeof db !== 'undefined') {
             try {
@@ -410,7 +409,6 @@ async function handleUnifiedLogin() {
             }
         }
         
-        // እንደ ተጨማሪ የድሮ ሎካል ዳታቤዝ ሰራተኛ ፍለጋ
         if(localDB.tenants) {
             for(let tKey in localDB.tenants) {
                 let tLocal = localDB.tenants[tKey];
@@ -429,7 +427,6 @@ async function handleUnifiedLogin() {
                 }
             }
         }
-        // =========================================================
 
         err.innerText = "❌ መረጃው ስህተት ነው! አካውንት አልተገኘም።";
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
@@ -543,6 +540,7 @@ async function triggerUnifiedRegistration() {
                         shopName: shop, fullName: fullName, phone: phone, telegram: telegram || "-", address: address || "-",
                         businessType: businessType, googleMapsLink: mapsLink || "", shopLogo: shopLogoBase64 || "", gmail: newEmail,
                         region: region, zone: zone, woreda: woreda, kebele: kebele, houseNo: houseNo, tinNumber: tinNum, tradeRegistration: tradeReg,
+                        
                         username: user, password: res.newPass, activationCode: res.newPass, codeCreatedAt: timestampNow,
                         isActivated: true, contractType: contractType, expiryDate: expiryDate, registrationFee: registrationFee,
                         status: "active", theme: "theme-deepblue", staffAccounts: [],
@@ -641,7 +639,19 @@ async function triggerUnifiedRegistration() {
                     db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
                 }
                 pushToFirebase();
-                let tgMsg = `🏍️ አዲስ ሞተረኛ ተመዝግቧል!\n\n👤 ስም: ${firstName} ${lastName}\n🔑 ዩዘርኔም: ${user}\n📞 ስልክ: ${phone}\n📍 አድራሻ: ${region} / ${zone} / ${woreda}\n\nአስተዳዳሪ (Admin) ገፅ ላይ በመግባት ማረጋገጥ ይችላሉ።`;
+                
+                // ማስተካከያ:- አዲስ ሞተረኛ ሲመዘገብ የተስማማንባቸውን መረጃዎች አካተን ወደ አድሚን እንልካለን
+                let nowForReg = new Date();
+                let timeStampReg = nowForReg.toLocaleDateString('am-ET') + " " + nowForReg.toLocaleTimeString('am-ET');
+                let tgMsg = `🏍️ አዲስ ሞተረኛ ተመዝግቧል!\n\n` +
+                            `👤 ሙሉ ስም: ${firstName} ${lastName}\n` +
+                            `🔑 ዩዘርኔም: @${user}\n` +
+                            `📞 ስልክ: ${phone}\n` +
+                            `🏍️ የታርጋ ቁጥር / ሞተር: ${plateNumber}\n` +
+                            `📍 አድራሻ: ${region} / ${zone} / ${woreda}\n` +
+                            `📅 የተመዘገበበት ጊዜ: ${timeStampReg}\n\n` +
+                            `አስተዳዳሪ (Admin) ገፅ ላይ በመግባት ማረጋገጥ ይችላሉ።`;
+                            
                 if(typeof sendAdminTelegramAlert === 'function') sendAdminTelegramAlert(tgMsg);
 
                 showCustomAlert("✅ ተሳክቷል", "በተሳካ ሁኔታ ተመዝግበዋል! መረጃዎ በአስተዳዳሪ (Admin) ሲረጋገጥ ወደ ሲስተሙ ሙሉ በሙሉ መግባት ይችላሉ። አሁን ሎጊን በማድረግ መሞከር ይችላሉ።");
@@ -814,12 +824,10 @@ window.openStaffManagement = function() {
     document.querySelectorAll('.modal-card').forEach(m => m.classList.add('hidden'));
     document.getElementById('staffManageModal').classList.remove('hidden');
 };
-
 window.addStaffFormRow = function() {
     if(tempStaffForms.length >= 3) { showCustomAlert("ማሳሰቢያ", "ከ 3 ሰራተኛ በላይ በአንድ ጊዜ መመዝገብ አይቻልም!"); return; }
     tempStaffForms.push({ name: "", gmail: "", phone: "", user: "", pass: "" }); renderStaffForms();
 };
-
 window.removeStaffFormRow = function(idx) { tempStaffForms.splice(idx, 1); renderStaffForms(); };
 
 window.renderStaffForms = function() {
@@ -831,6 +839,7 @@ window.renderStaffForms = function() {
             <h4 style="color:var(--accent-color); margin-bottom: 5px;">ሰራተኛ ${idx + 1}
                 ${(idx > 0 || tempStaffForms.length > 1) ? `<span style="float:right; cursor:pointer; color:var(--danger-color);" onclick="removeStaffFormRow(${idx})">❌</span>` : ''}
             </h4>
+    
             <input type="text" id="s_name_${idx}" placeholder="ሙሉ ስም" value="${s.name}">
             <input type="email" id="s_gmail_${idx}" placeholder="ኢሜል (Gmail)" value="${s.gmail}">
             <input type="tel" id="s_phone_${idx}" placeholder="ስልክ ቁጥር" value="${s.phone}">
@@ -840,8 +849,6 @@ window.renderStaffForms = function() {
     });
 };
 
-// ================== ማስተካከያ የተደረገበት ==================
-// ሰራተኛ ሲፈጠር በቀጥታ ወደ ፋየርቤዝ እንዲላክ እና ከማንኛውም ስልክ መግባት እንዲችል ታክሏል
 window.saveAllStaff = async function() {
     for(let i=0; i<tempStaffForms.length; i++) {
         tempStaffForms[i].name = document.getElementById(`s_name_${i}`).value.trim();
@@ -864,7 +871,6 @@ window.saveAllStaff = async function() {
     currentTenant.staffAccounts = tempStaffForms;
     saveAndRefresh(); closeActiveModal();
     
-    // የሰራተኛውን መረጃ በቀጥታ ወደ ፋየርቤዝ መላክ
     if(isOnline && typeof db !== 'undefined') {
         tempStaffForms.forEach(staff => {
             if(staff.user && staff.pass) {
