@@ -119,11 +119,6 @@ function pushToFirebase() {
             }
             
             let updates = {};
-            // ማስተካከያ፡- ገዥዎች ትዕዛዝ ሲልኩ ወይም ሲቀበሉ የሌላውን አካል ዳታ አፕዴት ማድረግ እንዲችሉ ተጨምሯል
-            if(localDB.tenants) updates.tenants = cleanData(localDB.tenants);
-            if(localDB.buyers) updates.buyers = cleanData(localDB.buyers);
-            if(localDB.motors) updates.motors = cleanData(localDB.motors);
-            
             if(localDB.taxReceipts) updates.taxReceipts = cleanData(localDB.taxReceipts);
             if(localDB.tariffs) updates.tariffs = cleanData(localDB.tariffs);
             if(localDB.businessTypes) updates.businessTypes = cleanData(localDB.businessTypes);
@@ -171,8 +166,8 @@ function sendMotorTelegramAlert(username, message) {
 
 if(typeof db !== 'undefined') {
     
-    // ማስተካከያ 1:- ሁሉም ተጠቃሚዎች የሌላውን ዳታ (እንደ ሱቅ እና ሞተረኛ) ማየት እንዲችሉ tenants, buyers, motors ወደ publicNodes ተጨምረዋል
-    const publicNodes = ['tariffs', 'businessTypes', 'adminSettings', 'revenueAuthorities', 'motorQuotas', 'tenants', 'buyers', 'motors'];
+    // ማስተካከያ 1:- revenueAuthorities እና motorQuotas ወደ publicNodes ተጨምሯል
+    const publicNodes = ['tariffs', 'businessTypes', 'adminSettings', 'revenueAuthorities', 'motorQuotas'];
     publicNodes.forEach(node => {
         db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
             if(snapshot.exists()) {
@@ -191,8 +186,7 @@ if(typeof db !== 'undefined') {
         
         // ማስተካከያ 2:- አድሚን ሲገባ አዲስ ተመዝጋቢዎችን በስህተት እንዳያጠፋ (Real-time update)
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
-            // tenants, buyers, motors አሁን publicNodes ውስጥ ስለገቡ ከዚህ ተነስተዋል
-            const adminNodes = ['taxReceipts'];
+            const adminNodes = ['tenants', 'buyers', 'motors', 'taxReceipts'];
             adminNodes.forEach(node => {
                 db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
                     if(snapshot.exists()) {
