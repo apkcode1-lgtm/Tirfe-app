@@ -8,8 +8,7 @@ let localDB = {
     // የዴሊቨሪ ኮሚሽን (10%) በዲፎልት ተጨምሯል
     adminSettings: { bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 }, 
     tariffs: { low: 500, medium: 1000, high: 2000 }, 
-    businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", 
-"ካፌ እና ሬስቶራንት"] 
+    businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"] 
 };
 
 let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
@@ -18,10 +17,12 @@ window.addEventListener('online', handleOnlineStatus);
 window.addEventListener('offline', handleOnlineStatus);
 
 loadLocalStorageBackup();
+
 function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
+
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -34,6 +35,7 @@ function handleOnlineStatus() {
 
 function loadLocalStorageBackup() {
     let backup = localStorage.getItem('tirfe_local_db');
+
     if(backup) {
         let parsedBackup = JSON.parse(backup);
         
@@ -41,8 +43,7 @@ function loadLocalStorageBackup() {
         if(parsedBackup.buyers) localDB.buyers = parsedBackup.buyers;
         if(parsedBackup.revenueAuthorities) localDB.revenueAuthorities = parsedBackup.revenueAuthorities;
         if(parsedBackup.motors) localDB.motors = parsedBackup.motors;
-        if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas;
-        // የኮታ ዳታ
+        if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas; // የኮታ ዳታ
         if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
         if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
         if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
@@ -68,8 +69,7 @@ function pushToFirebase() {
     saveToLocalStorage();
     if(isOnline && typeof db !== 'undefined') { 
         
-        const cleanData = (data) => data !== undefined ?
-JSON.parse(JSON.stringify(data)) : null;
+        const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
 
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
             db.ref('tirfe_system').update({
@@ -77,15 +77,13 @@ JSON.parse(JSON.stringify(data)) : null;
                 buyers: cleanData(localDB.buyers) || {},
                 revenueAuthorities: cleanData(localDB.revenueAuthorities) || {},
                 motors: cleanData(localDB.motors) || {},
- 
-               motorQuotas: cleanData(localDB.motorQuotas) || {},
+                motorQuotas: cleanData(localDB.motorQuotas) || {},
                 taxReceipts: cleanData(localDB.taxReceipts) || [],
                 tariffs: cleanData(localDB.tariffs) || {},
                 businessTypes: cleanData(localDB.businessTypes) || [],
                 adminSettings: cleanData(localDB.adminSettings) || {}
-      
-       }).catch(err => console.error("Firebase Admin Sync Error:", err));
-} else {
+            }).catch(err => console.error("Firebase Admin Sync Error:", err));
+        } else {
             if(typeof currentTenant !== 'undefined' && currentTenant) {
                 let tenantData = cleanData(localDB.tenants[currentTenant.username]);
                 if(tenantData) {
@@ -121,6 +119,11 @@ JSON.parse(JSON.stringify(data)) : null;
             }
             
             let updates = {};
+            // ማስተካከያ፡- ገዥዎች ትዕዛዝ ሲልኩ ወይም ሲቀበሉ የሌላውን አካል ዳታ አፕዴት ማድረግ እንዲችሉ ተጨምሯል
+            if(localDB.tenants) updates.tenants = cleanData(localDB.tenants);
+            if(localDB.buyers) updates.buyers = cleanData(localDB.buyers);
+            if(localDB.motors) updates.motors = cleanData(localDB.motors);
+            
             if(localDB.taxReceipts) updates.taxReceipts = cleanData(localDB.taxReceipts);
             if(localDB.tariffs) updates.tariffs = cleanData(localDB.tariffs);
             if(localDB.businessTypes) updates.businessTypes = cleanData(localDB.businessTypes);
@@ -168,8 +171,8 @@ function sendMotorTelegramAlert(username, message) {
 
 if(typeof db !== 'undefined') {
     
-    // ማስተካከያ 1:- revenueAuthorities እና motorQuotas ወደ publicNodes ተጨምሯል
-    const publicNodes = ['tariffs', 'businessTypes', 'adminSettings', 'revenueAuthorities', 'motorQuotas'];
+    // ማስተካከያ 1:- ሁሉም ተጠቃሚዎች የሌላውን ዳታ (እንደ ሱቅ እና ሞተረኛ) ማየት እንዲችሉ tenants, buyers, motors ወደ publicNodes ተጨምረዋል
+    const publicNodes = ['tariffs', 'businessTypes', 'adminSettings', 'revenueAuthorities', 'motorQuotas', 'tenants', 'buyers', 'motors'];
     publicNodes.forEach(node => {
         db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
             if(snapshot.exists()) {
@@ -178,7 +181,6 @@ if(typeof db !== 'undefined') {
                 triggerUIRefresh();
             }
         }, (error) => {
- 
             console.log(`Firebase Error on ${node}, running offline mode.`);
             isOnline = false;
             handleOnlineStatus();
@@ -187,11 +189,11 @@ if(typeof db !== 'undefined') {
 
     window.setupSecureUserListeners = function() {
         
-        // ማስተካከያ 2:- ሊስነር ድግግሞሽን ለማስቀረት እና አዲስ ዳታ በትክክል እንዲያነብ (.off() ተጨምሯል)
+        // ማስተካከያ 2:- አድሚን ሲገባ አዲስ ተመዝጋቢዎችን በስህተት እንዳያጠፋ (Real-time update)
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
-            const adminNodes = ['tenants', 'buyers', 'motors', 'taxReceipts'];
+            // tenants, buyers, motors አሁን publicNodes ውስጥ ስለገቡ ከዚህ ተነስተዋል
+            const adminNodes = ['taxReceipts'];
             adminNodes.forEach(node => {
-                db.ref(`tirfe_system/${node}`).off('value'); // Remove old listener
                 db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
                     if(snapshot.exists()) {
                         localDB[node] = snapshot.val();
@@ -203,7 +205,6 @@ if(typeof db !== 'undefined') {
         }
 
         if(typeof currentTenant !== 'undefined' && currentTenant) {
-            db.ref(`tirfe_system/tenants/${currentTenant.username}`).off('value'); // Remove old listener
             db.ref(`tirfe_system/tenants/${currentTenant.username}`).on('value', (snapshot) => {
                 if(snapshot.exists()) {
                     localDB.tenants[currentTenant.username] = snapshot.val();
@@ -213,7 +214,6 @@ if(typeof db !== 'undefined') {
             });
         }
         if(typeof currentBuyer !== 'undefined' && currentBuyer) {
-            db.ref(`tirfe_system/buyers/${currentBuyer.username}`).off('value'); // Remove old listener
             db.ref(`tirfe_system/buyers/${currentBuyer.username}`).on('value', (snapshot) => {
                 if(snapshot.exists()) {
                     localDB.buyers[currentBuyer.username] = snapshot.val();
@@ -223,7 +223,6 @@ if(typeof db !== 'undefined') {
             });
         }
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
-            db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).off('value'); // Remove old listener
             db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).on('value', (snapshot) => {
                 if(snapshot.exists()) {
                     localDB.revenueAuthorities[currentRevenueOfficer.username] = snapshot.val();
@@ -233,7 +232,6 @@ if(typeof db !== 'undefined') {
             });
         }
         if(typeof currentMotor !== 'undefined' && currentMotor) {
-            db.ref(`tirfe_system/motors/${currentMotor.username}`).off('value'); // Remove old listener
             db.ref(`tirfe_system/motors/${currentMotor.username}`).on('value', (snapshot) => {
                 if(snapshot.exists()) {
                     localDB.motors[currentMotor.username] = snapshot.val();
