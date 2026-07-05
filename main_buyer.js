@@ -2,6 +2,7 @@
 // ==========================================
 
 window.buyerCartData = window.buyerCartData || [];
+
 function logoutBuyer() {
     currentBuyer = null;
     window.buyerCartData = [];
@@ -33,6 +34,7 @@ window.openBuyerProfileSettings = function() {
         currentBuyer.email = res.b_email.trim();
         currentBuyer.phone = newP; 
         currentBuyer.password = res.b_password.trim();
+
         if(oldU !== newU) {
             localDB.buyers[newU] = currentBuyer;
             delete localDB.buyers[oldU];
@@ -96,6 +98,7 @@ window.submitDeliveryFee = function(shopKey, orderId) {
         if(ord) {
             ord.deliveryFeePaid = fee;
             let motorAssigned = false;
+
             if (ord.motorUser && localDB.motors[ord.motorUser]) {
                 localDB.motors[ord.motorUser].incomingFee = fee;
                 if (typeof db !== 'undefined' && navigator.onLine) {
@@ -109,7 +112,6 @@ window.submitDeliveryFee = function(shopKey, orderId) {
                 Object.values(localDB.motors).forEach(m => {
                     if (m.activeOrders) {
                         let matched = m.activeOrders.find(mo => mo.orderId == orderId || mo.buyerPhone == ord.buyerPhone);
-                       
                         if (matched && matched.status === 'accepted') {
                             m.incomingFee = fee;
                             if (typeof db !== 'undefined' && navigator.onLine) {
@@ -117,7 +119,6 @@ window.submitDeliveryFee = function(shopKey, orderId) {
                             }
                             ord.motorUser = m.username; 
                             motorAssigned = true;
-       
                             if (typeof sendMotorTelegramAlert === 'function') {
                                 sendMotorTelegramAlert(m.username, `💸 አዲስ የዴሊቨሪ ክፍያ ተልኮልዎታል!\n\nገዥው ${fee} ETB ሲስተሙ ላይ አስገብቷል። እባክዎ ዳሽቦርድዎን ያረጋግጡ።`);
                             }
@@ -132,19 +133,7 @@ window.submitDeliveryFee = function(shopKey, orderId) {
             localDB.tenants[shopKey] = t;
             pushToFirebase();
             if (typeof db !== 'undefined' && navigator.onLine) {
-                // Point 2: Transaction for safety
-                db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).transaction((currentOrders) => {
-                    if (currentOrders) {
-                        for (let i = 0; i < currentOrders.length; i++) {
-                            if (currentOrders[i].orderId == orderId) {
-                                currentOrders[i].deliveryFeePaid = fee;
-                                currentOrders[i].motorUser = motorAssigned ? ord.motorUser : "";
-                                break;
-                            }
-                        }
-                    }
-                    return currentOrders;
-                });
+                db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(t.data.deliveryOrders);
             }
 
             showCustomAlert("✅ ተሳክቷል", "የዴሊቨሪ ክፍያ መጠን በተሳካ ሁኔታ ገብቷል! መረጃው በቀጥታ ለሞተረኛው ተልኳል።");
@@ -174,10 +163,10 @@ window.renderBuyerCart = function() {
             <td style="color:var(--text-color);"><b>${c.itemName}</b><br><small style="color:var(--accent-color)">[${shopName}]</small></td>
             <td style="color:var(--text-color);">${c.qty}</td>
             <td style="color:var(--success-color);"><b>${c.total}</b></td>
-           
             <td><button class="btn-expense btn-sm" onclick="removeFromBuyerCart(${i})">❌ አጥፋ</button></td>
         </tr>`;
     });
+
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
     let vatAmount = (grandTotal * vatRate) / 100;
     let finalTotal = grandTotal + vatAmount;
@@ -210,6 +199,7 @@ window.checkoutBuyerCart = function(orderType) {
         grandTotal += c.total;
         itemNamesArr.push(`${c.itemName} (x${c.qty})`);
     });
+
     let combinedItems = itemNamesArr.join("፣ ");
 
     if(orderType === 'shop') {
@@ -217,7 +207,6 @@ window.checkoutBuyerCart = function(orderType) {
             if(!t.data) t.data = {};
             if(!t.data.remoteCarts) t.data.remoteCarts = {};
             if(!t.data.remoteCarts[currentBuyer.username]) t.data.remoteCarts[currentBuyer.username] = [];
-
             window.buyerCartData.forEach(item => {
                 t.data.remoteCarts[currentBuyer.username].push({
                     itemIdx: item.itemIdx, itemName: item.itemName, qty: item.qty, price: item.price, total: item.total
@@ -226,8 +215,7 @@ window.checkoutBuyerCart = function(orderType) {
 
             localDB.tenants[shopKey] = t;
             if (typeof db !== 'undefined' && navigator.onLine) {
-                // Point 2: የሌላውን ገዥ Cart እንዳያጠፋ (Specific Path Write)
-                db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`).set(t.data.remoteCarts[currentBuyer.username]);
+                db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts`).set(t.data.remoteCarts);
             }
 
             window.buyerCartData = [];
@@ -253,40 +241,33 @@ window.checkoutBuyerCart = function(orderType) {
             let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
             let vatAmount = (grandTotal * vatRate) / 100;
             let finalTotal = grandTotal + vatAmount;
+
+            // የኤችቲኤምኤል ታጎች እንዳይታዩ ወደ ንፁህ ፅሁፍ (Plain Text) ተቀይሯል፣ እና አላስፈላጊ የቫት ትንታኔ ወጥቷል
             let confirmMsg = `የታዘዙ ዕቃዎች: ${combinedItems}\nየትራንስፖርት: ${res.transport === 'car' ? '🚗 መኪና' : '🏍️ ሞተረኛ'}\n\nጠቅላላ የሚጠበቅ ሂሳብ: ${finalTotal.toFixed(2)} ETB\n\nይህንን ትዕዛዝ ወደ ሻጩ መላክ እርግጠኛ ነዎት?`;
             
             showCustomConfirm("📦 የትዕዛዝ ማረጋገጫ (Order Checkout)", confirmMsg, () => {
                 if(!t.data) t.data = {};
                 if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
-
                 let orderId = Math.floor(100000 + Math.random() * 900000);
-                let newOrder = {
+                t.data.deliveryOrders.push({
                     orderId: orderId, buyerUser: currentBuyer.username, buyerPhone: res.phone,
                     address: res.address, mapLink: res.mapLink,
-                    itemIdx: window.buyerCartData[0].itemIdx, 
+                    itemIdx: window.buyerCartData[0].itemIdx, // Primary ID for legacy logic
                     itemName: combinedItems,
-                    qty: 1, 
+                    qty: 1, // Quantity representing 1 grouped package
                     price: grandTotal, 
                     total: grandTotal,
                     status: "pending", date: getTodayFormatted(),
                     transport: res.transport, deliveryFeePaid: 0,
-                    cartItems: window.buyerCartData 
-                };
+                    cartItems: window.buyerCartData // Preserving original array
+                });
 
-                t.data.deliveryOrders.push(newOrder);
                 localDB.tenants[shopKey] = t;
                 pushToFirebase();
 
                 if (typeof db !== 'undefined' && navigator.onLine) {
-                    // Point 2: የሌላውን ሰው ትዕዛዝ እንዳያጠፋ Transaction ተጠቅመናል
-                    let deliveryRef = db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`);
-                    deliveryRef.transaction((currentOrders) => {
-                        let orders = currentOrders || [];
-                        orders.push(newOrder);
-                        return orders;
-                    });
+                    db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(t.data.deliveryOrders);
                 }
-
                 window.buyerCartData = [];
                 renderBuyerCart();
                 showCustomAlert("ተሳክቷል", "ትዕዛዝዎ በዴሊቨሪ ለሻጩ ተልኳል። ሻጩ ሲቀበለው በገጽዎ ላይ 'በመንገድ ላይ ነው' የሚል ምልክት ያያሉ።");
@@ -307,6 +288,7 @@ async function renderBuyerCatalog() {
         
         let recFilter = document.getElementById('buyerReceiptDateFilter');
         if (recFilter && !recFilter.value) recFilter.value = todayStr;
+        
         window.buyerDateFiltersInitialized = true;
     }
     // -------------------------------------------------------------------------
@@ -320,8 +302,7 @@ async function renderBuyerCatalog() {
     let container = document.getElementById('buyerShopsContainer');
     if(!container) return;
     
-    // Point 3: ገዥዎች አዳዲስ ሱቆችን እና ክምችቶችን ሁሌም እንዲያዩ ((!localDB.tenants) የሚለው ተሰርዟል)
-    if (typeof db !== 'undefined' && navigator.onLine) {
+    if (typeof db !== 'undefined' && (!localDB.tenants || Object.keys(localDB.tenants).length === 0)) {
         try {
             let snap = await db.ref('tirfe_system/tenants').once('value');
             if(snap.exists()) {
@@ -335,8 +316,7 @@ async function renderBuyerCatalog() {
                 }
                 localDB.tenants = allT;
             }
-        } catch(e) { console.warn("Catalog fetch error:", e);
-        }
+        } catch(e) { console.warn("Catalog fetch error:", e); }
     }
 
     container.innerHTML = '';
@@ -441,6 +421,7 @@ async function renderBuyerCatalog() {
         let scoreB = (b.name.charCodeAt(0) || 0) + (b.shopKey.charCodeAt(0) || 0) + b.originalIdx;
         return (scoreA % 7) - (scoreB % 7) || scoreA - scoreB;
     });
+
     let carouselHTML = '';
     if (allItems.length > 0) {
         hasData = true;
@@ -453,6 +434,7 @@ async function renderBuyerCatalog() {
             </h3>
             <div class="carousel-track-container" style="width: 100%; overflow-x: auto; display: flex; gap: 12px; padding-bottom: 4px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
         `;
+
         carouselItems.forEach(item => {
             let itemImg = item.imgUrl || "https://cdn-icons-png.flaticon.com/512/3342/3342137.png";
             carouselHTML += `
@@ -516,7 +498,6 @@ async function renderBuyerCatalog() {
             </div>`;
             container.innerHTML += singleProductHTML;
         });
-
         setTimeout(() => {
             let track = document.querySelector('.carousel-track-container');
             if (track && !track.dataset.animated) {
@@ -582,6 +563,7 @@ window.viewBuyerReceipt = function(recId) {
     let bPhone = latestBuyerData.phone;
     let subT = rec.subTotal !== undefined ? rec.subTotal : rec.totalVal;
     let vAmt = rec.vatAmount !== undefined ? rec.vatAmount : 0;
+    
     if(rec.advancedItems) { 
         generateAdvancedReceipt(rec.advancedItems, subT, rec.seller, rec.recId, false, rec.shopName, rec.bType, bName, bPhone, vAmt, rec.ownerName, rec.ownerPhone);
     } else { 
