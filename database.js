@@ -60,7 +60,6 @@ function loadLocalStorageBackup() {
         if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
     }
 }
-
 function saveToLocalStorage() {
     localStorage.setItem('tirfe_local_db', JSON.stringify(localDB));
 }
@@ -278,4 +277,4 @@ if(typeof db !== 'undefined') {
             if(typeof renderAdminMotors === 'function') renderAdminMotors();
         }
     }
-}
+    }
