@@ -17,12 +17,10 @@ window.addEventListener('online', handleOnlineStatus);
 window.addEventListener('offline', handleOnlineStatus);
 
 loadLocalStorageBackup();
-
 function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
-
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -35,7 +33,6 @@ function handleOnlineStatus() {
 
 function loadLocalStorageBackup() {
     let backup = localStorage.getItem('tirfe_local_db');
-
     if(backup) {
         let parsedBackup = JSON.parse(backup);
         
@@ -60,6 +57,7 @@ function loadLocalStorageBackup() {
         if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
     }
 }
+
 function saveToLocalStorage() {
     localStorage.setItem('tirfe_local_db', JSON.stringify(localDB));
 }
@@ -184,7 +182,8 @@ if(typeof db !== 'undefined') {
     window.setupSecureUserListeners = function() {
         
         // ማስተካከያ 2:- አድሚን ሲገባ አዲስ ተመዝጋቢዎችን በስህተት እንዳያጠፋ (Real-time update)
-        if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
+        if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin' && !window.adminListenerAttached) {
+            window.adminListenerAttached = true;
             const adminNodes = ['tenants', 'buyers', 'motors', 'taxReceipts'];
             adminNodes.forEach(node => {
                 db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
@@ -197,7 +196,8 @@ if(typeof db !== 'undefined') {
             });
         }
 
-        if(typeof currentTenant !== 'undefined' && currentTenant) {
+        if(typeof currentTenant !== 'undefined' && currentTenant && !window.tenantListenerAttached) {
+            window.tenantListenerAttached = true;
             db.ref(`tirfe_system/tenants/${currentTenant.username}`).on('value', (snapshot) => {
                 if(snapshot.exists()) {
                     localDB.tenants[currentTenant.username] = snapshot.val();
@@ -206,7 +206,9 @@ if(typeof db !== 'undefined') {
                 }
             });
         }
-        if(typeof currentBuyer !== 'undefined' && currentBuyer) {
+        
+        if(typeof currentBuyer !== 'undefined' && currentBuyer && !window.buyerListenerAttached) {
+            window.buyerListenerAttached = true;
             db.ref(`tirfe_system/buyers/${currentBuyer.username}`).on('value', (snapshot) => {
                 if(snapshot.exists()) {
                     localDB.buyers[currentBuyer.username] = snapshot.val();
@@ -214,8 +216,27 @@ if(typeof db !== 'undefined') {
                     triggerUIRefresh();
                 }
             });
+            
+            // የተስተካከለው:- ገዥዎች የሻጮችን ዳታ በቋሚነት (Real-time) እንዲያዳምጡ የተጨመረ
+            db.ref(`tirfe_system/tenants`).on('value', (snapshot) => {
+                if(snapshot.exists()) {
+                    let allT = snapshot.val();
+                    for(let k in allT) { 
+                        delete allT[k].password;
+                        delete allT[k].activationCode; 
+                        delete allT[k].staffAccounts; 
+                        delete allT[k].telegramToken; 
+                        delete allT[k].bankAccount; 
+                    }
+                    localDB.tenants = allT;
+                    saveToLocalStorage();
+                    if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
+                }
+            });
         }
-        if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
+        
+        if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer && !window.revenueListenerAttached) {
+            window.revenueListenerAttached = true;
             db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).on('value', (snapshot) => {
                 if(snapshot.exists()) {
                     localDB.revenueAuthorities[currentRevenueOfficer.username] = snapshot.val();
@@ -224,7 +245,9 @@ if(typeof db !== 'undefined') {
                 }
             });
         }
-        if(typeof currentMotor !== 'undefined' && currentMotor) {
+        
+        if(typeof currentMotor !== 'undefined' && currentMotor && !window.motorListenerAttached) {
+            window.motorListenerAttached = true;
             db.ref(`tirfe_system/motors/${currentMotor.username}`).on('value', (snapshot) => {
                 if(snapshot.exists()) {
                     localDB.motors[currentMotor.username] = snapshot.val();
@@ -277,4 +300,4 @@ if(typeof db !== 'undefined') {
             if(typeof renderAdminMotors === 'function') renderAdminMotors();
         }
     }
-    }
+}
