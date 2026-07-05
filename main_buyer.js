@@ -2,7 +2,6 @@
 // ==========================================
 
 window.buyerCartData = window.buyerCartData || [];
-
 function logoutBuyer() {
     currentBuyer = null;
     window.buyerCartData = [];
@@ -34,7 +33,6 @@ window.openBuyerProfileSettings = function() {
         currentBuyer.email = res.b_email.trim();
         currentBuyer.phone = newP; 
         currentBuyer.password = res.b_password.trim();
-
         if(oldU !== newU) {
             localDB.buyers[newU] = currentBuyer;
             delete localDB.buyers[oldU];
@@ -83,7 +81,7 @@ window.addToBuyerCart = function(shopKey, itemIdx, itemName, price, availableRem
     });
 };
 
-window.submitDeliveryFee = async function(shopKey, orderId) {
+window.submitDeliveryFee = function(shopKey, orderId) {
     let feeInput = document.getElementById(`delFee_${shopKey}_${orderId}`);
     if(!feeInput) return;
     let fee = parseFloat(feeInput.value) || 0;
@@ -92,25 +90,13 @@ window.submitDeliveryFee = async function(shopKey, orderId) {
         return;
     }
 
-    // --- ማስተካከያ: የሱቁን ትኩስ መረጃ ከፋየርቤዝ መውሰድ (Overwrite እንዳያደርግ) ---
     let t = localDB.tenants[shopKey];
-    if (typeof db !== 'undefined' && navigator.onLine) {
-        try {
-            let snap = await db.ref(`tirfe_system/tenants/${shopKey}`).once('value');
-            if (snap.exists()) {
-                t = snap.val();
-                localDB.tenants[shopKey] = t; // Local update
-            }
-        } catch(e) { console.warn("Live fetch error", e); }
-    }
-
     if(t && t.data && t.data.deliveryOrders) {
         let ord = t.data.deliveryOrders.find(o => o.orderId == orderId);
         if(ord) {
             ord.deliveryFeePaid = fee;
             let motorAssigned = false;
-            
-            if (ord.motorUser && localDB.motors && localDB.motors[ord.motorUser]) {
+            if (ord.motorUser && localDB.motors[ord.motorUser]) {
                 localDB.motors[ord.motorUser].incomingFee = fee;
                 if (typeof db !== 'undefined' && navigator.onLine) {
                     db.ref(`tirfe_system/motors/${ord.motorUser}`).set(localDB.motors[ord.motorUser]);
@@ -120,35 +106,45 @@ window.submitDeliveryFee = async function(shopKey, orderId) {
                 }
                 motorAssigned = true;
             } else {
-                if (localDB.motors) {
-                    Object.values(localDB.motors).forEach(m => {
-                        if (m.activeOrders) {
-                            let matched = m.activeOrders.find(mo => mo.orderId == orderId || mo.buyerPhone == ord.buyerPhone);
-                            if (matched && matched.status === 'accepted') {
-                                m.incomingFee = fee;
-                                if (typeof db !== 'undefined' && navigator.onLine) {
-                                    db.ref(`tirfe_system/motors/${m.username}`).set(m);
-                                }
-                                ord.motorUser = m.username; 
-                                motorAssigned = true;
-                                if (typeof sendMotorTelegramAlert === 'function') {
-                                    sendMotorTelegramAlert(m.username, `💸 አዲስ የዴሊቨሪ ክፍያ ተልኮልዎታል!\n\nገዥው ${fee} ETB ሲስተሙ ላይ አስገብቷል። እባክዎ ዳሽቦርድዎን ያረጋግጡ።`);
-                                }
+                Object.values(localDB.motors).forEach(m => {
+                    if (m.activeOrders) {
+                        let matched = m.activeOrders.find(mo => mo.orderId == orderId || mo.buyerPhone == ord.buyerPhone);
+                       
+                        if (matched && matched.status === 'accepted') {
+                            m.incomingFee = fee;
+                            if (typeof db !== 'undefined' && navigator.onLine) {
+                                db.ref(`tirfe_system/motors/${m.username}`).set(m);
+                            }
+                            ord.motorUser = m.username; 
+                            motorAssigned = true;
+       
+                            if (typeof sendMotorTelegramAlert === 'function') {
+                                sendMotorTelegramAlert(m.username, `💸 አዲስ የዴሊቨሪ ክፍያ ተልኮልዎታል!\n\nገዥው ${fee} ETB ሲስተሙ ላይ አስገብቷል። እባክዎ ዳሽቦርድዎን ያረጋግጡ።`);
                             }
                         }
-                    });
-                }
+                    }
+                });
             }
-            
             if(!motorAssigned) {
                 console.warn("ማሳሰቢያ: ይህንን ትዕዛዝ የተቀበለ ሞተረኛ ገና አልተገኘም።");
             }
 
             localDB.tenants[shopKey] = t;
             pushToFirebase();
-            
             if (typeof db !== 'undefined' && navigator.onLine) {
-                db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(t.data.deliveryOrders);
+                // Point 2: Transaction for safety
+                db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).transaction((currentOrders) => {
+                    if (currentOrders) {
+                        for (let i = 0; i < currentOrders.length; i++) {
+                            if (currentOrders[i].orderId == orderId) {
+                                currentOrders[i].deliveryFeePaid = fee;
+                                currentOrders[i].motorUser = motorAssigned ? ord.motorUser : "";
+                                break;
+                            }
+                        }
+                    }
+                    return currentOrders;
+                });
             }
 
             showCustomAlert("✅ ተሳክቷል", "የዴሊቨሪ ክፍያ መጠን በተሳካ ሁኔታ ገብቷል! መረጃው በቀጥታ ለሞተረኛው ተልኳል።");
@@ -161,7 +157,6 @@ window.renderBuyerCart = function() {
     let section = document.getElementById('buyerCartSection');
     let listBody = document.getElementById('buyerCartList');
     let cartTotalBar = section.querySelector('.cart-total-bar');
-    
     if(!window.buyerCartData || window.buyerCartData.length === 0) {
         section.style.display = 'none';
         listBody.innerHTML = ''; 
@@ -171,7 +166,6 @@ window.renderBuyerCart = function() {
 
     section.style.display = 'block'; listBody.innerHTML = '';
     let grandTotal = 0;
-    
     window.buyerCartData.forEach((c, i) => {
         grandTotal += c.total;
         let shopName = localDB.tenants[c.shopKey] ? localDB.tenants[c.shopKey].shopName : "ሱቅ";
@@ -180,10 +174,10 @@ window.renderBuyerCart = function() {
             <td style="color:var(--text-color);"><b>${c.itemName}</b><br><small style="color:var(--accent-color)">[${shopName}]</small></td>
             <td style="color:var(--text-color);">${c.qty}</td>
             <td style="color:var(--success-color);"><b>${c.total}</b></td>
+           
             <td><button class="btn-expense btn-sm" onclick="removeFromBuyerCart(${i})">❌ አጥፋ</button></td>
         </tr>`;
     });
-    
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
     let vatAmount = (grandTotal * vatRate) / 100;
     let finalTotal = grandTotal + vatAmount;
@@ -207,9 +201,11 @@ window.checkoutBuyerCart = function(orderType) {
     if(!window.buyerCartData || window.buyerCartData.length === 0) { showCustomAlert("ስህተት", "ምንም ዕቃ አልመረጡም!"); return; }
 
     let shopKey = window.buyerCartData[0].shopKey;
+    let t = localDB.tenants[shopKey];
+    if(!t) return;
+
     let grandTotal = 0;
     let itemNamesArr = [];
-    
     window.buyerCartData.forEach(c => {
         grandTotal += c.total;
         itemNamesArr.push(`${c.itemName} (x${c.qty})`);
@@ -217,41 +213,27 @@ window.checkoutBuyerCart = function(orderType) {
     let combinedItems = itemNamesArr.join("፣ ");
 
     if(orderType === 'shop') {
-        showCustomConfirm("🛒 ሱቅ ሄጄ እወስዳለሁ", "ሁሉንም የቅርጫት ትዕዛዞች 'ሱቅ ሄጄ እወስዳለሁ' በሚል ወደ ሱቁ መላክ ይፈልጋሉ?", async () => {
-            
-            // --- ማስተካከያ: የሱቁን ትኩስ መረጃ ከፋየርቤዝ መውሰድ (Overwrite እንዳያደርግ) ---
-            let liveTenant = localDB.tenants[shopKey];
-            if (typeof db !== 'undefined' && navigator.onLine) {
-                try {
-                    let snap = await db.ref(`tirfe_system/tenants/${shopKey}`).once('value');
-                    if (snap.exists()) {
-                        liveTenant = snap.val();
-                        localDB.tenants[shopKey] = liveTenant; // Local update
-                    }
-                } catch(e) { console.warn("Live fetch error", e); }
-            }
-            if(!liveTenant) return;
-
-            if(!liveTenant.data) liveTenant.data = {};
-            if(!liveTenant.data.remoteCarts) liveTenant.data.remoteCarts = {};
-            if(!liveTenant.data.remoteCarts[currentBuyer.username]) liveTenant.data.remoteCarts[currentBuyer.username] = [];
+        showCustomConfirm("🛒 ሱቅ ሄጄ እወስዳለሁ", "ሁሉንም የቅርጫት ትዕዛዞች 'ሱቅ ሄጄ እወስዳለሁ' በሚል ወደ ሱቁ መላክ ይፈልጋሉ?", () => {
+            if(!t.data) t.data = {};
+            if(!t.data.remoteCarts) t.data.remoteCarts = {};
+            if(!t.data.remoteCarts[currentBuyer.username]) t.data.remoteCarts[currentBuyer.username] = [];
 
             window.buyerCartData.forEach(item => {
-                liveTenant.data.remoteCarts[currentBuyer.username].push({
+                t.data.remoteCarts[currentBuyer.username].push({
                     itemIdx: item.itemIdx, itemName: item.itemName, qty: item.qty, price: item.price, total: item.total
                 });
             });
 
-            localDB.tenants[shopKey] = liveTenant;
+            localDB.tenants[shopKey] = t;
             if (typeof db !== 'undefined' && navigator.onLine) {
-               db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts`).set(liveTenant.data.remoteCarts);
+                // Point 2: የሌላውን ገዥ Cart እንዳያጠፋ (Specific Path Write)
+                db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`).set(t.data.remoteCarts[currentBuyer.username]);
             }
 
             window.buyerCartData = [];
             renderBuyerCart(); pushToFirebase();
             showCustomAlert("✅ ተሳክቷል", "ትዕዛዞችዎ በተሳካ ሁኔታ ተልከዋል! ሱቁ ሲያረጋግጥ የ'ተቆረጡ ደረሰኞች' ቦታ ላይ ይደርስዎታል።");
         });
-        
     } else if(orderType === 'delivery') {
         showFormModal("🚚 ዴሊቨሪ ማዘዣ", [
             { id: "phone", label: "ስልክ ቁጥርዎ (ግዴታ)", type: "text", defaultValue: currentBuyer.phone },
@@ -271,49 +253,39 @@ window.checkoutBuyerCart = function(orderType) {
             let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
             let vatAmount = (grandTotal * vatRate) / 100;
             let finalTotal = grandTotal + vatAmount;
-            
-            // የኤችቲኤምኤል ታጎች እንዳይታዩ ወደ ንፁህ ፅሁፍ (Plain Text) ተቀይሯል፣ እና አላስፈላጊ የቫት ትንታኔ ወጥቷል
             let confirmMsg = `የታዘዙ ዕቃዎች: ${combinedItems}\nየትራንስፖርት: ${res.transport === 'car' ? '🚗 መኪና' : '🏍️ ሞተረኛ'}\n\nጠቅላላ የሚጠበቅ ሂሳብ: ${finalTotal.toFixed(2)} ETB\n\nይህንን ትዕዛዝ ወደ ሻጩ መላክ እርግጠኛ ነዎት?`;
             
-            showCustomConfirm("📦 የትዕዛዝ ማረጋገጫ (Order Checkout)", confirmMsg, async () => {
-                
-                // --- ማስተካከያ: የሱቁን ትኩስ መረጃ ከፋየርቤዝ መውሰድ (Overwrite እንዳያደርግ) ---
-                let liveTenant = localDB.tenants[shopKey];
-                if (typeof db !== 'undefined' && navigator.onLine) {
-                    try {
-                        let snap = await db.ref(`tirfe_system/tenants/${shopKey}`).once('value');
-                        if (snap.exists()) {
-                            liveTenant = snap.val();
-                            localDB.tenants[shopKey] = liveTenant; // Local update
-                        }
-                    } catch(e) { console.warn("Live fetch error", e); }
-                }
-                if(!liveTenant) return;
-
-                if(!liveTenant.data) liveTenant.data = {};
-                if(!liveTenant.data.deliveryOrders) liveTenant.data.deliveryOrders = [];
+            showCustomConfirm("📦 የትዕዛዝ ማረጋገጫ (Order Checkout)", confirmMsg, () => {
+                if(!t.data) t.data = {};
+                if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
 
                 let orderId = Math.floor(100000 + Math.random() * 900000);
-                liveTenant.data.deliveryOrders.push({
+                let newOrder = {
                     orderId: orderId, buyerUser: currentBuyer.username, buyerPhone: res.phone,
                     address: res.address, mapLink: res.mapLink,
-                    itemIdx: window.buyerCartData[0].itemIdx, // Primary ID for legacy logic
+                    itemIdx: window.buyerCartData[0].itemIdx, 
                     itemName: combinedItems,
-                    qty: 1, // Quantity representing 1 grouped package
+                    qty: 1, 
                     price: grandTotal, 
                     total: grandTotal,
                     status: "pending", date: getTodayFormatted(),
                     transport: res.transport, deliveryFeePaid: 0,
-                    cartItems: window.buyerCartData // Preserving original array
-                });
-                
-                localDB.tenants[shopKey] = liveTenant;
-                
+                    cartItems: window.buyerCartData 
+                };
+
+                t.data.deliveryOrders.push(newOrder);
+                localDB.tenants[shopKey] = t;
+                pushToFirebase();
+
                 if (typeof db !== 'undefined' && navigator.onLine) {
-                    await db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(liveTenant.data.deliveryOrders);
+                    // Point 2: የሌላውን ሰው ትዕዛዝ እንዳያጠፋ Transaction ተጠቅመናል
+                    let deliveryRef = db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`);
+                    deliveryRef.transaction((currentOrders) => {
+                        let orders = currentOrders || [];
+                        orders.push(newOrder);
+                        return orders;
+                    });
                 }
-                
-                pushToFirebase(); // Save local changes
 
                 window.buyerCartData = [];
                 renderBuyerCart();
@@ -348,7 +320,8 @@ async function renderBuyerCatalog() {
     let container = document.getElementById('buyerShopsContainer');
     if(!container) return;
     
-    if (typeof db !== 'undefined' && (!localDB.tenants || Object.keys(localDB.tenants).length === 0)) {
+    // Point 3: ገዥዎች አዳዲስ ሱቆችን እና ክምችቶችን ሁሌም እንዲያዩ ((!localDB.tenants) የሚለው ተሰርዟል)
+    if (typeof db !== 'undefined' && navigator.onLine) {
         try {
             let snap = await db.ref('tirfe_system/tenants').once('value');
             if(snap.exists()) {
@@ -362,7 +335,8 @@ async function renderBuyerCatalog() {
                 }
                 localDB.tenants = allT;
             }
-        } catch(e) { console.warn("Catalog fetch error:", e); }
+        } catch(e) { console.warn("Catalog fetch error:", e);
+        }
     }
 
     container.innerHTML = '';
@@ -467,7 +441,6 @@ async function renderBuyerCatalog() {
         let scoreB = (b.name.charCodeAt(0) || 0) + (b.shopKey.charCodeAt(0) || 0) + b.originalIdx;
         return (scoreA % 7) - (scoreB % 7) || scoreA - scoreB;
     });
-
     let carouselHTML = '';
     if (allItems.length > 0) {
         hasData = true;
@@ -511,7 +484,7 @@ async function renderBuyerCatalog() {
             let rem = item.qty - item.sold;
             let shopLogo = t.shopLogo || "https://cdn-icons-png.flaticon.com/512/869/869636.png";
             let tgLink = t.telegram && t.telegram !== "-" ? (t.telegram.startsWith('@') ? t.telegram.substring(1) : t.telegram) : "";
-            
+          
             let singleProductHTML = `
             <div class="shop-card" style="display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;">
                 <div>
