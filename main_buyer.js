@@ -2,6 +2,7 @@
 // ==========================================
 
 window.buyerCartData = window.buyerCartData || [];
+
 function logoutBuyer() {
     currentBuyer = null;
     window.buyerCartData = [];
@@ -33,7 +34,7 @@ window.openBuyerProfileSettings = function() {
         currentBuyer.email = res.b_email.trim();
         currentBuyer.phone = newP; 
         currentBuyer.password = res.b_password.trim();
-        
+
         if(oldU !== newU) {
             localDB.buyers[newU] = currentBuyer;
             delete localDB.buyers[oldU];
@@ -83,8 +84,13 @@ window.addToBuyerCart = function(shopKey, itemIdx, itemName, price, availableRem
 };
 
 window.submitDeliveryFee = function(shopKey, orderId) {
-    let feeInput = document.getElementById(`delFee_${shopKey}_${orderId}`);
-    if(!feeInput) return;
+    // ችግር 1 መፍትሄ: _ ወደ __ ተቀይሯል ምክንያቱም renderBuyerCatalog ላይ የሚሳለው በሁለት underscores ነው
+    let feeInput = document.getElementById(`delFee_${shopKey}__${orderId}`);
+    if(!feeInput) {
+        console.error("Fee input not found for ID:", `delFee_${shopKey}__${orderId}`);
+        return;
+    }
+    
     let fee = parseFloat(feeInput.value) || 0;
     if(fee <= 0) {
         showCustomAlert("ስህተት", "እባክዎ ለዴሊቨሪ የከፈሉትን ትክክለኛ የብር መጠን ያስገቡ!");
@@ -97,7 +103,7 @@ window.submitDeliveryFee = function(shopKey, orderId) {
         if(ord) {
             ord.deliveryFeePaid = fee;
             let motorAssigned = false;
-            
+
             if (ord.motorUser && localDB.motors[ord.motorUser]) {
                 localDB.motors[ord.motorUser].incomingFee = fee;
                 if (typeof db !== 'undefined' && navigator.onLine) {
@@ -125,14 +131,29 @@ window.submitDeliveryFee = function(shopKey, orderId) {
                     }
                 });
             }
+
             if(!motorAssigned) {
                 console.warn("ማሳሰቢያ: ይህንን ትዕዛዝ የተቀበለ ሞተረኛ ገና አልተገኘም።");
             }
 
             localDB.tenants[shopKey] = t;
             pushToFirebase();
+            
+            // የችግር 2 እና 3 መፍትሄ - Firebase Data Overwrite መከላከል
             if (typeof db !== 'undefined' && navigator.onLine) {
-                db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(t.data.deliveryOrders);
+                db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).once('value').then(snap => {
+                    if (snap.exists()) {
+                        let freshOrders = snap.val();
+                        let fOrd = freshOrders.find(o => o.orderId == orderId);
+                        if (fOrd) {
+                            fOrd.deliveryFeePaid = fee;
+                            if (ord.motorUser) fOrd.motorUser = ord.motorUser;
+                            db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(freshOrders);
+                        }
+                    } else {
+                        db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(t.data.deliveryOrders);
+                    }
+                });
             }
 
             showCustomAlert("✅ ተሳክቷል", "የዴሊቨሪ ክፍያ መጠን በተሳካ ሁኔታ ገብቷል! መረጃው በቀጥታ ለሞተረኛው ተልኳል።");
@@ -145,6 +166,7 @@ window.renderBuyerCart = function() {
     let section = document.getElementById('buyerCartSection');
     let listBody = document.getElementById('buyerCartList');
     let cartTotalBar = section.querySelector('.cart-total-bar');
+    
     if(!window.buyerCartData || window.buyerCartData.length === 0) {
         section.style.display = 'none';
         listBody.innerHTML = ''; 
@@ -154,6 +176,7 @@ window.renderBuyerCart = function() {
 
     section.style.display = 'block'; listBody.innerHTML = '';
     let grandTotal = 0;
+    
     window.buyerCartData.forEach((c, i) => {
         grandTotal += c.total;
         let shopName = localDB.tenants[c.shopKey] ? localDB.tenants[c.shopKey].shopName : "ሱቅ";
@@ -202,28 +225,26 @@ window.checkoutBuyerCart = function(orderType) {
 
     if(orderType === 'shop') {
         showCustomConfirm("🛒 ሱቅ ሄጄ እወስዳለሁ", "ሁሉንም የቅርጫት ትዕዛዞች 'ሱቅ ሄጄ እወስዳለሁ' በሚል ወደ ሱቁ መላክ ይፈልጋሉ?", () => {
-            let newCartItems = [];
-            window.buyerCartData.forEach(item => {
-                newCartItems.push({
-                    itemIdx: item.itemIdx, itemName: item.itemName, qty: item.qty, price: item.price, total: item.total
-                });
-            });
+            let newCartItems = window.buyerCartData.map(item => ({
+                itemIdx: item.itemIdx, itemName: item.itemName, qty: item.qty, price: item.price, total: item.total
+            }));
 
-            // Overwrite fix: Fetch latest remoteCarts from Firebase before pushing
+            // Safe Firebase Overwrite Prevention (Bug 2 & 3 Fix)
             if (typeof db !== 'undefined' && navigator.onLine) {
                 db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`).once('value').then(snap => {
-                    let latestCart = snap.exists() ? snap.val() : [];
-                    newCartItems.forEach(ci => latestCart.push(ci));
-                    db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`).set(latestCart);
+                    let existingCarts = snap.exists() ? snap.val() : [];
+                    let combinedCarts = existingCarts.concat(newCartItems);
+                    db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`).set(combinedCarts);
                 });
-            } else {
-                if(!t.data) t.data = {};
-                if(!t.data.remoteCarts) t.data.remoteCarts = {};
-                if(!t.data.remoteCarts[currentBuyer.username]) t.data.remoteCarts[currentBuyer.username] = [];
-                newCartItems.forEach(ci => t.data.remoteCarts[currentBuyer.username].push(ci));
-                localDB.tenants[shopKey] = t;
-                pushToFirebase();
             }
+
+            if(!t.data) t.data = {};
+            if(!t.data.remoteCarts) t.data.remoteCarts = {};
+            if(!t.data.remoteCarts[currentBuyer.username]) t.data.remoteCarts[currentBuyer.username] = [];
+            t.data.remoteCarts[currentBuyer.username] = t.data.remoteCarts[currentBuyer.username].concat(newCartItems);
+
+            localDB.tenants[shopKey] = t;
+            pushToFirebase();
 
             window.buyerCartData = [];
             renderBuyerCart();
@@ -253,36 +274,34 @@ window.checkoutBuyerCart = function(orderType) {
             
             showCustomConfirm("📦 የትዕዛዝ ማረጋገጫ (Order Checkout)", confirmMsg, () => {
                 let orderId = Math.floor(100000 + Math.random() * 900000);
-                let newOrder = {
+                let newOrderObj = {
                     orderId: orderId, buyerUser: currentBuyer.username, buyerPhone: res.phone,
                     address: res.address, mapLink: res.mapLink,
-                    itemIdx: window.buyerCartData[0].itemIdx, // Primary ID for legacy logic
+                    itemIdx: window.buyerCartData[0].itemIdx, 
                     itemName: combinedItems,
-                    qty: 1, // Quantity representing 1 grouped package
+                    qty: 1, 
                     price: grandTotal, 
                     total: grandTotal,
                     status: "pending", date: getTodayFormatted(),
                     transport: res.transport, deliveryFeePaid: 0,
-                    cartItems: window.buyerCartData // Preserving original array
+                    cartItems: window.buyerCartData 
                 };
 
-                // Overwrite fix: Fetch latest deliveryOrders from Firebase before pushing
+                // Safe Firebase Overwrite Prevention (Bug 2 & 3 Fix)
                 if (typeof db !== 'undefined' && navigator.onLine) {
                     db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).once('value').then(snap => {
-                        let latestOrders = snap.exists() ? snap.val() : [];
-                        // Check to prevent double-click duplicates
-                        if(!latestOrders.find(o => o.orderId === orderId)) {
-                            latestOrders.push(newOrder);
-                            db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(latestOrders);
-                        }
+                        let freshOrders = snap.exists() ? snap.val() : [];
+                        freshOrders.push(newOrderObj);
+                        db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(freshOrders);
                     });
-                } else {
-                    if(!t.data) t.data = {};
-                    if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
-                    t.data.deliveryOrders.push(newOrder);
-                    localDB.tenants[shopKey] = t;
-                    pushToFirebase();
                 }
+
+                if(!t.data) t.data = {};
+                if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
+                t.data.deliveryOrders.push(newOrderObj);
+
+                localDB.tenants[shopKey] = t;
+                pushToFirebase();
 
                 window.buyerCartData = [];
                 renderBuyerCart();
@@ -294,9 +313,8 @@ window.checkoutBuyerCart = function(orderType) {
 };
 
 async function renderBuyerCatalog() {
-    // አዲስ የተጨመረ - ተጠቃሚዎች ሎጊን ካደረጉ በኋላ የፋየርቤዝ ቀጥታ ማዳመጫ (Real-time listener) እንዲያያዝ 
     if (typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
-    // --- አዲስ የተጨመረ ማስተካከያ: ገፁ ሲከፈት የዛሬውን ቀን በራሱ (አውቶማቲክ) እንዲያስገባ ---
+
     if (!window.buyerDateFiltersInitialized) {
         let d = new Date();
         let todayStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
@@ -308,7 +326,6 @@ async function renderBuyerCatalog() {
         if (recFilter && !recFilter.value) recFilter.value = todayStr;
         window.buyerDateFiltersInitialized = true;
     }
-    // -------------------------------------------------------------------------
 
     if(currentBuyer) {
         let badge = document.getElementById('buyerProfileBadge');
@@ -399,10 +416,10 @@ async function renderBuyerCatalog() {
                                 let feeValue = ord.deliveryFeePaid > 0 ? ord.deliveryFeePaid : "";
                                 let isDisabled = ord.deliveryFeePaid > 0 ? "disabled" : "";
                                 let btnText = ord.deliveryFeePaid > 0 ? "ገብቷል" : "አስገባ";
-                                // የተስተካከለው የ id አጠራር (አንድ underscore)
+                                
                                 feeSection = `
                                 <div style="margin-top: 8px; display: flex; gap: 5px; align-items: center; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
-                                    <input type="number" id="delFee_${tKey}_${ord.orderId}" placeholder="የዴሊቨሪ ክፍያ (ብር)" style="width: 130px; padding: 6px; margin: 0; font-size: 0.85rem;" value="${feeValue}" ${isDisabled}>
+                                    <input type="number" id="delFee_${tKey}__${ord.orderId}" placeholder="የዴሊቨሪ ክፍያ (ብር)" style="width: 130px; padding: 6px; margin: 0; font-size: 0.85rem;" value="${feeValue}" ${isDisabled}>
                                     <button class="btn-sell btn-sm" onclick="submitDeliveryFee('${tKey}', '${ord.orderId}')" ${isDisabled} style="padding: 6px 12px; white-space:nowrap;">${btnText}</button>
                                 </div>`;
                             }
@@ -418,7 +435,7 @@ async function renderBuyerCatalog() {
                                 <td>${ordTotalWithVat.toFixed(2)} ETB <br><small style="color:gray; font-size:0.7rem;">(ከነ ቫት)</small></td>
                                 <td>${ord.date}</td>
                                 <td class="${cl}"><b>${badge}</b>${feeSection}</td>
-                            </tr>`;
+                             </tr>`;
                             
                             if(st === "pending" || st === "accepted") {
                                 activeOrdersHTML += rowHtml;
@@ -483,7 +500,7 @@ async function renderBuyerCatalog() {
             let rem = item.qty - item.sold;
             let shopLogo = t.shopLogo || "https://cdn-icons-png.flaticon.com/512/869/869636.png";
             let tgLink = t.telegram && t.telegram !== "-" ? (t.telegram.startsWith('@') ? t.telegram.substring(1) : t.telegram) : "";
-            
+          
             let singleProductHTML = `
             <div class="shop-card" style="display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;">
                 <div>
@@ -548,7 +565,7 @@ async function renderBuyerCatalog() {
                 <td><button class="btn-sm btn-add" onclick="viewBuyerReceipt('${rec.recId}')">📥 አውርድ</button></td>
             </tr>`;
         });
-     }
+    }
 
     let activeOrdersBody = document.getElementById('buyerActiveOrdersBody');
     if(activeOrdersBody) {
@@ -581,6 +598,7 @@ window.viewBuyerReceipt = function(recId) {
     let bPhone = latestBuyerData.phone;
     let subT = rec.subTotal !== undefined ? rec.subTotal : rec.totalVal;
     let vAmt = rec.vatAmount !== undefined ? rec.vatAmount : 0;
+    
     if(rec.advancedItems) { 
         generateAdvancedReceipt(rec.advancedItems, subT, rec.seller, rec.recId, false, rec.shopName, rec.bType, bName, bPhone, vAmt, rec.ownerName, rec.ownerPhone);
     } else { 
