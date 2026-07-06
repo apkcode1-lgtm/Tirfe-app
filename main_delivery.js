@@ -1,6 +1,7 @@
 // 1. ሞተረኛ ሎጊን ሲያደርግ ገፁን መረጃዎች ማሳያ (ከ main_auth.js ጋር የሚገናኝ)
 function renderMotorPage() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
+
     // ሀ. የፕሮፋይል ባጅ መሙላት
     const badge = document.getElementById('motorProfileBadge');
     if (badge) {
@@ -20,6 +21,7 @@ function renderMotorPage() {
     if (commDisplay) commDisplay.innerText = commRate + '%';
 
     const credit = currentMotor.credit || 0;
+
     // ክሬዲቱ ከ25 ብር በታች ከሆነ እና ታግዷል (blocked) ካልተባለ፣ እገዳውን በራስ-ሰር ጀምር
     if (credit <= 25 && currentMotor.status !== 'blocked') {
         currentMotor.status = 'blocked';
@@ -32,11 +34,15 @@ function renderMotorPage() {
     let mainContent = document.getElementById('motorMainContent');
     let statusToggle = document.getElementById('motorStatusToggle');
     let statusText = document.getElementById('motorStatusText');
+
     if (currentMotor.status === 'blocked') {
         if (overlay) overlay.classList.remove('hidden');
         if (mainContent) mainContent.classList.add('hidden');
         if (statusToggle) { statusToggle.checked = false; statusToggle.disabled = true; }
-        if (statusText) { statusText.innerText = 'ታግዷል (Blocked)'; statusText.style.color = 'var(--danger-color)'; }
+        if (statusText) { 
+            statusText.innerText = 'ታግዷል (Blocked)';
+            statusText.style.color = 'var(--danger-color)'; 
+        }
     } else {
         if (overlay) overlay.classList.add('hidden');
         if (mainContent) mainContent.classList.remove('hidden');
@@ -53,11 +59,12 @@ function renderMotorPage() {
     // መ. ዳሽቦርድ መረጃዎች (ክሬዲት እና ያደረሳቸው ብዛት)
     document.getElementById('motorCreditDisplay').innerText = credit.toFixed(2) + ' ETB';
     document.getElementById('motorTotalDelivered').innerText = currentMotor.totalDelivered || 0;
-    
+
     // ሠ. የገዥ ክፍያ ማሳያ
     let incomingFee = currentMotor.incomingFee || 0;
     let feeDisplay = document.getElementById('motorIncomingFeeDisplay');
     let clearBtn = document.getElementById('btnMotorClearFee');
+
     if (feeDisplay) feeDisplay.innerText = incomingFee.toFixed(2) + ' ETB';
     if (incomingFee > 0) {
         if (clearBtn) clearBtn.classList.remove('hidden');
@@ -154,6 +161,7 @@ function toggleMotorOnlineStatus() {
     
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') pushToFirebase();
+    
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, `🔄 የስራ ሁኔታዎ ወደ ${isChecked ? 'ኦንላይን (Online)' : 'ኦፍላይን (Offline)'} ተቀይሯል።`);
     }
@@ -172,6 +180,7 @@ function openMotorCreditModal() {
     document.querySelectorAll('.modal-card').forEach(m => {
         if(m.id !== 'motorCreditModal') m.classList.add('hidden');
     });
+    
     if (modal) {
         modal.classList.remove('hidden');
         document.getElementById('motorCreditAmount').value = '';
@@ -190,10 +199,12 @@ function submitMotorCredit() {
     }
 
     if (typeof currentMotor.credit === 'undefined') currentMotor.credit = 0;
+    
     // ማስተካከያ:- አድሚን ጋር ለመላክ ቀድሞ የነበረውን መጠን ማስቀመጫ
     let oldCredit = currentMotor.credit;
     
     currentMotor.credit += amount;
+    
     // ክሬዲቱ ከ25 ብር በላይ ከሆነ አውቶማቲካሊ ብሎኩን ያነሳዋል
     let wasBlocked = currentMotor.status === 'blocked';
     if (wasBlocked && currentMotor.credit > 25) {
@@ -203,6 +214,7 @@ function submitMotorCredit() {
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') pushToFirebase();
+    
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, `💰 ሂሳብዎ ላይ ${amount} ብር ክሬዲት ተሞልቷል!\nአጠቃላይ ክሬዲት፡ ${currentMotor.credit} ETB`);
     }
@@ -292,9 +304,10 @@ function renderMotorOrders() {
     });
 }
 
-// 8. ኦርደር ሲቀበል (Lock & Link)
+// 8. ኦርደር ሲቀበል (Lock & Link) - በዋናነት የተስተካከለው የድግግሞሽ (Duplication) ችግር መፍቻ
 window.acceptMotorOrder = function(index) {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
+    
     // ክፍያ ሳይጨርስ አዲስ እንዳይቀበል መቆለፊያ
     if (currentMotor.incomingFee > 0) {
         alert("⚠️ እባክዎ መጀመሪያ የያዙትን ትዕዛዝ በማድረስ ከገዥ የተላከውን ክፍያ ያረጋግጡ (ዳሽቦርድዎ ላይ 0.00 ይሁን)! ከዚያ በኋላ ብቻ አዲስ ትዕዛዝ መቀበል ይችላሉ።");
@@ -326,27 +339,36 @@ window.acceptMotorOrder = function(index) {
         });
     }
 
-    // የተስተካከለ:- ሱቁን ለመለየት ዩዘርኔም መጠቀም እና ላይቭ አውጥቶ Update ማድረግ (ድግግሞሽን ለማስቀረት)
+    // ማስተካከያ: shopUsername ን ቅድሚያ ሰጥቶ ሱቁን መለየት
     let shopKey = acceptedOrder.shopUsername || acceptedOrder.shopKey;
     if (!shopKey) {
-        let foundKey = Object.keys(localDB.tenants).find(k => localDB.tenants[k] && localDB.tenants[k].shopName === acceptedOrder.shopName);
+        let foundKey = Object.keys(localDB.tenants).find(k => localDB.tenants[k].shopName === acceptedOrder.shopName);
         if (foundKey) shopKey = foundKey;
     }
     
-    if (shopKey && typeof db !== 'undefined' && isOnline) {
-        db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).once('value').then(snap => {
-            if (snap.exists()) {
-                let shopOrders = snap.val();
-                if (!Array.isArray(shopOrders)) shopOrders = Object.values(shopOrders);
-                
-                let sOrd = shopOrders.find(o => o.orderId == acceptedOrder.orderId || (o.buyerPhone == acceptedOrder.buyerPhone && o.itemName == acceptedOrder.itemName));
-                if (sOrd) {
-                    sOrd.motorUser = currentMotor.username;
-                    sOrd.status = 'accepted';
-                    db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(shopOrders).catch(err => console.error(err));
-                }
+    if (shopKey && localDB.tenants[shopKey] && localDB.tenants[shopKey].data && localDB.tenants[shopKey].data.deliveryOrders) {
+        let shopOrders = localDB.tenants[shopKey].data.deliveryOrders;
+        
+        // ማስተካከያ: የትዕዛዙን ትክክለኛ ቦታ (Index) በአስተማማኝ ሁኔታ መፈለግ
+        let sOrdIndex = shopOrders.findIndex(o => 
+            (poolId && o.poolId === poolId) || 
+            o.orderId == acceptedOrder.orderId || 
+            (o.buyerPhone == acceptedOrder.buyerPhone && o.itemName == acceptedOrder.itemName)
+        );
+        
+        if (sOrdIndex !== -1) {
+            shopOrders[sOrdIndex].motorUser = currentMotor.username;
+            shopOrders[sOrdIndex].status = 'accepted';
+
+            // ማስተካከያ የተደረገበት መስመር - ቴሌግራምን እና ክፍያን ያቋረጠው ስህተት እዚህ ጋር ነበር!
+            if (typeof db !== 'undefined' && typeof isOnline !== 'undefined' && isOnline) {
+                // ማስተካከያ: አጠቃላይ አሬዩን ከመጫን ይልቅ (የድግግሞሽ ምክንያት የሆነውን)፣ የተወሰነውን ትዕዛዝ ብቻ Update ማድረግ
+                db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders/${sOrdIndex}`).update({
+                    motorUser: currentMotor.username,
+                    status: 'accepted'
+                }).catch(err => console.error("Order Update Error:", err));
             }
-        }).catch(err => console.error(err));
+        }
     }
 
     let tgMessage = `📦 አዲስ ትዕዛዝ ተቀብለዋል!\n\n` +
@@ -358,6 +380,7 @@ window.acceptMotorOrder = function(index) {
                     `🛍️ የዕቃው አይነት: ${acceptedOrder.itemName || '-'}\n` +
                     `🔢 የዕቃው ብዛት: ${acceptedOrder.qty || '-'}\n\n` +
                     `መልካም ስራ!\nአድራሻውን ተጠቅመው እቃውን ያድርሱ።`;
+                    
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, tgMessage);
     }
@@ -365,6 +388,7 @@ window.acceptMotorOrder = function(index) {
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') pushToFirebase();
+    
     alert("ትዕዛዙን በተሳካ ሁኔታ ተቀብለዋል! ዝርዝር መረጃው በቴሌግራም ተልኮልዎታል።");
     renderMotorPage();
 };
@@ -372,9 +396,11 @@ window.acceptMotorOrder = function(index) {
 // ብሩን ሲቀበል (ኮሚሽን ቆርጦ 0.00 ያደርጋል፣ ከ 25 በታች ከሆነም ይዘጋል)
 window.clearIncomingFee = function() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
+    
     if(!confirm("እርግጠኛ ነዎት ክፍያውን ከገዥው ተቀብለዋል? ይህ ማሳያውን ወደ 0.00 ይመልሰዋል።")) return;
     
     let feeCollected = currentMotor.incomingFee || 0;
+    
     // የሲስተሙ ባለቤት ኮሚሽን ስሌት
     let commRate = (localDB.adminSettings && localDB.adminSettings.deliveryCommissionRate) ? (localDB.adminSettings.deliveryCommissionRate / 100) : 0.10;
     let commissionAmount = feeCollected * commRate;
@@ -390,8 +416,10 @@ window.clearIncomingFee = function() {
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') pushToFirebase();
+    
     if (typeof sendMotorTelegramAlert === 'function') {
-        let blockMsg = currentMotor.status === 'blocked' ? "\n\n⚠️ ክሬዲትዎ 25 ብር ስለደረሰ አካውንትዎ ታግዷል! እባክዎ ክሬዲት ይሙሉ።" : "\n\nአሁን አዲስ ትዕዛዝ መቀበል ይችላሉ!";
+        let blockMsg = currentMotor.status === 'blocked' ?
+            "\n\n⚠️ ክሬዲትዎ 25 ብር ስለደረሰ አካውንትዎ ታግዷል! እባክዎ ክሬዲት ይሙሉ።" : "\n\nአሁን አዲስ ትዕዛዝ መቀበል ይችላሉ!";
         sendMotorTelegramAlert(currentMotor.username, `✅ ክፍያ ተረጋግጧል!\n\nገዥው የከፈለው: ${feeCollected} ETB\nየተቆረጠ ኮሚሽን: ${commissionAmount} ETB` + blockMsg);
     }
     
@@ -411,6 +439,7 @@ function renderMotorHistory() {
     tbody.innerHTML = '';
 
     let history = currentMotor.history || [];
+    
     // የ Date Picker ማጣሪያ
     let filterInput = document.getElementById('motorHistoryDateFilter');
     let filterDate = filterInput && filterInput.value ? filterInput.value : null;
@@ -461,6 +490,7 @@ function completeMotorOrder(index) {
     // ማስተካከያ 1: ክፍያ ከዕቃው ዋጋ እንዳይሆን!
     // ትክክለኛውን የዴሊቨሪ ክፍያ 'ከገዥ የተላከ ክፍያ' (incomingFee) ላይ ብቻ እንዲመሰረት አድርገናል
     let actualFee = parseFloat(currentMotor.incomingFee);
+    
     // ለጥንቃቄ (ክፍያው ከ 0.00 ካልተቀየረ አያስጨርሰውም)
     if (isNaN(actualFee) || actualFee <= 0) {
         alert("⚠️ የዴሊቨሪ ክፍያ ገና አልገባም! እባክዎ ዳሽቦርድ ላይ 'ከገዥ የተላከ ክፍያ' ከ 0.00 እስኪቀየር ይጠብቁ።");
@@ -475,6 +505,7 @@ function completeMotorOrder(index) {
         buyerName: order.buyerName,
         earned: actualFee // ከዕቃው ዋጋ ሳይሆን ትክክለኛው የዴሊቨሪ ክፍያ ይመዘገባል!
     });
+    
     currentMotor.activeOrders.splice(index, 1);
     currentMotor.totalDelivered = (currentMotor.totalDelivered || 0) + 1;
     
@@ -555,6 +586,7 @@ async function processMotorRegistration() {
     // --- አዲሱ የሞተረኛ ቁጥር መቆጣጠሪያ (Quota Check) ---
     let locKey = `${region}_${zone}_${woreda}`;
     let quota = (localDB.motorQuotas && localDB.motorQuotas[locKey] !== undefined) ? parseInt(localDB.motorQuotas[locKey]) : null;
+    
     if (quota !== null) {
         let currentCount = 0;
         if (localDB.motors) {
@@ -580,6 +612,7 @@ async function processMotorRegistration() {
 
     btn.innerText = "ፎቶዎችን በማዘጋጀት ላይ...";
     btn.disabled = true;
+    
     try {
         if (typeof isSystemDataTaken === 'function') {
             let checkUser = await isSystemDataTaken(user, phone, "", "");
@@ -600,6 +633,7 @@ async function processMotorRegistration() {
 
         const idBase64 = await compressMotorImage(idFile);
         const licBase64 = await compressMotorImage(licFile);
+        
         btn.innerText = "OTP በመላክ ላይ...";
         
         if(typeof triggerOTPFlow === 'function') {
@@ -619,7 +653,12 @@ async function processMotorRegistration() {
             };
         } else {
             let defaultPass = prompt("እባክዎ ለመግቢያ የሚሆን የይለፍ ቃል ይፍጠሩ:");
-            if(!defaultPass) { alert("ፓስዎርድ አልፈጠሩም!"); btn.innerText = originalText; btn.disabled = false; return; }
+            if(!defaultPass) { 
+                alert("ፓስዎርድ አልፈጠሩም!"); 
+                btn.innerText = originalText; 
+                btn.disabled = false; 
+                return;
+            }
             await finalizeMotorRegistration(defaultPass, idBase64, licBase64);
         }
 
@@ -660,6 +699,7 @@ async function processMotorRegistration() {
                 history: [],
                 registeredDate: new Date().toLocaleDateString('am-ET')
              };
+             
             if (typeof db !== 'undefined' && db) {
                 db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
             }
@@ -678,6 +718,7 @@ async function processMotorRegistration() {
                         `📍 አድራሻ: ${region} / ${zone} / ${woreda}\n` +
                         `📅 የተመዘገበበት ጊዜ: ${timeStampReg2}\n\n` +
                         `አስተዳዳሪ (Admin) ገፅ ላይ በመግባት ማረጋገጥ ይችላሉ።`;
+                        
             if(typeof sendAdminTelegramAlert === 'function') sendAdminTelegramAlert(tgMsg);
 
             if(typeof showCustomAlert === 'function') {
@@ -689,6 +730,7 @@ async function processMotorRegistration() {
             document.getElementById('unifiedMotorForm').querySelectorAll('input').forEach(i => i.value = '');
             if(typeof goToGateway === 'function') goToGateway();
             else if(typeof switchView === 'function') switchView('welcomeGateway');
+            
         } catch (err) {
             console.error(err);
         } finally {
@@ -704,6 +746,7 @@ async function processMotorRegistration() {
 // 14. የሞተረኛን ዳታ ማጽጃ (Clear Data)
 window.clearMotorData = function() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
+    
     if(!confirm("እርግጠኛ ነዎት የሞተረኛ ዳታዎን (የስራ ታሪክ፣ የተቀበሏቸው ትዕዛዞች፣ ያደረሱት ብዛት ወዘተ) ሙሉ በሙሉ ማጥፋት ይፈልጋሉ?\n\nማሳሰቢያ፦ ይህ እርምጃ ክሬዲትዎን አያጠፋም! ነገር ግን ሌላ እርምጃ አይቀለበስም።")) {
         return;
     }
