@@ -70,14 +70,14 @@ function renderMotorPage() {
     let monthlyIncome = 0;
     
     let now = new Date();
-    // የኢትዮጵያ የስራ ቀን የሚጀምረው ጧት 1:00 (7:00 AM) ስለሆነ፣ ከሰአቱ ላይ 7 ሰአት እንቀንሳለን
+    // የኢትዮጵያ የስራ ቀን የሚጀምረው ጧት 1:00 (7:00 AM) ስለሆነ፣ ከሰአቱ ላይ 7 ሰአት እንቀንሳለን (ወደ ዜሮ እንዲመለስ)
     let currentBusinessTime = new Date(now.getTime() - 7 * 60 * 60 * 1000);
-    let currentBizDateStr = currentBusinessTime.toISOString().split('T')[0];
-    let currentBizMonthStr = currentBizDateStr.substring(0, 7);
+    let currentBizDateStr = currentBusinessTime.toISOString().split('T')[0]; // YYYY-MM-DD
+    let currentBizMonthStr = currentBizDateStr.substring(0, 7); // YYYY-MM
 
     if (currentMotor.history) {
         currentMotor.history.forEach(record => {
-            let recTime = record.isoDate ? new Date(record.isoDate) : new Date();
+            let recTime = record.isoDate ? new Date(record.isoDate) : new Date(); // አሮጌ ሂስትሪ ካለ ዛሬን ይወስዳል
             let recBizTime = new Date(recTime.getTime() - 7 * 60 * 60 * 1000);
             let recBizDateStr = recBizTime.toISOString().split('T')[0];
             let recBizMonthStr = recBizDateStr.substring(0, 7);
@@ -87,6 +87,7 @@ function renderMotorPage() {
             if (recBizDateStr === currentBizDateStr) {
                 dailyIncome += earned;
             }
+            // የወሩ መግቢያ (ቀን 1) ሲሆን አውቶማቲክ ቆጠራው 0 ይሆናል ምክንያቱም የወሩ ስም ይቀየራል
             if (recBizMonthStr === currentBizMonthStr) {
                 monthlyIncome += earned;
             }
@@ -97,6 +98,7 @@ function renderMotorPage() {
     if (dailyDisp) dailyDisp.innerText = dailyIncome.toFixed(2) + ' ETB';
     let monthlyDisp = document.getElementById('motorMonthlyIncome');
     if (monthlyDisp) monthlyDisp.innerText = monthlyIncome.toFixed(2) + ' ETB';
+    // -----------------------------------------------------------
 
     // ረ. ቴብሎችን (ትዕዛዞች እና ታሪክ) መሳል
     renderMotorOrders();
@@ -152,6 +154,7 @@ function toggleMotorOnlineStatus() {
     
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') pushToFirebase();
+    
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, `🔄 የስራ ሁኔታዎ ወደ ${isChecked ? 'ኦንላይን (Online)' : 'ኦፍላይን (Offline)'} ተቀይሯል።`);
     }
@@ -170,6 +173,7 @@ function openMotorCreditModal() {
     document.querySelectorAll('.modal-card').forEach(m => {
         if(m.id !== 'motorCreditModal') m.classList.add('hidden');
     });
+    
     if (modal) {
         modal.classList.remove('hidden');
         document.getElementById('motorCreditAmount').value = '';
@@ -189,9 +193,12 @@ function submitMotorCredit() {
 
     if (typeof currentMotor.credit === 'undefined') currentMotor.credit = 0;
     
+    // ማስተካከያ:- አድሚን ጋር ለመላክ ቀድሞ የነበረውን መጠን ማስቀመጫ
     let oldCredit = currentMotor.credit;
+    
     currentMotor.credit += amount;
     
+    // ክሬዲቱ ከ25 ብር በላይ ከሆነ አውቶማቲካሊ ብሎኩን ያነሳዋል
     let wasBlocked = currentMotor.status === 'blocked';
     if (wasBlocked && currentMotor.credit > 25) {
         currentMotor.status = 'offline';
@@ -205,6 +212,7 @@ function submitMotorCredit() {
         sendMotorTelegramAlert(currentMotor.username, `💰 ሂሳብዎ ላይ ${amount} ብር ክሬዲት ተሞልቷል!\nአጠቃላይ ክሬዲት፡ ${currentMotor.credit} ETB`);
     }
 
+    // አዲስ የተጨመረ ማስተካከያ:- ክሬዲት ሲሞላ ለአድሚኑ/አከራዩ በቴሌግራም መላክ
     if (typeof sendAdminTelegramAlert === 'function') {
         let nowForCredit = new Date();
         let timeStampCredit = nowForCredit.toLocaleDateString('am-ET') + " " + nowForCredit.toLocaleTimeString('am-ET');
@@ -237,7 +245,7 @@ function submitMotorCredit() {
     renderMotorPage();
 }
 
-// 7. ትዕዛዞችን ማሳያ (Active Deliveries)
+// 7. ትዕዛዞችን ማሳያ (Active Deliveries) - አዲስ ማስተካከያ (Point 1)
 function renderMotorOrders() {
     const tbody = document.getElementById('motorActiveOrdersBody');
     if (!tbody) return;
@@ -249,6 +257,7 @@ function renderMotorOrders() {
         return;
     }
 
+    // ማስተካከያ: ሞተረኛው አስቀድሞ የተቀበለው ትዕዛዝ ወይም ያልተወራረደ ክፍያ ካለው ማረጋገጫ
     let feeReceived = (currentMotor.incomingFee && parseFloat(currentMotor.incomingFee) > 0);
     let hasActiveJob = activeOrders.some(o => o.status === 'accepted') || feeReceived;
     
@@ -260,6 +269,7 @@ function renderMotorOrders() {
         if(order.status === 'pending_motor') {
             statusBadge = `<span class="badge-warning">አዲስ ጥሪ (በመጠባበቅ ላይ)</span><br>`;
             
+            // ሌላ የተቀበለው ስራ ካለ አዳዲስ ጥሪዎች ላይ በተኑን እናፈዝዘዋለን (Disable)
             if (hasActiveJob) {
                 actionBtn = `<button class="btn-add btn-sm" style="background-color: #64748b; color: #cbd5e1; cursor: not-allowed; opacity: 0.5;" disabled>🔒 በስራ ላይ ነዎት</button>`;
             } else {
@@ -269,8 +279,10 @@ function renderMotorOrders() {
             statusBadge = `<span class="badge-success">በእርስዎ የተያዘ</span><br>`;
             
             if(feeReceived) {
+                // ብሩ ገብቷል፣ በተኑ አረንጓዴ ሆኖ መነካት ይችላል
                 actionBtn = `<button class="btn-sell btn-sm" onclick="completeMotorOrder(${index})">✅ አድርሻለሁ (Deliver)</button>`;
             } else {
+                // ክፍያ ስላልገባ በተኑ ፍዝዝ ብሎ ይቆለፋል (Disabled)
                 actionBtn = `<button class="btn-sell btn-sm" style="background-color: #64748b; color: #cbd5e1; cursor: not-allowed; opacity: 0.7;" disabled>⏳ ክፍያ አልገባም</button>`;
             }
         }
@@ -289,11 +301,13 @@ function renderMotorOrders() {
 window.acceptMotorOrder = function(index) {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
     
+    // ክፍያ ሳይጨርስ አዲስ እንዳይቀበል መቆለፊያ
     if (currentMotor.incomingFee > 0) {
         alert("⚠️ እባክዎ መጀመሪያ የያዙትን ትዕዛዝ በማድረስ ከገዥ የተላከውን ክፍያ ያረጋግጡ (ዳሽቦርድዎ ላይ 0.00 ይሁን)! ከዚያ በኋላ ብቻ አዲስ ትዕዛዝ መቀበል ይችላሉ።");
         return;
     }
 
+    // ተጨማሪ ማረጋገጫ: ሌላ የተቀበለው ትዕዛዝ ካለ ይከለክላል
     let hasActiveJob = currentMotor.activeOrders.some(o => o.status === 'accepted');
     if (hasActiveJob) {
         alert("⚠️ አስቀድመው የተቀበሉት ሌላ ትዕዛዝ አለ! እባክዎ መጀመሪያ ያንን ያድርሱ።");
@@ -318,36 +332,20 @@ window.acceptMotorOrder = function(index) {
         });
     }
 
-    let shopKey = acceptedOrder.shopKey || acceptedOrder.shopUsername;
+    let shopKey = acceptedOrder.shopKey;
     if (!shopKey) {
         let foundKey = Object.keys(localDB.tenants).find(k => localDB.tenants[k].shopName === acceptedOrder.shopName);
         if (foundKey) shopKey = foundKey;
     }
     
-    // የችግር 2 እና 3 መፍትሄ - ሞተረኛው ሲቀበል Stale (ያረጀ) ዳታ በመጠቀም ሱቅ ላይ ያሉ ሌሎች አዳዲስ ትዕዛዞችን እንዳያጠፋ (Overwrite እንዳያደርግ) 
-    // ቀጥታ ፋየርቤዝ ላይ ያለውን Array አንብቦ ያንኑ ብቻ እንዲቀይር ተደርጓል
-    if (shopKey) {
-        if (typeof db !== 'undefined' && isOnline) {
-            db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).once('value').then(snap => {
-                if(snap.exists()) {
-                    let freshOrders = snap.val();
-                    let sOrd = freshOrders.find(o => o.orderId == acceptedOrder.orderId || (o.buyerPhone == acceptedOrder.buyerPhone && o.itemName == acceptedOrder.itemName));
-                    if(sOrd) {
-                        sOrd.motorUser = currentMotor.username;
-                        sOrd.status = 'accepted';
-                        db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(freshOrders);
-                    }
-                }
-            }).catch(err => console.error("Error updating shop delivery order:", err));
-        } else {
-            // Offline fallback
-            if (localDB.tenants[shopKey] && localDB.tenants[shopKey].data && localDB.tenants[shopKey].data.deliveryOrders) {
-                let shopOrders = localDB.tenants[shopKey].data.deliveryOrders;
-                let sOrd = shopOrders.find(o => o.orderId == acceptedOrder.orderId || (o.buyerPhone == acceptedOrder.buyerPhone && o.itemName == acceptedOrder.itemName));
-                if (sOrd) {
-                    sOrd.motorUser = currentMotor.username;
-                    sOrd.status = 'accepted';
-                }
+    if (shopKey && localDB.tenants[shopKey] && localDB.tenants[shopKey].data && localDB.tenants[shopKey].data.deliveryOrders) {
+        let shopOrders = localDB.tenants[shopKey].data.deliveryOrders;
+        let sOrd = shopOrders.find(o => o.orderId == acceptedOrder.orderId || (o.buyerPhone == acceptedOrder.buyerPhone && o.itemName == acceptedOrder.itemName));
+        if (sOrd) {
+            sOrd.motorUser = currentMotor.username;
+            sOrd.status = 'accepted';
+            if (typeof db !== 'undefined' && isOnline) {
+                db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(shopOrders);
             }
         }
     }
@@ -361,7 +359,7 @@ window.acceptMotorOrder = function(index) {
                     `🛍️ የዕቃው አይነት: ${acceptedOrder.itemName || '-'}\n` +
                     `🔢 የዕቃው ብዛት: ${acceptedOrder.qty || '-'}\n\n` +
                     `መልካም ስራ!\nአድራሻውን ተጠቅመው እቃውን ያድርሱ።`;
-    
+                    
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, tgMessage);
     }
@@ -379,12 +377,14 @@ window.clearIncomingFee = function() {
     if(!confirm("እርግጠኛ ነዎት ክፍያውን ከገዥው ተቀብለዋል? ይህ ማሳያውን ወደ 0.00 ይመልሰዋል።")) return;
     
     let feeCollected = currentMotor.incomingFee || 0;
+    // የሲስተሙ ባለቤት ኮሚሽን ስሌት
     let commRate = (localDB.adminSettings && localDB.adminSettings.deliveryCommissionRate) ? (localDB.adminSettings.deliveryCommissionRate / 100) : 0.10;
     let commissionAmount = feeCollected * commRate;
     
-    currentMotor.credit = (currentMotor.credit || 0) - commissionAmount;
-    currentMotor.incomingFee = 0;
+    currentMotor.credit = (currentMotor.credit || 0) - commissionAmount; // ኮሚሽኑን ከክሬዲት ቀንሶታል
+    currentMotor.incomingFee = 0; // ማሳያውን ወደ 0.00 ይመልሳል
     
+    // ክሬዲቱ 25 እና ከዚያ በታች ከሆነ አካውንቱን እገደው (Block)
     if (currentMotor.credit <= 25) {
         currentMotor.status = 'blocked';
     }
@@ -394,8 +394,7 @@ window.clearIncomingFee = function() {
     if (typeof pushToFirebase === 'function') pushToFirebase();
     
     if (typeof sendMotorTelegramAlert === 'function') {
-        let blockMsg = currentMotor.status === 'blocked' ?
-        "\n\n⚠️ ክሬዲትዎ 25 ብር ስለደረሰ አካውንትዎ ታግዷል! እባክዎ ክሬዲት ይሙሉ።" : "\n\nአሁን አዲስ ትዕዛዝ መቀበል ይችላሉ!";
+        let blockMsg = currentMotor.status === 'blocked' ? "\n\n⚠️ ክሬዲትዎ 25 ብር ስለደረሰ አካውንትዎ ታግዷል! እባክዎ ክሬዲት ይሙሉ።" : "\n\nአሁን አዲስ ትዕዛዝ መቀበል ይችላሉ!";
         sendMotorTelegramAlert(currentMotor.username, `✅ ክፍያ ተረጋግጧል!\n\nገዥው የከፈለው: ${feeCollected} ETB\nየተቆረጠ ኮሚሽን: ${commissionAmount} ETB` + blockMsg);
     }
     
@@ -415,24 +414,29 @@ function renderMotorHistory() {
     tbody.innerHTML = '';
 
     let history = currentMotor.history || [];
+    
+    // የ Date Picker ማጣሪያ
     let filterInput = document.getElementById('motorHistoryDateFilter');
     let filterDate = filterInput && filterInput.value ? filterInput.value : null;
 
-    let todayStr = new Date().toISOString().split('T')[0]; 
+    let todayStr = new Date().toISOString().split('T')[0]; // የዛሬ ቀን በ YYYY-MM-DD
 
     let filteredHistory = history.filter(record => {
         let recDateStr = todayStr;
+        // isoDate ካለው ከዛ ላይ ቀኑን ይወስዳል
         if (record.isoDate) {
             recDateStr = record.isoDate.split('T')[0];
         }
         
         if (filterDate) {
+            // ተጠቃሚው መርጦ ከሆነ የተመረጠውን ብቻ
             return recDateStr === filterDate;
         } else {
+            // ካልመረጠ የዛሬውን ብቻ (ፊት ለፊት እንዳያጨናንቀው)
             return recDateStr === todayStr;
         }
     });
-    
+
     if (filteredHistory.length === 0) {
         tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">በዚህ ቀን የተመዘገበ ታሪክ የለም</td></tr>`;
         return;
@@ -458,7 +462,9 @@ function completeMotorOrder(index) {
     
     let order = currentMotor.activeOrders[index];
     
+    // ማስተካከያ 1: ክፍያ ከዕቃው ዋጋ እንዳይሆን! ትክክለኛውን የዴሊቨሪ ክፍያ 'ከገዥ የተላከ ክፍያ' (incomingFee) ላይ ብቻ እንዲመሰረት አድርገናል
     let actualFee = parseFloat(currentMotor.incomingFee);
+    // ለጥንቃቄ (ክፍያው ከ 0.00 ካልተቀየረ አያስጨርሰውም)
     if (isNaN(actualFee) || actualFee <= 0) {
         alert("⚠️ የዴሊቨሪ ክፍያ ገና አልገባም! እባክዎ ዳሽቦርድ ላይ 'ከገዥ የተላከ ክፍያ' ከ 0.00 እስኪቀየር ይጠብቁ።");
         return;
@@ -467,10 +473,10 @@ function completeMotorOrder(index) {
     if(!currentMotor.history) currentMotor.history = [];
     currentMotor.history.push({
         date: new Date().toLocaleDateString('am-ET'),
-        isoDate: new Date().toISOString(), 
+        isoDate: new Date().toISOString(), // ለዳሽቦርድ ስሌት ይጠቅማል
         shopName: order.shopName,
         buyerName: order.buyerName,
-        earned: actualFee 
+        earned: actualFee // ከዕቃው ዋጋ ሳይሆን ትክክለኛው የዴሊቨሪ ክፍያ ይመዘገባል!
     });
     
     currentMotor.activeOrders.splice(index, 1);
@@ -611,10 +617,12 @@ async function processMotorRegistration() {
                 showFormModal("🔒 የይለፍ ቃል ይፍጠሩ", [
                     { id: "newPass", label: "ለሞተረኛ አካውንትዎ አዲስ የይለፍ ቃል ይፍጠሩ፦", type: "password", placeholder: "ሚስጥራዊ ፓስዎርድ" }
                 ], async (res) => {
+                    
                     if(!res.newPass) { 
                         if(typeof showCustomAlert === 'function') showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); 
                         return; 
                     }
+  
                     await finalizeMotorRegistration(res.newPass, idBase64, licBase64);
                 });
             };
@@ -669,6 +677,7 @@ async function processMotorRegistration() {
             if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
             if (typeof pushToFirebase === 'function') pushToFirebase();
 
+            // ማስተካከያ:- አዲስ ሞተረኛ ሲመዘገብ የተስማማንባቸውን መረጃዎች አካተን ወደ አድሚን እንልካለን
             let nowForReg2 = new Date();
             let timeStampReg2 = nowForReg2.toLocaleDateString('am-ET') + " " + nowForReg2.toLocaleTimeString('am-ET');
             let tgMsg = `🏍️ አዲስ ሞተረኛ ተመዝግቧል!\n\n` +
@@ -691,6 +700,7 @@ async function processMotorRegistration() {
             document.getElementById('unifiedMotorForm').querySelectorAll('input').forEach(i => i.value = '');
             if(typeof goToGateway === 'function') goToGateway();
             else if(typeof switchView === 'function') switchView('welcomeGateway');
+            
         } catch (err) {
             console.error(err);
         } finally {
@@ -698,4 +708,7 @@ async function processMotorRegistration() {
             btn.disabled = false;
         }
     }
+
+    btn.innerText = originalText;
+    btn.disabled = false;
 }
