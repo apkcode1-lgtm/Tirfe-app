@@ -9,10 +9,16 @@ document.addEventListener('keydown', event => {
 // SECURITY UTILITY: Password Hashing (SHA-256)
 // ---------------------------------------------------------------------
 async function hashPassword(password) {
-    const msgBuffer = new TextEncoder().encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    // ማስተካከያ:- Localhost ወይም HTTP ላይ `crypto.subtle` ስለማይሰራ Error እንዳያመጣ Fallback ተጨምሯል
+    if (window.crypto && window.crypto.subtle) {
+        const msgBuffer = new TextEncoder().encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } else {
+        console.warn("Crypto.subtle is unavailable (likely HTTP). Using base64 fallback for password hashing.");
+        return btoa(unescape(encodeURIComponent(password)));
+    }
 }
 
 async function sendSecureVerificationEmail(userEmail, verificationCode) {
@@ -240,7 +246,6 @@ async function handleUnifiedLogin() {
     let pass = document.getElementById('loginUnifiedPass').value.trim();
     let err = document.getElementById('loginUnifiedError');
     let loginBtn = document.getElementById('loginBtn');
-    
     if(!user || !email || !pass) { 
         err.innerText = "❌ እባክዎ ዩዘርኔም፣ ኢሜል እና የይለፍ ቃል በትክክል ያስገቡ!";
         return; 
@@ -281,7 +286,6 @@ async function handleUnifiedLogin() {
     }
 
     err.innerText = "🔄 በማረጋገጥ ላይ...";
-    
     // 2. Try Firebase Authentication First
     let isFirebaseAuthSuccess = false;
     try {
@@ -289,20 +293,18 @@ async function handleUnifiedLogin() {
         isFirebaseAuthSuccess = true;
     } catch (fbAuthError) {
         console.warn("Firebase Auth Failed: ", fbAuthError.message);
-        
         // FIXED ISSUE 2: Prevent Fallback/Bypass for actual wrong credentials or non-existent users
         const strictErrors = ['auth/wrong-password', 'auth/user-not-found', 'auth/invalid-credential', 'auth/invalid-email', 'auth/invalid-login-credentials'];
         if (strictErrors.includes(fbAuthError.code)) {
             err.innerText = "❌ የተሳሳተ ኢሜል ወይም የይለፍ ቃል! (አካውንቱ የለም ወይም ፓስዎርድ ተሳስቷል)";
             if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-            return; // 🛑 ማቋረጥ - ወደ LocalDB አያልፍም!
+            return;
         }
         // Allows proceeding to LocalDB ONLY if error is network/offline related
     }
 
     // FIXED ISSUE 1: Hash the password for local DB comparison
     let hashedInputPass = await hashPassword(pass);
-
     try {
         // --- TENANT CHECK ---
         let t = null;
@@ -314,10 +316,8 @@ async function handleUnifiedLogin() {
         }
         if(!t && localDB.tenants && localDB.tenants[user]) t = localDB.tenants[user];
         if(t) {
-            // Checks Firebase success OR Hashed Match OR Plaintext Match (for backward compatibility of old users)
             if(isFirebaseAuthSuccess || (String(t.gmail || "").toLowerCase() === email.toLowerCase() && (String(t.password) === hashedInputPass || String(t.password).trim() === pass))) {
                 
-                // Upgrade plain text to Hashed silently for old users
                 if(String(t.password).trim() === pass && String(t.password) !== hashedInputPass) {
                     t.password = hashedInputPass;
                     if(isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/tenants/${user}/password`).set(hashedInputPass);
@@ -352,7 +352,9 @@ async function handleUnifiedLogin() {
                     if(isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/buyers/${user}/password`).set(hashedInputPass);
                 }
 
-                if(b.status === "blocked") { err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)!"; if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
+                if(b.status === "blocked") { err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)!";
+                    if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
+                }
                 currentBuyer = b;
                 localDB.buyers[user] = b;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: user }));
@@ -448,8 +450,8 @@ async function handleUnifiedLogin() {
             if (isFirebaseAuthSuccess || (String(s.gmail || "").toLowerCase() === email.toLowerCase() && (String(s.pass) === hashedInputPass || String(s.pass).trim() === pass))) {
                 
                 if(String(s.pass).trim() === pass && String(s.pass) !== hashedInputPass) {
-                    s.pass = hashedInputPass;
-                    if(isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/staffAccounts/${user}/pass`).set(hashedInputPass);
+                     s.pass = hashedInputPass;
+                     if(isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/staffAccounts/${user}/pass`).set(hashedInputPass);
                 }
 
                 let parentTenant = null;
@@ -518,7 +520,7 @@ async function handleUnifiedLogin() {
 }
 
 // ---------------------------------------------------------------------
-// REGISTRATION LOGIC WITH FIREBASE AUTH & HASHING
+// REGISTRATION LOGIC WITH FIREBASE AUTH & HASHING (FIXED AND AWAITED)
 // ---------------------------------------------------------------------
 async function triggerUnifiedRegistration() {
     let role = document.getElementById('unifiedRegRole').value;
@@ -553,10 +555,13 @@ async function triggerUnifiedRegistration() {
                 if(!res.newPass) { showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); return; }
     
                 try {
-                    // Create User in Firebase Auth
-                    await auth.createUserWithEmailAndPassword(pendingRegistrationData.email, res.newPass);
+                    // Create User in Firebase Auth, but continue if email is already in use
+                    try {
+                        await auth.createUserWithEmailAndPassword(pendingRegistrationData.email, res.newPass);
+                    } catch (authErr) {
+                        if (authErr.code !== 'auth/email-already-in-use') throw authErr;
+                    }
                     
-                    // FIXED ISSUE 1: Hash password for local DB
                     let hashedPass = await hashPassword(res.newPass);
                     
                     if(!localDB.buyers) localDB.buyers = {};
@@ -566,10 +571,13 @@ async function triggerUnifiedRegistration() {
                         password: hashedPass, joinDate: new Date().getTime(), receipts: [], 
                         status: "active" 
                     };
+                    
+                    // ማስተካከያ:- await ተጨምሮበታል 
                     if(isOnline && typeof db !== 'undefined') {
-                        db.ref(`tirfe_system/buyers/${pendingRegistrationData.user}`).set(localDB.buyers[pendingRegistrationData.user]).catch(err => console.log(err));
+                        await db.ref(`tirfe_system/buyers/${pendingRegistrationData.user}`).set(localDB.buyers[pendingRegistrationData.user]);
                     }
                     pushToFirebase();
+                    
                     showCustomAlert("✅ ተሳክቷል", "በተሳካ ሁኔታ ተመዝግበዋል! አሁን በሚያውቁት ፓስዎርድ ሎጊን በማድረግ ይግቡ።");
                     if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
                     switchView('welcomeGateway');
@@ -602,6 +610,7 @@ async function triggerUnifiedRegistration() {
         let registrationFee = parseFloat(document.getElementById('pub_newRegistrationFee').value) || 0;
         let contractType = document.getElementById('pub_newContractType').value;
         let expiryDate = document.getElementById('pub_newExpiryDate').value;
+
         if(!shop || !user || !expiryDate || !fullName || !phone || !newEmail || !region || !zone || !woreda || !kebele || !houseNo || !tinNum || !tradeReg || !businessType) { 
             showCustomAlert("ስህተት", "እባክዎ መሠረታዊ እና አስገዳጅ መረጃዎችን ሙሉ በሙሉ ያሟሉ!");
             return; 
@@ -628,42 +637,57 @@ async function triggerUnifiedRegistration() {
                 if(!res.newPass) { showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); return; }
        
                 try {
-                     // Create User in Firebase Auth
-                    await auth.createUserWithEmailAndPassword(newEmail, res.newPass);
+                    // Create User in Firebase Auth, but continue if email is already in use
+                    try {
+                        await auth.createUserWithEmailAndPassword(newEmail, res.newPass);
+                    } catch (authErr) {
+                        if (authErr.code !== 'auth/email-already-in-use') throw authErr;
+                    }
                     
-                    // FIXED ISSUE 1: Hash password for local DB
                     let hashedPass = await hashPassword(res.newPass);
 
-                    let proceedReg = function(shopLogoBase64) {
-                        let timestampNow = new Date().getTime();
-                        localDB.tenants[user] = { 
-                            shopName: shop, fullName: fullName, phone: phone, telegram: telegram || "-", address: address || "-",
-                            businessType: businessType, googleMapsLink: mapsLink || "", shopLogo: shopLogoBase64 || "", gmail: newEmail,
-                            region: region, zone: zone, woreda: woreda, kebele: kebele, houseNo: houseNo, tinNumber: tinNum, tradeRegistration: tradeReg,
-                            username: user, password: hashedPass, activationCode: hashedPass, codeCreatedAt: timestampNow,
-                            isActivated: true, contractType: contractType, expiryDate: expiryDate, registrationFee: registrationFee,
-                            status: "active", theme: "theme-deepblue", staffAccounts: [],
-                            data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, accumulatedVat: 0, lastMonthlyResetDate: timestampNow } 
-                        };
-                        if(isOnline && typeof db !== 'undefined') {
-                            db.ref(`tirfe_system/tenants/${user}`).set(localDB.tenants[user]).catch(err => console.log(err));
-                        }
-                        pushToFirebase();
-                        let capitalTierAmh = "ያልተመረጠ";
-                        if (capitalTier === 'low') capitalTierAmh = "ዝቅተኛ (Low)";
-                        else if (capitalTier === 'medium') capitalTierAmh = "መካከለኛ (Medium)";
-                        else if (capitalTier === 'high') capitalTierAmh = "ከፍተኛ (High)";
-                        let bankHint = (localDB.adminSettings && localDB.adminSettings.bankAccount) ? `\n\n🏦 የክፍያ ማረጋገጫ (ባንክ): ${localDB.adminSettings.bankAccount}` : "";
-                        let tgMsg = `🔔 አዲስ ተከራይ በራሱ ተመዝግቧል!\n\n👤 የተከራይ ስም: ${fullName}\n🔑 ዩዘርኔም: ${user}\n📧 ኢሜል (Gmail): ${newEmail}\n📞 ስልክ: ${phone}\n💰 የካፒታል መጠን: ${capitalTierAmh}\n🏢 የንግድ ዘርፍ: ${businessType}${bankHint}`;
-                        if(typeof sendAdminTelegramAlert === 'function') sendAdminTelegramAlert(tgMsg);
-                        
-                        let adminBankInfo = (localDB.adminSettings && localDB.adminSettings.bankAccount) ? localDB.adminSettings.bankAccount : "አልተሞላም";
-                        let successMsg = `ሱቅዎ በተሳካ ሁኔታ ተመዝግቧል!\n\nእባክዎ ክፍያዎን በሚከተለው የባንክ ሂሳብ ቁጥር ይፈፅሙ፦\n🏦 ሂሳብ ቁጥር: ${adminBankInfo}\n💵 የሚከፈል መጠን: ${registrationFee} ETB\n\nክፍያው እንደተረጋገጠ አከራዩ አካውንትዎን ሙሉ በሙሉ ይከፍተዋል።`;
-                        showCustomAlert("✅ ተሳክቷል", successMsg);
-                        if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
-                        switchView('welcomeGateway');
+                    // ማስተካከያ:- ፎቶውን ወደ Base64 የምንቀይርበት መንገድ Promise እንዲጠቀም ተደርጓል
+                    let shopLogoBase64 = "";
+                    if(file) {
+                        shopLogoBase64 = await new Promise(resolve => {
+                            if(typeof processImageUpload === 'function') processImageUpload(file, resolve);
+                            else { let r = new FileReader(); r.onload = e => resolve(e.target.result); r.readAsDataURL(file); }
+                        });
+                    }
+
+                    let timestampNow = new Date().getTime();
+                    localDB.tenants[user] = { 
+                        shopName: shop, fullName: fullName, phone: phone, telegram: telegram || "-", address: address || "-",
+                        businessType: businessType, googleMapsLink: mapsLink || "", shopLogo: shopLogoBase64 || "", gmail: newEmail,
+                        region: region, zone: zone, woreda: woreda, kebele: kebele, houseNo: houseNo, tinNumber: tinNum, tradeRegistration: tradeReg,
+                        username: user, password: hashedPass, activationCode: hashedPass, codeCreatedAt: timestampNow,
+                        isActivated: true, contractType: contractType, expiryDate: expiryDate, registrationFee: registrationFee,
+                        status: "active", theme: "theme-deepblue", staffAccounts: [],
+                        data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, accumulatedVat: 0, lastMonthlyResetDate: timestampNow } 
                     };
-                    if(file) processImageUpload(file, proceedReg); else proceedReg("");
+                    
+                    // ማስተካከያ:- await ተጨምሮበታል
+                    if(isOnline && typeof db !== 'undefined') {
+                        await db.ref(`tirfe_system/tenants/${user}`).set(localDB.tenants[user]);
+                    }
+                    pushToFirebase();
+                    
+                    let capitalTierAmh = "ያልተመረጠ";
+                    if (capitalTier === 'low') capitalTierAmh = "ዝቅተኛ (Low)";
+                    else if (capitalTier === 'medium') capitalTierAmh = "መካከለኛ (Medium)";
+                    else if (capitalTier === 'high') capitalTierAmh = "ከፍተኛ (High)";
+                    
+                    let bankHint = (localDB.adminSettings && localDB.adminSettings.bankAccount) ? `\n\n🏦 የክፍያ ማረጋገጫ (ባንክ): ${localDB.adminSettings.bankAccount}` : "";
+                    let tgMsg = `🔔 አዲስ ተከራይ በራሱ ተመዝግቧል!\n\n👤 የተከራይ ስም: ${fullName}\n🔑 ዩዘርኔም: ${user}\n📧 ኢሜል (Gmail): ${newEmail}\n📞 ስልክ: ${phone}\n💰 የካፒታል መጠን: ${capitalTierAmh}\n🏢 የንግድ ዘርፍ: ${businessType}${bankHint}`;
+                    if(typeof sendAdminTelegramAlert === 'function') sendAdminTelegramAlert(tgMsg);
+                    
+                    let adminBankInfo = (localDB.adminSettings && localDB.adminSettings.bankAccount) ? localDB.adminSettings.bankAccount : "አልተሞላም";
+                    let successMsg = `ሱቅዎ በተሳካ ሁኔታ ተመዝግቧል!\n\nእባክዎ ክፍያዎን በሚከተለው የባንክ ሂሳብ ቁጥር ይፈፅሙ፦\n🏦 ሂሳብ ቁጥር: ${adminBankInfo}\n💵 የሚከፈል መጠን: ${registrationFee} ETB\n\nክፍያው እንደተረጋገጠ አከራዩ አካውንትዎን ሙሉ በሙሉ ይከፍተዋል።`;
+                    
+                    showCustomAlert("✅ ተሳክቷል", successMsg);
+                    if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
+                    switchView('welcomeGateway');
+
                 } catch(error) {
                     showCustomAlert("ስህተት", "ምዝገባ አልተሳካም (Firebase): " + error.message);
                 }
@@ -729,10 +753,13 @@ async function triggerUnifiedRegistration() {
                 if(!res.newPass) { showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); return; }
 
                 try {
-                     // Create User in Firebase Auth
-                    await auth.createUserWithEmailAndPassword(email, res.newPass);
+                    // Create User in Firebase Auth, but continue if email is already in use
+                    try {
+                        await auth.createUserWithEmailAndPassword(email, res.newPass);
+                    } catch (authErr) {
+                        if (authErr.code !== 'auth/email-already-in-use') throw authErr;
+                    }
                     
-                    // FIXED ISSUE 1: Hash password for local DB
                     let hashedPass = await hashPassword(res.newPass);
 
                     if(!localDB.motors) localDB.motors = {};
@@ -744,10 +771,13 @@ async function triggerUnifiedRegistration() {
                         joinDate: new Date().getTime(),
                         status: "pending" 
                     };
+                    
+                    // ማስተካከያ:- await ተጨምሮበታል
                     if(isOnline && typeof db !== 'undefined') {
-                        db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
+                        await db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]);
                     }
                     pushToFirebase();
+                    
                     let nowForReg = new Date();
                     let timeStampReg = nowForReg.toLocaleDateString('am-ET') + " " + nowForReg.toLocaleTimeString('am-ET');
                     let tgMsg = `🏍️ አዲስ ሞተረኛ ተመዝግቧል!\n\n` +
@@ -820,7 +850,6 @@ async function triggerForgotPassword() {
                 let np = resPass.newPass.trim();
                 if(!np) { showCustomAlert("ስህተት", "ባዶ መሆን አይችልም!"); return; }
                 
-                // FIXED ISSUE 1: Hash the newly reset password
                 let npHash = await hashPassword(np);
 
                 if(accType === 'tenant') { 
@@ -832,7 +861,7 @@ async function triggerForgotPassword() {
                     if (isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/buyers/${u}/password`).set(npHash);
                 }
                 else if(accType === 'motor') { 
-                    localDB.motors[u].password = npHash; 
+                    localDB.motors[u].password = npHash;
                     if (isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/motors/${u}/password`).set(npHash);
                 }
                 pushToFirebase();
@@ -936,12 +965,10 @@ window.openStaffManagement = function() {
     document.querySelectorAll('.modal-card').forEach(m => m.classList.add('hidden'));
     document.getElementById('staffManageModal').classList.remove('hidden');
 };
-
 window.addStaffFormRow = function() {
     if(tempStaffForms.length >= 3) { showCustomAlert("ማሳሰቢያ", "ከ 3 ሰራተኛ በላይ በአንድ ጊዜ መመዝገብ አይቻልም!"); return; }
     tempStaffForms.push({ name: "", gmail: "", phone: "", user: "", pass: "" }); renderStaffForms();
 };
-
 window.removeStaffFormRow = function(idx) { tempStaffForms.splice(idx, 1); renderStaffForms(); };
 
 window.renderStaffForms = function() {
@@ -983,12 +1010,11 @@ window.saveAllStaff = async function() {
             if(tempStaffForms[j].phone === tempStaffForms[i].phone) { showCustomAlert("ስህተት", "ስልክ ቁጥር በፎርሙ ውስጥ ተደግሟል!"); return; }
         }
 
-        // FIXED ISSUE 1: Keep raw pass temporarily for Firebase, then hash it
         if (enteredPass && enteredPass !== '********' && enteredPass.length !== 64) {
             tempStaffForms[i].rawPass = enteredPass;
             tempStaffForms[i].pass = await hashPassword(enteredPass);
         } else if (enteredPass === '********') {
-            tempStaffForms[i].pass = currentTenant.staffAccounts[i].pass; // ነባሩን የተመሰጠረ ፓስዎርድ ይጠቀማል
+            tempStaffForms[i].pass = currentTenant.staffAccounts[i].pass;
         } else {
             tempStaffForms[i].pass = enteredPass;
         }
@@ -1003,7 +1029,7 @@ window.saveAllStaff = async function() {
             } catch (fbErr) {
                 console.warn(`Staff Firebase Auth creation failed for ${staff.gmail}: ${fbErr.message}`);
             }
-            delete staff.rawPass; // ሴኪዩሪቲ ለመጠበቅ የ Plaintext ፓስዎርዱን እናጠፋዋለን
+            delete staff.rawPass;
         }
     }
 
@@ -1011,23 +1037,23 @@ window.saveAllStaff = async function() {
     saveAndRefresh(); closeActiveModal();
     
     if(isOnline && typeof db !== 'undefined') {
-        tempStaffForms.forEach(staff => {
+        for (let staff of tempStaffForms) {
             if(staff.user && staff.pass) {
-                db.ref(`tirfe_system/staffAccounts/${staff.user}`).set({
+                // ማስተካከያ:- await ተጨምሮበታል ዳታው በትክክል መግባቱን እርግጠኛ ለመሆን
+                await db.ref(`tirfe_system/staffAccounts/${staff.user}`).set({
                     name: staff.name,
                     gmail: staff.gmail,
                     phone: staff.phone,
                     user: staff.user,
-                    pass: staff.pass, // የተመሰጠረው ፓስዎርድ (Hashed) ወደ ዳታቤዝ ይገባል
+                    pass: staff.pass,
                     tenantUsername: currentTenant.username
                 }).catch(err => console.error("Staff Save Error:", err));
             }
-        });
+        }
     }
 
     showCustomAlert("ተሳክቷል", "የሰራተኞች መረጃ በተሳካ ሁኔታ ተመዝግቧል!");
 };
-
 function configureBank() {
     if(currentUserRole === "staff") { showCustomAlert("🏦 የባንክ ሂሳብ መረጃ", `የአሰሪው የባንክ ሂሳብ ቁጥር (CBE/Telebirr)፦ ${currentTenant.bankAccount || "ያልተገናኘ"}`); return; }
     
