@@ -10,6 +10,7 @@ function collectDebt(idx) {
         if(amt <= 0 || amt > remaining) { showCustomAlert("ስህተት", "የክፍያ መጠን ልክ አይደለም!"); return; }
         debt.paid += amt; currentTenant.data.collectedCreditToday = (parseFloat(currentTenant.data.collectedCreditToday) || 0) + amt;
         saveAndRefresh();
+     
         sendTelegramAlert(`💵 የዕዳ ክፍያ ተሰበሰበ (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nከ ${debt.customer} ላይ ${amt} ETB ተቀብለዋል።`);
         showCustomAlert("ክፍያ ተፈጽሟል", `${debt.customer} እዳ ከፍሏል!`);
     });
@@ -27,6 +28,7 @@ function renderHistoryTable() {
             let rowStyle = h.isMonthlyArchive ? `style="background: rgba(192, 132, 252, 0.15); border-left: 4px solid var(--purple-color);"` : '';
             historyBody.innerHTML += `<tr ${rowStyle}>
                 <td><b>${h.date}</b></td><td>${h.employee}</td><td style="color:var(--success-color)">${h.sales}</td>
+        
                 <td style="color:var(--accent-color)"><b>${h.profit}</b></td><td>${h.reportedCash || 0}</td>
                 <td style="${rowStyle ? '' : 'color:'+vColor}"><b>${h.variance || 0}</b></td>
             </tr>`;
@@ -51,12 +53,13 @@ window.acceptDelivery = function(idx) {
         let matchedMotorsCount = 0;
         let poolId = "POOL_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
         ord.poolId = poolId;
+        
         if(localDB.motors) {
             Object.keys(localDB.motors).forEach(mUser => {
                 let motor = localDB.motors[mUser];
                 if(motor.region === currentTenant.region && motor.zone === currentTenant.zone && motor.woreda === currentTenant.woreda) {
-                    if(!motor.activeOrders) motor.activeOrders = [];
-                    motor.activeOrders.push({
+                    
+                    let newOrderObj = {
                         poolId: poolId,
                         shopUsername: currentTenant.username,
                         shopName: currentTenant.shopName,
@@ -71,11 +74,20 @@ window.acceptDelivery = function(idx) {
                         totalPrice: ord.total,
                         deliveryFee: ord.deliveryFee || 0,
                         status: 'pending_motor'
-                    });
+                    };
+                    
                     matchedMotorsCount++;
 
                     if(typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
-                        db.ref(`tirfe_system/motors/${mUser}`).set(motor).catch(err => console.error(err));
+                        // የተስተካከለ:- የሞተረኛውን አዲስ ትዕዛዞች (activeOrders) ብቻ ከፋየርቤዝ አውጥቶ ይጨምራል እንጂ የድሮውን መረጃ ደርቦ መላክ የለበትም
+                        db.ref(`tirfe_system/motors/${mUser}/activeOrders`).once('value').then(snap => {
+                            let liveOrders = snap.exists() ? (snap.val() || []) : [];
+                            if(!Array.isArray(liveOrders)) {
+                                liveOrders = Object.values(liveOrders);
+                            }
+                            liveOrders.push(newOrderObj);
+                            db.ref(`tirfe_system/motors/${mUser}/activeOrders`).set(liveOrders).catch(err => console.error(err));
+                        }).catch(err => console.error(err));
                     }
                     if (typeof sendMotorTelegramAlert === 'function') {
                         sendMotorTelegramAlert(mUser, `🔔 አዲስ የዴሊቨሪ ትዕዛዝ!\n\nሱቅ: ${currentTenant.shopName}\nአድራሻ: ${currentTenant.region} / ${currentTenant.zone} / ${currentTenant.woreda}\nዕቃ: ${ord.itemName} (ብዛት: ${ord.qty})\n\nእባክዎ ሲስተም ውስጥ ገብተው ትዕዛዙን ይቀበሉ።`);
@@ -132,7 +144,6 @@ window.handleRemoteCartCheckout = function(buyerUser) {
     let t = currentTenant.data;
     let remoteCart = t.remoteCarts[buyerUser];
     if(!remoteCart || remoteCart.length === 0) return;
-    
     showCustomConfirm("ክፍያ መቀበያ (Remote Checkout)", `የ ${buyerUser} ትዕዛዝ ክፍያ ተቀብለዋል? ደረሰኝ ይቆረጥ?`, () => {
         // Double check condition to prevent overlapping
         if(!t.remoteCarts[buyerUser]) return;
@@ -163,7 +174,6 @@ window.handleRemoteCartCheckout = function(buyerUser) {
         sendTelegramAlert(`🛍️ የኦንላይን ሽያጭ (Remote Cart Checkout)፦\nየገዢ ስም: ${buyerUser}\nጠቅላላ ሂሳብ፡ ${grandTotal} ETB`);
     });
 };
-
 window.renderTenantTaxReceipts = function() {
     if(!currentTenant || !currentTenant.data) return;
     let tbody = document.getElementById('tenantTaxReceiptsBody');
@@ -190,10 +200,10 @@ window.renderTenantTaxReceipts = function() {
             <td style="color:var(--success-color); font-weight:bold;">${parseFloat(rec.amount).toFixed(2)} ETB</td>
             <td>${rec.officerName}<br><small style="color: #94a3b8;">📞 ${rec.officerPhone}</small></td>
             <td><button class="btn-config btn-sm" onclick="viewTaxReceiptDetail(${originalIdx})">👁️ ሙሉ ደረሰኝ እይ</button></td>
+   
         </tr>`;
     });
 };
-
 window.viewTaxReceiptDetail = function(idx) {
     if(!currentTenant || !currentTenant.data || !currentTenant.data.taxReceipts) return;
     let rec = currentTenant.data.taxReceipts[idx];
@@ -266,6 +276,7 @@ function renderApp() {
                 </select>
                 <button class="btn-sell btn-sm" onclick="addToMainCart(${idx})">➕ ሽጥ</button>
                 ${currentUserRole === "owner" ? `<button class="btn-expense btn-sm" onclick="deleteInventoryItem(${idx})" style="margin-left:5px;">🗑️</button>` : ''}
+        
             </div>`;
 
         let displayQty = item.qty; let displaySold = item.sold; let displayRem = remaining;
@@ -275,6 +286,7 @@ function renderApp() {
         }
 
         if (currentUserRole === "staff") {
+ 
             tbody.innerHTML += `<tr class="${rowClass}">
                 <td><strong>${item.name}</strong> ${stockBadge}</td><td>${itemModelText}</td><td>${item.price} ETB</td>
                 <td><b>${displaySold}</b></td><td style="${remaining <= 3 ? 'color:#f87171;font-weight:bold;' : ''}">${displayRem}</td><td>${sellAction}</td>
@@ -460,7 +472,6 @@ window.addToMainCart = function(idx) {
     
     qtyInput.value = '1'; renderMainCart();
 };
-
 window.renderMainCart = function() {
     let container = document.getElementById('cartItemsList'); let totalEl = document.getElementById('cartTotalSum'); let emptyMsg = document.getElementById('emptyCartMsg');
     if(!mainCart || mainCart.length === 0) { container.innerHTML = ""; emptyMsg.style.display = "block"; if(totalEl) totalEl.innerText = "0"; return; }
@@ -494,7 +505,6 @@ window.renderMainCart = function() {
 };
 
 window.removeMainCartItem = function(i) { mainCart.splice(i, 1); renderMainCart(); };
-
 window.checkoutMainCart = function() {
     if(!mainCart || mainCart.length === 0) { showCustomAlert("ስህተት", "እባክዎ መጀመሪያ ከቴብሉ እቃ ወደ ቅርጫቱ ያስገቡ!"); return; }
     
@@ -518,7 +528,6 @@ window.checkoutMainCart = function() {
     mainCart = []; saveAndRefresh(); renderMainCart();
     generateAdvancedReceipt(receiptItems, grandTotal, currentSeller, null, true, null, null, null, null, collectedVat);
 };
-
 window.validateQuickVatPrice = function() {
     let priceInput = document.getElementById('specialVatItemPrice');
     let warningText = document.getElementById('quickVatWarning');
@@ -549,7 +558,6 @@ window.toggleVatReceiptPanel = function() {
         if(vatDisplay) vatDisplay.value = "ቫት: " + vatRate + "%";
     }
 };
-
 window.generateStandaloneVatReceipt = function() {
     if(!currentTenant) return;
     let cName = document.getElementById('specialVatCustomerName').value.trim() || "የተከበረ ደንበኛ";
@@ -622,7 +630,6 @@ window.generateStandaloneVatReceipt = function() {
 
     document.getElementById('specialVatReceiptModal').classList.remove('hidden');
 };
-
 function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = null, saveToHistory = true, givenShopName = null, givenBType = null, buyerName = null, buyerPhone = null, passedVat = null, givenOwnerName = null, givenOwnerPhone = null) {
     if (!recId) recId = Math.floor(10000 + Math.random() * 90000);
     let dateStr = getTodayFormatted();
@@ -685,19 +692,22 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
     let receiptHTML = `
     <div class="receipt-container" id="printableReceiptArea" style="background:#fff; color:#000; padding:15px; width:100%; max-width:350px; margin:0 auto;">
         <div class="receipt-header" style="display:flex; flex-direction:column; align-items:center;">
-            <img src="${shopLogo}" style="width:60px; height:60px; border-radius:50%; margin-bottom:10px; object-fit:cover; border: 1px solid #ddd;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/869/869636.png'">
+            <img src="${shopLogo}" style="width:60px; height:60px; border-radius:50%; margin-bottom:10px; object-fit:cover; border: 1px solid #ddd;"
+            onerror="this.src='https://cdn-icons-png.flaticon.com/512/869/869636.png'">
             <h4 style="margin:0; font-size:1.3rem; color:#111; text-transform:uppercase;">${shopName}</h4>
             <p style="color:#565656; font-weight:bold; margin: 4px 0;">[ ${bType} ]</p>
             <p style="margin: 2px 0; font-size: 0.85rem;"><b>የባለቤት ስም:</b> ${ownerName}</p>
             <p style="margin: 2px 0; font-size: 0.85rem;"><b>ስልክ:</b> ${ownerPhone}</p>
             <div style="border-bottom: 2px dashed #333; width: 100%; margin: 10px 0;"></div>
+       
             <p style="margin: 2px 0; font-size: 0.85rem; font-weight:bold;">ዲጂታል የሽያጭ ደረሰኝ</p>
             <p style="margin: 2px 0; font-size: 0.85rem;"><b>ቁጥር (No):</b> #${recId} | ቀን: ${dateStr}</p>
             <p style="margin: 2px 0; font-size: 0.85rem;"><b>የሻጭ ማንነት:</b> ${currentSeller}</p>
         </div>
         <table class="receipt-table" style="color:#000; width:100%; margin-top: 10px; border-collapse: collapse;">
-            <thead><tr><th style="color:#000!important; text-align:left; border-bottom: 1px dashed #ddd; padding: 5px;">የዕቃ ስም</th><th style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">ብዛት</th><th style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">ነጠላ</th><th style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">ጠቅላ局</th></tr></thead>
+            <thead><tr><th style="color:#000!important; text-align:left; border-bottom: 1px dashed #ddd; padding: 5px;">የዕቃ ስም</th><th style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">ብዛት</th><th style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">ነጠላ</th><th style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">ጠቅላላ</th></tr></thead>
             <tbody>${tableRows}</tbody>
+   
         </table>
         <div class="receipt-summary" style="margin-top: 15px; border-top: 2px dashed #333; padding-top: 8px; text-align: right; font-size: 0.95rem; font-weight: bold; color: #111;">
             ${vatHtml}
