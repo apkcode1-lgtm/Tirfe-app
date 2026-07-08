@@ -14,6 +14,7 @@ function openTenantProfileEditor() {
         { id: "newLogo", label: "የሱቅ ፎቶ/ሎጎ ለመቀየር (አማራጭ)", type: "file" },
         { id: "newPassword", label: "አዲስ ምስጢራዊ ኮድ / ፓስዎርድ ለመቀየር (ባዶ ከሆነ አይቀየርም)", type: "password", placeholder: "አዲስ ነባር ኮድ" }
     ], (res, fileInput) => {
+      
         let updateTenantData = function(base64Logo) {
             currentTenant.shopName = res.shopName.trim();
             currentTenant.phone = res.phone.trim();
@@ -74,7 +75,8 @@ function openExpenseModal() {
     ], (res) => {
         let amount = parseFloat(res.amount) || 0; let reason = res.reason.trim();
         if(!reason || amount <= 0) return;
-        let d = currentTenant.data || {}; if(!d.expenses) d.expenses = [];
+        let d = currentTenant.data || {}; if(!d.expenses) 
+            d.expenses = [];
         d.expenses.push({ reason, amount, date: getTodayFormatted(), time: new Date().toLocaleTimeString('en-GB') });
         currentTenant.data = d; saveAndRefresh();
     });
@@ -179,8 +181,32 @@ function startNewDaySession() {
 
 function clearAllTenantData() {
     if(currentUserRole === "staff") return;
-    showCustomConfirm("ሁሉንም ዳታ ማጽዳት", "ሁሉንም ዳታ ለማጥፋት እርግጠኛ ኖት?", () => {
-        currentTenant.data = { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, accumulatedVat: 0, lastMonthlyResetDate: new Date().getTime(), taxReceipts: [] };
+    
+    // ማስተካከያ፦ ተጠቃሚው ሲያጠፋ የትኞቹ መረጃዎች እንደማይጠፉ የሚገልጽ ማስጠንቀቂያ ተጨምሯል
+    showCustomConfirm("ዳታ ማጽዳት", "የዕለት፣ የወጪ፣ የዕዳ እና ሌሎች ጊዜያዊ ሪፖርቶችን ለማጥፋት እርግጠኛ ኖት?\n\n(ማሳሰቢያ፦ የዕቃ ዝርዝር፣ የተሰበሰበ ቫት፣ የሰራተኛ መረጃ እና የሲስተም ሴቲንጎች አይጠፉም!)", () => {
+        
+        let d = currentTenant.data || {};
+        
+        // ማስተካከያ፦ እቃው፣ ካፒታሉ እና ቫቱ እንዳይጠፋ ነባሩን ዳታ ለብቻ ማስቀረት
+        let preservedInventory = d.inventory || []; 
+        let preservedVat = d.accumulatedVat || 0;
+        
+        currentTenant.data = { 
+            sessionActive: false, 
+            shiftClosed: false, 
+            inventory: preservedInventory, // የተመዘገበው እቃ እና ካፒታል እንዳይጠፋ ይከላከላል
+            expenses: [], 
+            debts: [], 
+            drawerLog: [], 
+            history: [], 
+            receipts: [], 
+            deliveryOrders: [], 
+            remoteCarts: {}, 
+            accumulatedVat: preservedVat, // የተሰበሰበው ቫት እንዳይጠፋ ይከላከላል
+            lastMonthlyResetDate: new Date().getTime(), 
+            taxReceipts: [] 
+        };
+        
         saveAndRefresh(); checkMorningSession();
     });
 }
