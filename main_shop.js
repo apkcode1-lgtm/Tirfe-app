@@ -77,7 +77,7 @@ window.acceptDelivery = function(idx) {
                     matchedMotorsCount++;
 
                     if(typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
-                        // የተስተካከለ:- የሞተረኛውን አዲስ ትዕዛዞች (activeOrders) ብቻ ከፋየርቤዝ አውጥቶ ይጨምራል እንጂ የድሮውን መረጃ ደርቦ መላክ የለበትም
+                        // የሞተረኛውን አዲስ ትዕዛዞች (activeOrders) ብቻ ከፋየርቤዝ አውጥቶ ይጨምራል
                         db.ref(`tirfe_system/motors/${mUser}/activeOrders`).once('value').then(snap => {
                             let liveOrders = snap.exists() ? (snap.val() || []) : [];
                             if(!Array.isArray(liveOrders)) {
@@ -833,4 +833,3 @@ function launchApp(tenant) {
 loadLocalStorageBackup();
 checkAutomaticLogin();
 handleOnlineStatus();
-
