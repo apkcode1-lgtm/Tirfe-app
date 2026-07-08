@@ -17,7 +17,6 @@ window.addEventListener('online', handleOnlineStatus);
 window.addEventListener('offline', handleOnlineStatus);
 
 loadLocalStorageBackup();
-
 function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
@@ -28,7 +27,7 @@ function handleOnlineStatus() {
     } else {
         if(tag) tag.classList.add('hidden');
         if(criticalScreen) criticalScreen.classList.add('hidden');
-        // ⚠️ ማስተካከያ:- አፕ ሲከፈት ስልክ ላይ ያለ አሮጌ ዳታ (Local Storage) ፋየርቤዝን እንዳያጠፋ (ያለፉ ትዕዛዞች እንዳይመለሱ) pushToFirebase() ከዚህ ላይ ተነስቷል!
+        pushToFirebase();
     }
 }
 
@@ -41,8 +40,7 @@ function loadLocalStorageBackup() {
         if(parsedBackup.buyers) localDB.buyers = parsedBackup.buyers;
         if(parsedBackup.revenueAuthorities) localDB.revenueAuthorities = parsedBackup.revenueAuthorities;
         if(parsedBackup.motors) localDB.motors = parsedBackup.motors;
-        if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas;
-        // የኮታ ዳታ
+        if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas; // የኮታ ዳታ
         if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
         if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
         if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
@@ -180,7 +178,7 @@ if(typeof db !== 'undefined') {
             handleOnlineStatus();
         });
     });
-    
+
     window.setupSecureUserListeners = function() {
         
         // ማስተካከያ 2:- አድሚን ሲገባ አዲስ ተመዝጋቢዎችን በስህተት እንዳያጠፋ (Real-time update)
@@ -218,6 +216,7 @@ if(typeof db !== 'undefined') {
                     triggerUIRefresh();
                 }
             });
+            
             // የተስተካከለው:- ገዥዎች የሻጮችን ዳታ በቋሚነት (Real-time) እንዲያዳምጡ የተጨመረ
             db.ref(`tirfe_system/tenants`).on('value', (snapshot) => {
                 if(snapshot.exists()) {
