@@ -10,6 +10,44 @@ function logoutBuyer() {
     location.reload();
 }
 
+// --- አዲሱ የዳታ ማፅጃ ፋንክሽን የተጨመረው እዚህ ነው ---
+window.clearBuyerData = function() {
+    if(!currentBuyer) return;
+    
+    showCustomConfirm("⚠️ እርግጠኛ ነዎት?", "ይህ እርምጃ የእርስዎን መረጃ (ትዕዛዞች፣ ደረሰኞች እና ፕሮፋይል) ሙሉ በሙሉ ያጠፋል። አንዴ ከጠፋ በኋላ መመለስ አይቻልም። በእርግጥ ማጥፋት ይፈልጋሉ?", () => {
+        let buyerUsername = currentBuyer.username;
+
+        // 1. ከ LocalStorage ላይ ማጥፋት
+        if (localDB.buyers && localDB.buyers[buyerUsername]) {
+            delete localDB.buyers[buyerUsername];
+            saveToLocalStorage();
+        }
+
+        // 2. ከ Firebase ላይ ሙሉ በሙሉ ማጥፋት (ሪፍሬሽ ሲደረግ እንዳይመለስ)
+        if (typeof db !== 'undefined' && navigator.onLine) {
+            db.ref(`tirfe_system/buyers/${buyerUsername}`).remove().then(() => {
+                executeBuyerLogoutProcess();
+            }).catch(err => {
+                console.error("Firebase delete error:", err);
+                executeBuyerLogoutProcess(); // ስህተት ቢፈጠርም ሎካል ላይ ስለጠፋ ፔጁን ሪፍሬሽ እናድርገው
+            });
+        } else {
+            // ኢንተርኔት ባይኖርም ሎካል ላይ ስላጠፋነው አውጥቶ ሪፍሬሽ ያደርጋል
+            executeBuyerLogoutProcess();
+        }
+    });
+};
+
+function executeBuyerLogoutProcess() {
+    currentBuyer = null;
+    window.buyerCartData = [];
+    localStorage.removeItem('tirfe_active_session');
+    showCustomAlert("✅ ተሳክቷል", "የእርስዎ ዳታ ሙሉ በሙሉ ከሲስተሙ ተጠርጓል።", () => {
+        location.reload();
+    });
+}
+// ----------------------------------------------------
+
 window.openBuyerProfileSettings = function() {
     if(!currentBuyer) return;
     showFormModal("⚙️ የፕሮፋይል ሲቲንግ", [
@@ -33,7 +71,6 @@ window.openBuyerProfileSettings = function() {
         currentBuyer.email = res.b_email.trim();
         currentBuyer.phone = newP; 
         currentBuyer.password = res.b_password.trim();
-        
         if(oldU !== newU) {
             localDB.buyers[newU] = currentBuyer;
             delete localDB.buyers[oldU];
@@ -97,7 +134,6 @@ window.submitDeliveryFee = function(shopKey, orderId) {
         if(ord) {
             ord.deliveryFeePaid = fee;
             let motorAssigned = false;
-            
             if (ord.motorUser && localDB.motors[ord.motorUser]) {
                 localDB.motors[ord.motorUser].incomingFee = fee;
                 if (typeof db !== 'undefined' && navigator.onLine) {
@@ -165,7 +201,6 @@ window.renderBuyerCart = function() {
             <td><button class="btn-expense btn-sm" onclick="removeFromBuyerCart(${i})">❌ አጥፋ</button></td>
         </tr>`;
     });
-    
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
     let vatAmount = (grandTotal * vatRate) / 100;
     let finalTotal = grandTotal + vatAmount;
@@ -205,7 +240,8 @@ window.checkoutBuyerCart = function(orderType) {
             let newCartItems = [];
             window.buyerCartData.forEach(item => {
                 newCartItems.push({
-                    itemIdx: item.itemIdx, itemName: item.itemName, qty: item.qty, price: item.price, total: item.total
+                    itemIdx: item.itemIdx, 
+                    itemName: item.itemName, qty: item.qty, price: item.price, total: item.total
                 });
             });
 
@@ -248,9 +284,7 @@ window.checkoutBuyerCart = function(orderType) {
             let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
             let vatAmount = (grandTotal * vatRate) / 100;
             let finalTotal = grandTotal + vatAmount;
-            
             let confirmMsg = `የታዘዙ ዕቃዎች: ${combinedItems}\nየትራንስፖርት: ${res.transport === 'car' ? '🚗 መኪና' : '🏍️ ሞተረኛ'}\n\nጠቅላላ የሚጠበቅ ሂሳብ: ${finalTotal.toFixed(2)} ETB\n\nይህንን ትዕዛዝ ወደ ሻጩ መላክ እርግጠኛ ነዎት?`;
-            
             showCustomConfirm("📦 የትዕዛዝ ማረጋገጫ (Order Checkout)", confirmMsg, () => {
                 let orderId = Math.floor(100000 + Math.random() * 900000);
                 let newOrder = {
@@ -439,7 +473,6 @@ async function renderBuyerCatalog() {
         let scoreB = (b.name.charCodeAt(0) || 0) + (b.shopKey.charCodeAt(0) || 0) + b.originalIdx;
         return (scoreA % 7) - (scoreB % 7) || scoreA - scoreB;
     });
-
     let carouselHTML = '';
     if (allItems.length > 0) {
         hasData = true;
@@ -548,7 +581,7 @@ async function renderBuyerCatalog() {
                 <td><button class="btn-sm btn-add" onclick="viewBuyerReceipt('${rec.recId}')">📥 አውርድ</button></td>
             </tr>`;
         });
-     }
+    }
 
     let activeOrdersBody = document.getElementById('buyerActiveOrdersBody');
     if(activeOrdersBody) {
