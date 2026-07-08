@@ -19,7 +19,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
- 
     <script src="https://smtpjs.com/v3/smtp.js"></script>
     <script src="speed-insights-init.js"></script>
     <script>
@@ -181,6 +180,7 @@
             
             <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top:10px;">
                 <button class="btn-config" style="background:var(--accent-color); color:#000;" onclick="openBuyerProfileSettings()">⚙️ የፕሮፋይል ሲቲንግ</button>
+                <button class="btn-clear" onclick="clearBuyerData()" style="background-color: #ef4444; color: white;">🗑️ ዳታ አጽዳ</button>
                 <button class="btn-expense" onclick="logoutBuyer()">🚪 ከገዥ ገፅ ውጣ</button>
             </div>
             
@@ -803,7 +803,7 @@
                         <tr id="inventoryTableHeader"></tr>
                     </thead>
                     <tbody id="inventoryBody"></tbody>
-                 </table>
+                  </table>
             </div>
         </section>
 
@@ -828,7 +828,7 @@
                     </thead>
                     <tbody id="receiptHistoryTableBody"></tbody>
                 </table>
-               </div>
+            </div>
         </section>
 
         <section class="section-box" style="border-color: #3b82f6;">
