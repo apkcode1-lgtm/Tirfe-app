@@ -10,42 +10,42 @@ function logoutBuyer() {
     location.reload();
 }
 
-// --- አዲሱ የዳታ ማፅጃ ፋንክሽን የተጨመረው እዚህ ነው ---
+// --- የተስተካከለው የዳታ ማፅጃ ፋንክሽን ---
 window.clearBuyerData = function() {
     if(!currentBuyer) return;
     
-    showCustomConfirm("⚠️ እርግጠኛ ነዎት?", "ይህ እርምጃ የእርስዎን መረጃ (ትዕዛዞች፣ ደረሰኞች እና ፕሮፋይል) ሙሉ በሙሉ ያጠፋል። አንዴ ከጠፋ በኋላ መመለስ አይቻልም። በእርግጥ ማጥፋት ይፈልጋሉ?", () => {
+    showCustomConfirm("⚠️ እርግጠኛ ነዎት?", "ይህ እርምጃ የእርስዎን የተቆረጡ ደረሰኞች እና ጊዜያዊ የትዕዛዝ መረጃዎች ያጠፋል። በእርግጥ ማጥፋት ይፈልጋሉ?", () => {
         let buyerUsername = currentBuyer.username;
 
-        // 1. ከ LocalStorage ላይ ማጥፋት
+        // 1. መረጃዎችን ከ LocalStorage ላይ ማጥፋት (አካውንቱን / ፕሮፋይሉን ሳንነካ)
         if (localDB.buyers && localDB.buyers[buyerUsername]) {
-            delete localDB.buyers[buyerUsername];
+            localDB.buyers[buyerUsername].receipts = [];
+            currentBuyer.receipts = []; // አሁን ሎጊን ያደረገውንም ዩዘር ዳታ ማፅዳት
             saveToLocalStorage();
         }
+        
+        // የ Cart መረጃንም ባዶ ማድረግ
+        window.buyerCartData = [];
 
-        // 2. ከ Firebase ላይ ሙሉ በሙሉ ማጥፋት (ሪፍሬሽ ሲደረግ እንዳይመለስ)
+        // 2. ከ Firebase ላይ ማጥፋት (ሪፍሬሽ ሲደረግ እንዳይመለስ)
         if (typeof db !== 'undefined' && navigator.onLine) {
-            db.ref(`tirfe_system/buyers/${buyerUsername}`).remove().then(() => {
-                executeBuyerLogoutProcess();
+            // እዚህ ጋር ፕሮፋይሉን ሳንነካ 'receipts' (ደረሰኞች) የሚለውን ዳታ ብቻ ነው የምናጠፋው
+            db.ref(`tirfe_system/buyers/${buyerUsername}/receipts`).remove().then(() => {
+                showCustomAlert("✅ ተሳክቷል", "የደረሰኝ እና የትዕዛዝ መረጃዎችዎ በተሳካ ሁኔታ ተጠርገዋል!");
+                renderBuyerCatalog();
             }).catch(err => {
                 console.error("Firebase delete error:", err);
-                executeBuyerLogoutProcess(); // ስህተት ቢፈጠርም ሎካል ላይ ስለጠፋ ፔጁን ሪፍሬሽ እናድርገው
+                // ስህተት ቢፈጠርም ሎካል ላይ ስለጠፋ ፔጁን አፕዴት እናደርገዋለን
+                showCustomAlert("✅ ተሳክቷል", "መረጃዎ ጸድቷል፣ ነገር ግን ከኢንተርኔት ጋር ላይገናኝ ይችላል።");
+                renderBuyerCatalog();
             });
         } else {
-            // ኢንተርኔት ባይኖርም ሎካል ላይ ስላጠፋነው አውጥቶ ሪፍሬሽ ያደርጋል
-            executeBuyerLogoutProcess();
+            // ኢንተርኔት ከሌለም ሎካል ላይ ስላጠፋነው አፕዴት እናደርጋለን
+            showCustomAlert("✅ ተሳክቷል", "የደረሰኝ መረጃዎችዎ ተጠርገዋል። (Offline)");
+            renderBuyerCatalog();
         }
     });
 };
-
-function executeBuyerLogoutProcess() {
-    currentBuyer = null;
-    window.buyerCartData = [];
-    localStorage.removeItem('tirfe_active_session');
-    showCustomAlert("✅ ተሳክቷል", "የእርስዎ ዳታ ሙሉ በሙሉ ከሲስተሙ ተጠርጓል።", () => {
-        location.reload();
-    });
-}
 // ----------------------------------------------------
 
 window.openBuyerProfileSettings = function() {
