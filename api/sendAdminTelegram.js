@@ -4,7 +4,7 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-    
+
     // Pre-flight request handling
     if (req.method === 'OPTIONS') {
         res.status(200).end();
@@ -17,9 +17,13 @@ export default async function handler(req, res) {
 
     const message = req.body.text;
     
-    // የደህንነት ማሻሻያ፡- ሚስጥራዊ ኮዶቹ በ Vercel Environment Variables ይቀመጣሉ
-    const ADMIN_BOT_TOKEN = process.env.ADMIN_BOT_TOKEN;
-    const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
+    // 💡 ማሻሻያ፡- ሚስጥራዊ ኮዶቹ መጀመሪያ ከ frontend (request body) ይፈለጋሉ፣ ከሌሉ ብቻ ከ Vercel Environment Variables ይወስዳል።
+    const ADMIN_BOT_TOKEN = req.body.token || process.env.ADMIN_BOT_TOKEN;
+    const ADMIN_CHAT_ID = req.body.chatId || process.env.ADMIN_CHAT_ID;
+
+    if(!ADMIN_BOT_TOKEN || !ADMIN_CHAT_ID) {
+        return res.status(400).json({ success: false, error: "Telegram Token or Chat ID is missing." });
+    }
 
     const url = `https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`;
 
@@ -36,4 +40,3 @@ export default async function handler(req, res) {
         res.status(500).json({ success: false, error: error.message });
     }
 }
-
