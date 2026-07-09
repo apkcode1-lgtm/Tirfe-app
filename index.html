@@ -25,6 +25,16 @@
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
+        <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'am', // የዌብሳይቱ ዋና ቋንቋ (አማርኛ)
+        includedLanguages: 'am,om,en', // አማርኛ፣ ኦሮሞኛ እና እንግሊዝኛ ብቻ እንዲታዩ
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+      }, 'google_translate_element');
+    }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </head>
 <body class="theme-deepblue">
 
@@ -49,6 +59,7 @@
     <section id="welcomeGateway" class="gateway-box">
         <div class="hero-icon" style="font-size: 4rem; margin-bottom: 10px;">🚀</div>
         <h2>እንኳን ደህና መጡ! <span id="syncIndicator" class="hidden offline-tag">Offline ሞድ</span></h2>
+            <div id="google_translate_element" style="margin-bottom: 15px;"></div>
         <p>ወደ ዘመናዊው 'ትርፌ' የሱቅ መቆጣጠሪያ ሲስተም</p>
         <button class="gateway-btn" onclick="openUnifiedLogin()" style="justify-content: center; background: var(--success-color); color: black; font-size: 1.2rem;">🔑 ሎጊን (Login)</button>
         <button class="gateway-btn" onclick="openUnifiedRegister()" style="justify-content: center; background: var(--warning-color); color: black; font-size: 1.2rem;">📝 ሪጅስተር (Register)</button>
