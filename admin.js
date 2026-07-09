@@ -14,16 +14,19 @@ window.saveAdminSystemSettings = function() {
     let tgToken = document.getElementById('adminTgToken').value.trim();
     let tgChatId = document.getElementById('adminTgChatId').value.trim();
     let bankAccount = document.getElementById('adminBankInfo').value.trim();
+
     if(!localDB.adminSettings) localDB.adminSettings = {};
     localDB.adminSettings.tgToken = tgToken;
     localDB.adminSettings.tgChatId = tgChatId;
     localDB.adminSettings.bankAccount = bankAccount;
     pushToFirebase();
+
     showCustomAlert("ተሳክቷል", "የዋና አከራይ ቴሌግራም እና ባንክ መረጃ በተሳካ ሁኔታ ተቀምጧል!");
 };
 
 window.openVATSettings = function() {
     let currentVat = (localDB.adminSettings && localDB.adminSettings.vatRate) ? localDB.adminSettings.vatRate : 0;
+
     showFormModal("🧾 የቫት (VAT) ማስተካከያ", [
         { id: "vatRate", label: "የቫት መጠን በመቶኛ (%) ያስገቡ፦", type: "number", placeholder: "ምሳሌ: 15", defaultValue: currentVat }
     ], (res) => {
@@ -41,40 +44,35 @@ window.openTariffSettings = function() {
         { id: "tariffAmount", label: "የብር መጠን ያስገቡ (ETB)", type: "number", placeholder: "0.00" }
     ], (res) => {
         if(!localDB.tariffs) localDB.tariffs = { low: 500, medium: 1000, high: 2000 };
-        localDB.tariffs[res.tariffTier] = parseFloat(res.tariffAmount) || 0; 
+        
+        let oldAmount = localDB.tariffs[res.tariffTier];
+        let newAmount = parseFloat(res.tariffAmount) || 0;
+        
+        localDB.tariffs[res.tariffTier] = newAmount; 
+        
+        // 💡 ማሻሻያ፡- የድሮ ተከራዮችን አዲስ በተስተካከለው ዋጋ ማሻሻል (Batch Update)
+        let updatedCount = 0;
+        if (localDB.tenants) {
+            Object.keys(localDB.tenants).forEach(key => {
+                if (localDB.tenants[key].registrationFee === oldAmount) {
+                    localDB.tenants[key].registrationFee = newAmount;
+                    updatedCount++;
+                }
+            });
+        }
+        
         pushToFirebase();
-        showCustomAlert("ተሳክቷል", `ታሪፉ ለ "${res.tariffTier}" በተሳካ ሁኔታ ወደ ${res.tariffAmount} ETB ተቀይሯል! አዲስ ሲመዘገቡ ይህ ዋጋ ይመጣል።`);
+        renderAdminPanel(); // ማሳያው እንዲታደስ
+        showCustomAlert("ተሳክቷል", `ታሪፉ ለ "${res.tariffTier}" በተሳካ ሁኔታ ወደ ${newAmount} ETB ተቀይሯል! አዲስ ሲመዘገቡ ይህ ዋጋ ይመጣል።\n\n${updatedCount > 0 ? `እንዲሁም ${updatedCount} ነባር ተከራዮች ላይ የታሪፍ ማስተካከያ ተደርጓል።` : ''}`);
     });
 };
 
 /* --- የንግድ ዘርፍ ማስተዳደሪያ (Business Type Manager) --- */
-window.populateAllBizTypeDropdowns = function() {
-    let bizTypes = localDB.businessTypes || ["አጠቃላይ ንግድ"];
-    let optionsHTML = `<option value="">-- የንግድ ዘርፍ ይምረጡ (ግዴታ) --</option>`;
-    // Sort alphabetically for better UX
-    let sortedBizTypes = [...bizTypes].sort((a, b) => a.localeCompare(b));
-    sortedBizTypes.forEach(b => {
-        optionsHTML += `<option value="${b}">${b}</option>`;
-    });
-    
-    let pubSelect = document.getElementById('pub_newBusinessType');
-    let adminSelect = document.getElementById('newBusinessType');
-    
-    if(pubSelect) {
-        let currentVal = pubSelect.value;
-        pubSelect.innerHTML = optionsHTML;
-        if(currentVal && bizTypes.includes(currentVal)) pubSelect.value = currentVal;
-    }
-    
-    if(adminSelect) {
-        let currentVal = adminSelect.value;
-        adminSelect.innerHTML = optionsHTML;
-        if(currentVal && bizTypes.includes(currentVal)) adminSelect.value = currentVal;
-    }
-};
+// 💡 ማሻሻያ:- populateAllBizTypeDropdowns የሚለው ወደ globals.js ተወስዷል (ሁሉም ተጠቃሚዎች እንዲያዩት)
 
 window.openBizTypeManager = function() {
     let modal = document.getElementById('bizTypeModal');
+
     if(modal) {
         modal.classList.remove('hidden');
         document.getElementById('modalOverlay').classList.remove('hidden');
@@ -86,9 +84,11 @@ window.renderBizTypesList = function() {
     let container = document.getElementById('bizTypeListContainer');
     if(!container) return;
     if(!localDB.businessTypes) localDB.businessTypes = ["አጠቃላይ ንግድ"];
+
     container.innerHTML = '';
     
     let sortedBizTypes = [...localDB.businessTypes].sort((a, b) => a.localeCompare(b));
+
     if(sortedBizTypes.length === 0) {
         container.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:0.9rem;">ምንም የተመዘገበ የንግድ ዘርፍ የለም።</p>';
         return;
@@ -107,12 +107,14 @@ window.renderBizTypesList = function() {
 window.addNewBizType = function() {
     let inputField = document.getElementById('newBizTypeName');
     let newType = inputField.value.trim();
+
     if(!newType) {
         showCustomAlert("ስህተት", "እባክዎ የንግድ ዘርፍ ስም ያስገቡ!");
         return;
     }
     
     if(!localDB.businessTypes) localDB.businessTypes = [];
+
     // Duplicate Check
     if(localDB.businessTypes.includes(newType)) {
         showCustomAlert("ማሳሰቢያ", `"${newType}" የሚለው የንግድ ዘርፍ ከዚህ በፊት ተመዝግቧል! አዲስ ያስገቡ።`);
@@ -121,7 +123,7 @@ window.addNewBizType = function() {
     
     localDB.businessTypes.push(newType);
     pushToFirebase();
-    populateAllBizTypeDropdowns();
+    if (typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
     renderBizTypesList();
     inputField.value = ''; // clear input
 };
@@ -131,21 +133,17 @@ window.deleteBizType = function(bizName) {
         if(!localDB.businessTypes) return;
         localDB.businessTypes = localDB.businessTypes.filter(b => b !== bizName);
         pushToFirebase();
-        populateAllBizTypeDropdowns();
+        if (typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
         renderBizTypesList();
     });
 };
-
-document.addEventListener('DOMContentLoaded', () => {
-    // ፔጁ ሲከፈት የንግድ ዘርፎችን ወደ dropdowns ይጫናል
-    setTimeout(populateAllBizTypeDropdowns, 1000); 
-});
 
 /* -------------------------------------------------------- */
 
 function autoFillCapitalFee() {
     let capital = document.getElementById('newCapitalTier').value;
     let feeInput = document.getElementById('newRegistrationFee');
+
     let tariffs = localDB.tariffs || { low: 500, medium: 1000, high: 2000 };
     
     if (capital === 'low') feeInput.value = tariffs.low;
@@ -197,7 +195,6 @@ async function registerTenant() {
             try {
                 // 🔒 በፋየርቤዝ Auth በኩል መመዝገብ (የአድሚን ተከራይ ፈጠራ)
                 await auth.createUserWithEmailAndPassword(newEmail, genCode);
-
                 localDB.tenants[user] = { 
                     shopName: shop, fullName: fullName, phone: phone, telegram: telegram || "-", address: address || "-",
                     businessType: businessType, googleMapsLink: mapsLink || "", shopLogo: shopLogoBase64 || "", gmail: newEmail,
@@ -207,6 +204,7 @@ async function registerTenant() {
                     status: "active", theme: "theme-deepblue", staffAccounts: [],
                     data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, accumulatedVat: 0, lastMonthlyResetDate: timestampNow } 
                 };
+
                 pushToFirebase(); renderAdminPanel();
                 
                 document.getElementById('newShopName').value = ''; document.getElementById('newFullName').value = '';
@@ -234,6 +232,7 @@ async function registerTenant() {
 function openAdminTenantEditor(user) {
     let t = localDB.tenants[user];
     let bizOptions = (localDB.businessTypes || ["አጠቃላይ ንግድ"]).map(b => ({ value: b, label: b }));
+
     showFormModal(`✍️ የተከራይ መረጃ ማሻሻያ (${t.shopName})`, [
         { id: "shopName", label: "የሱቅ ስም", type: "text", defaultValue: t.shopName },
         { id: "fullName", label: "የተከራይ ሙሉ ስም", type: "text", defaultValue: t.fullName },
@@ -300,14 +299,12 @@ window.openRevenueRegistrationModal = function() {
         }
 
         if(!localDB.revenueAuthorities) localDB.revenueAuthorities = {};
- 
         if(localDB.revenueAuthorities[user]) { showCustomAlert("ስህተት", "ይህ ዩዘርኔም አስቀድሞ ተይዟል!");
             return; }
 
         try {
             // 🔒 በፋየርቤዝ Auth በኩል መመዝገብ (የገቢዎች ባለስልጣን)
             await auth.createUserWithEmailAndPassword(email, pass);
-
             localDB.revenueAuthorities[user] = {
                 username: user,
                 authUser: user,
@@ -320,6 +317,7 @@ window.openRevenueRegistrationModal = function() {
                 authWoreda: (res.revWoreda || "").trim(),
                 status: "active"
             };
+
             pushToFirebase();
             
             // ምርጫዎቹ ሪፍሬሽ ሳይደረግ ወዲያውኑ ለተከራይ እንዲታዩ መላክ
@@ -360,6 +358,7 @@ window.renderAdminRevenueList = function() {
             </td>
         </tr>`;
     });
+
     if(!hasData) {
         tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">ምንም የተመዘገበ የገቢዎች ባለስልጣን የለም።</td></tr>`;
     }
@@ -499,6 +498,7 @@ window.viewMotorDocs = function(username) {
                 <p style="font-size: 0.8rem; color:#94a3b8; margin-top: 10px;">ለማጉላት ፎቶዎቹን ይጫኑ</p>
             </div>
         `;
+
         document.getElementById('alertTitle').innerText = `የ ${m.firstName} ሰነዶች`;
         document.getElementById('alertMessage').innerHTML = htmlContent;
         openModalContainer();
@@ -567,6 +567,7 @@ function renderAdminPanel() {
         let loginInfo = `👤 አባል ስም: <code>${t.username}</code><br>${codeDisplay}<br>🛠️ ሰራተኛ: <code>${staffCnt} የተመዘገቡ</code>`;
         let contractDisplay = `<span>${t.contractType || 'በወር'}</span><br><b class="text-warning">${t.registrationFee || 0} ETB</b>`;
         let bType = t.businessType || 'አጠቃላይ ንግድ';
+
         tbody.innerHTML += `<tr>
             <td><b>${t.shopName}</b><br><span style="color:var(--accent-color); font-size:0.8rem;">[${bType}]</span></td>
             <td>${profileInfo}</td><td>${loginInfo}</td><td>${contractDisplay}</td>
@@ -606,7 +607,6 @@ function renderAdminBuyers() {
         tbody.innerHTML += `<tr>
             <td>👤 ${b.username}</td><td>📞 ${b.phone}</td><td>${status}</td>
             <td style="display:flex; gap:5px;">
-   
                 <button class="${actionClass} btn-sm" onclick="toggleBuyerStatus('${b.username}')">🚫 ${actionText}</button>
                 <button class="btn-expense btn-sm" onclick="deleteBuyer('${b.username}')">🗑️ አጥፋ</button>
             </td>
