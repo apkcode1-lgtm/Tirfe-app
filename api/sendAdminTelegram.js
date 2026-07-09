@@ -27,11 +27,7 @@ export default async function handler(req, res) {
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                chat_id: ADMIN_CHAT_ID, 
-                text: message,
-                parse_mode: 'HTML' // ማስተካከያ: ፅሁፎችን ለማሳመር ተጨመረ
-            })
+            body: JSON.stringify({ chat_id: ADMIN_CHAT_ID, text: message })
         });
         const data = await response.json();
         res.status(200).json({ success: true, data });
@@ -40,3 +36,4 @@ export default async function handler(req, res) {
         res.status(500).json({ success: false, error: error.message });
     }
 }
+
