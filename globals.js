@@ -22,6 +22,36 @@ function setCategoryFilter(cat) {
 }
 
 // =====================================================================
+// 💡 አዲሱ የንግድ ዘርፍ ማምጫ ኮድ ከ admin.js እዚህ መጥቷል
+// =====================================================================
+window.populateAllBizTypeDropdowns = function() {
+    let bizTypes = localDB.businessTypes || ["አጠቃላይ ንግድ"];
+    let optionsHTML = `<option value="">-- የንግድ ዘርፍ ይምረጡ (ግዴታ) --</option>`;
+    
+    // Sort alphabetically for better UX
+    let sortedBizTypes = [...bizTypes].sort((a, b) => a.localeCompare(b));
+    
+    sortedBizTypes.forEach(b => {
+        optionsHTML += `<option value="${b}">${b}</option>`;
+    });
+    
+    let pubSelect = document.getElementById('pub_newBusinessType');
+    let adminSelect = document.getElementById('newBusinessType');
+    
+    if(pubSelect) {
+        let currentVal = pubSelect.value;
+        pubSelect.innerHTML = optionsHTML;
+        if(currentVal && bizTypes.includes(currentVal)) pubSelect.value = currentVal;
+    }
+    
+    if(adminSelect) {
+        let currentVal = adminSelect.value;
+        adminSelect.innerHTML = optionsHTML;
+        if(currentVal && bizTypes.includes(currentVal)) adminSelect.value = currentVal;
+    }
+};
+
+// =====================================================================
 // ዳይናሚክ የክልል፣ ዞን እና ወረዳ ሎጂክ (Cascading Dropdowns from Revenue Data)
 // =====================================================================
 
@@ -36,6 +66,7 @@ function getAvailableLocations() {
         let rRegion = rev.authRegion || rev.region; 
         let rZone = rev.authZone || rev.zone;
         let rWoreda = rev.authWoreda || rev.woreda;
+
         if (rRegion && rZone && rWoreda) {
             
             // ክልል መጨመር
@@ -93,6 +124,7 @@ function handleRegionChange(regionId, zoneId, woredaId) {
     let locs = getAvailableLocations();
     zoneSelect.innerHTML = '<option value="">-- ዞን ይምረጡ --</option>';
     worSelect.innerHTML = '<option value="">-- መጀመሪያ ዞን ይምረጡ --</option>';
+
     if (selectedRegion && locs.zonesByRegion[selectedRegion]) {
         locs.zonesByRegion[selectedRegion].forEach(z => {
             let opt = document.createElement('option');
@@ -146,7 +178,8 @@ function updateAllLocationDropdowns() {
                 }
             }
         }
-    } catch (e) { console.error("Error in public dropdowns: ", e); }
+    } catch (e) { console.error("Error in public dropdowns: ", e);
+    }
 
     // የአድሚን መመዝገቢያ ፎርም አፕዴት ማድረግ
     try {
@@ -168,7 +201,8 @@ function updateAllLocationDropdowns() {
                 }
             }
         }
-    } catch (e) { console.error("Error in admin dropdowns: ", e); }
+    } catch (e) { console.error("Error in admin dropdowns: ", e);
+    }
 
     // የሞተረኛ መመዝገቢያ ፎርም አፕዴት ማድረግ
     try {
@@ -190,11 +224,17 @@ function updateAllLocationDropdowns() {
                 }
             }
         }
-    } catch (e) { console.error("Error in motor dropdowns: ", e); }
+    } catch (e) { console.error("Error in motor dropdowns: ", e);
+    }
 }
 
 // አዲስ የተጨመረ - ተጠቃሚው "ሞተረኛ ነኝ" ብሎ ሲመርጥ ፎርሙን በራሱ ጊዜ ዳታ እንዲያመጣ (Refresh እንዲያደርግ) የተጨመረ 
 document.addEventListener('DOMContentLoaded', () => {
+    // 💡 ማሻሻያ:- ፔጁ ሲከፈት የንግድ ዘርፎችን ወደ ሁሉም dropdowns ይጭናል
+    if(typeof populateAllBizTypeDropdowns === 'function') {
+        setTimeout(populateAllBizTypeDropdowns, 1000); 
+    }
+
     const roleSelect = document.getElementById('unifiedRegRole');
     if(roleSelect) {
         roleSelect.addEventListener('change', (e) => {
