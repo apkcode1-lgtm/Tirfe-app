@@ -17,10 +17,12 @@ window.addEventListener('online', handleOnlineStatus);
 window.addEventListener('offline', handleOnlineStatus);
 
 loadLocalStorageBackup();
+
 function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
+
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
@@ -33,6 +35,7 @@ function handleOnlineStatus() {
 
 function loadLocalStorageBackup() {
     let backup = localStorage.getItem('tirfe_local_db');
+
     if(backup) {
         let parsedBackup = JSON.parse(backup);
         
@@ -119,6 +122,7 @@ function pushToFirebase() {
             if(localDB.taxReceipts) updates.taxReceipts = cleanData(localDB.taxReceipts);
             if(localDB.tariffs) updates.tariffs = cleanData(localDB.tariffs);
             if(localDB.businessTypes) updates.businessTypes = cleanData(localDB.businessTypes);
+
             if(Object.keys(updates).length > 0) {
                 db.ref('tirfe_system').update(updates).catch(err => console.error("Firebase Global Updates Error:", err));
             }
@@ -128,10 +132,19 @@ function pushToFirebase() {
 
 function sendAdminTelegramAlert(message) {
     const backendAPIUrl = "/api/sendAdminTelegram";
+    
+    // 💡 ማሻሻያ፡ አድሚኑ በሲስተሙ (UI) ላይ ያስገባውን ቶከን አውጥቶ ወደ API ይልካል
+    let tgToken = (localDB.adminSettings && localDB.adminSettings.tgToken) ? localDB.adminSettings.tgToken : null;
+    let tgChatId = (localDB.adminSettings && localDB.adminSettings.tgChatId) ? localDB.adminSettings.tgChatId : null;
+
     fetch(backendAPIUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: message })
+        body: JSON.stringify({ 
+            text: message,
+            token: tgToken,
+            chatId: tgChatId
+        })
     }).catch(err => console.log("Admin Telegram API Alert Error: ", err));
 }
 
@@ -216,7 +229,7 @@ if(typeof db !== 'undefined') {
                     triggerUIRefresh();
                 }
             });
-            
+
             // የተስተካከለው:- ገዥዎች የሻጮችን ዳታ በቋሚነት (Real-time) እንዲያዳምጡ የተጨመረ
             db.ref(`tirfe_system/tenants`).on('value', (snapshot) => {
                 if(snapshot.exists()) {
@@ -263,7 +276,7 @@ if(typeof db !== 'undefined') {
     function triggerUIRefresh() {
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
         if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
-        
+
         if(typeof currentTenant !== 'undefined' && currentTenant) {
             let checkTenant = localDB.tenants[currentTenant.username];
             if(!checkTenant || checkTenant.status === "blocked") { 
@@ -280,7 +293,7 @@ if(typeof db !== 'undefined') {
             if(checkBuyer) currentBuyer = checkBuyer;
         }
         if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-        
+
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
