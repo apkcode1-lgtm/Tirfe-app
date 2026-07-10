@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=0.5, maximum-scale=3.0">
+    <meta name="theme-color" content="#0b0f19">
+    <title>ገዥ (Buyer) - ትርፌ</title>
+    <link rel="stylesheet" href="style.css">
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script defer src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body class="theme-deepblue">
+
+<main class="container">
+    <section id="buyerPage">
+        <header class="welcome-header">
+            <h1>🛍️ የዕቃዎችና የሱቆች ማውጫ መድረክ</h1>
+            <p>በአቅራቢያዎ ያሉ ሱቆችን ምርቶች፣ ዋጋዎች እና አድራሻ እዚህ ያግኙ። በዴሊቨሪ ማዘዝም ይችላሉ!</p>
+            <div id="buyerProfileBadge" style="margin-top:10px; font-size:0.9rem; color:var(--warning-color); font-weight:bold;"></div>
+            
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top:10px;">
+                <button class="btn-config" style="background:var(--accent-color); color:#000;" onclick="openBuyerProfileSettings()">⚙️ የፕሮፋይል ሲቲንግ</button>
+                <button class="btn-clear" onclick="clearBuyerData()" style="background-color: #ef4444; color: white;">🗑️ ዳታ አጽዳ</button>
+                <button class="btn-expense" onclick="logoutBuyer()">🚪 ከገዥ ገፅ ውጣ</button>
+            </div>
+            
+            <button class="btn-sell btn-block" style="background-color: #10b981; color: black; font-weight: bold; margin-top: 15px; font-size: 1.1rem; padding: 12px; border-radius: 8px;" onclick="openQRScanner()">📷 የሻጭ QR ኮድ ስካን አድርግ (Scan)</button>
+        </header>
+        
+        <section class="section-box" id="buyerCartSection" style="display: none; border-color: var(--warning-color);">
+            <h2 style="color:var(--warning-color);">🛒 የእኔ የዕቃዎች ቅርጫት (My Cart)</h2>
+            <div class="table-responsive">
+                <table style="width: 100%; margin-bottom: 10px;">
+                    <thead><tr><th>የዕቃ ስም (ሱቅ)</th><th>ብዛት</th><th>ዋጋ</th><th>እርምጃ</th></tr></thead>
+                    <tbody id="buyerCartList"></tbody>
+                </table>
+            </div>
+            <div class="cart-total-bar">
+                አጠቃላይ ሂሳብ: <span id="buyerCartTotalSum" style="color: var(--success-color);">0</span> ብር
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                <button class="btn-sell btn-block" style="flex:1; background-color: #f59e0b; color: #000; font-size: 1.1rem; border-radius: 8px; padding: 12px;" onclick="checkoutBuyerCart('shop')">🛒 ሱቅ ነኝ (Shop Pickup)</button>
+                <button class="btn-add btn-block" style="flex:1; background-color: #10b981; color: #000; font-size: 1.1rem; border-radius: 8px; padding: 12px;" onclick="checkoutBuyerCart('delivery')">🚚 ዴሊቨሪ (Delivery)</button>
+            </div>
+        </section>
+        
+        <section class="section-box">
+            <h2 style="color: var(--success-color);">📦 የአሁን ትዕዛዞች (Active Delivery Orders)</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>የሱቅ ስም</th><th>ዕቃና ብዛት</th><th>ዋጋ (ከነ ቫት)</th><th>ቀን</th><th>ሁኔታ</th></tr></thead>
+                    <tbody id="buyerActiveOrdersBody"></tbody>
+                </table>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; flex-wrap: wrap; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                <h3 style="font-size: 1.1rem; color: #94a3b8; margin: 0;">📜 ያለቁ የትዕዛዝ ታሪክ (Order History)</h3>
+                <div style="display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <label style="font-size:0.8rem; color:var(--accent-color); margin:0;">ቀን ምረጥ፦</label>
+                    <input type="date" id="buyerOrderHistoryDateFilter" onchange="renderBuyerCatalog()" style="padding: 4px; margin: 0; width: auto; font-size: 0.8rem; background: transparent; border: 1px solid #3a506b; color: white;">
+                    <button class="btn-expense btn-sm" onclick="document.getElementById('buyerOrderHistoryDateFilter').value=''; renderBuyerCatalog();" style="padding: 4px 8px;">ሁሉንም እይ</button>
+                </div>
+            </div>
+            <div class="table-responsive" style="margin-top: 10px;">
+                <table>
+                    <thead><tr><th>የሱቅ ስም</th><th>ዕቃና ብዛት</th><th>ዋጋ (ከነ ቫት)</th><th>ቀን</th><th>ሁኔታ</th></tr></thead>
+                    <tbody id="buyerHistoryOrdersBody"></tbody>
+                </table>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; flex-wrap: wrap; gap: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                <h3 style="font-size: 1.1rem; color: var(--success-color); margin: 0;">🧾 የተቆረጡ ደረሰኞች (Receipts)</h3>
+                <div style="display: flex; gap: 8px; align-items: center; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <label style="font-size:0.8rem; color:var(--accent-color); margin:0;">ቀን ምረጥ፦</label>
+                    <input type="date" id="buyerReceiptDateFilter" onchange="renderBuyerCatalog()" style="padding: 4px; margin: 0; width: auto; font-size: 0.8rem; background: transparent; border: 1px solid #3a506b; color: white;">
+                    <button class="btn-expense btn-sm" onclick="document.getElementById('buyerReceiptDateFilter').value=''; renderBuyerCatalog();" style="padding: 4px 8px;">ሁሉንም እይ</button>
+                </div>
+            </div>
+            <div class="table-responsive" style="margin-top: 10px;">
+                <table>
+                    <thead><tr><th>ደረሰኝ ID</th><th>ቀን</th><th>ዕቃ (ብዛት)</th><th>የተከፈለ</th><th>እርምጃ</th></tr></thead>
+                    <tbody id="buyerReceiptsBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section-box">
+            <h2>🛒 በአሁኑ ሰዓት በገበያ ላይ ያሉ ሱቆችና ዕቃዎች</h2>
+            
+            <div id="qrFilterIndicator" class="hidden" style="background: rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center; border: 1px solid #10b981;">
+                <span style="color: #10b981; font-weight: bold; font-size: 1rem;">🟢 የ <span id="qrFilterShopName" style="color: #fff;">...</span> ሱቅ ዕቃዎችን ብቻ እየተመለከቱ ነው</span><br>
+                <button class="btn-expense btn-sm" onclick="clearQRFilter()" style="margin-top: 10px; padding: 6px 15px;">❌ ወደ ሁሉም ሱቆች ተመለስ</button>
+            </div>
+
+            <div class="search-container">
+                <input type="text" id="buyerSearchInput" class="search-input" placeholder="🔍 ዕቃ በስም ለመፈለግ እዚህ ይጻፉ..." oninput="renderBuyerCatalog()">
+            </div>
+            <div id="buyerCategoryContainer" class="category-filters"></div>
+            <div id="buyerShopsContainer" class="shops-grid"></div>
+        </section>
+    </section>
+</main>
+
+<div id="modalOverlay" class="modal-overlay hidden">
+    <div id="qrScannerModal" class="modal-card hidden" style="max-width: 400px;">
+        <div class="modal-header"><h3 class="text-success">📷 የሻጭ QR ስካን ማድረጊያ</h3></div>
+        <div class="modal-body">
+            <div id="qr-reader" style="width:100%; border-radius: 8px; overflow: hidden; border: 2px solid #10b981;"></div>
+            <p style="text-align:center; color:#94a3b8; font-size:0.85rem; margin-top:15px;">ካሜራዎን ወደ ሻጩ QR ኮድ ያዞሩ። ሲስተሙ በራሱ ያነበዋል።</p>
+        </div>
+        <div class="modal-footer" style="margin-top: 15px;">
+            <button class="btn-expense btn-block" onclick="closeQRScanner()">ሰርዝ / ዝጋ</button>
+        </div>
+    </div>
+
+    <div id="alertModal" class="modal-card hidden">
+        <div class="modal-header"><h3 id="alertTitle" class="text-warning">መልዕክት</h3></div>
+        <div class="modal-body"><p id="alertMessage"></p></div>
+        <div class="modal-footer"><button class="btn-add" onclick="closeActiveModal()">እሺ</button></div>
+    </div>
+    <div id="confirmModal" class="modal-card hidden">
+        <div class="modal-header"><h3 id="confirmTitle" class="text-danger">እርግጠኛ ኖት?</h3></div>
+        <div class="modal-body"><p id="confirmMessage"></p></div>
+        <div class="modal-footer">
+            <button class="btn-expense" id="confirmYesBtn">አዎ</button>
+            <button class="btn-add" onclick="closeActiveModal()">አይ</button>
+        </div>
+    </div>
+    <div id="formModal" class="modal-card hidden">
+        <div class="modal-header"><h3 id="formModalTitle" class="text-success">መረጃ ማስገቢያ</h3></div>
+        <div class="modal-body" id="formModalBody"></div>
+        <div class="modal-footer" id="formModalFooter"></div>
+    </div>
+</div>
+
+<script src="firebase-config.js"></script>
+<script src="database.js"></script>
+<script src="utils.js"></script>
+<script src="globals.js"></script>
+<script src="main_buyer.js"></script>
+<script>
+    // Auth Guard: ገዥ መሆኑን ማረጋገጫ
+    window.onload = function() {
+        let session = JSON.parse(localStorage.getItem('tirfe_active_session'));
+        if (!session || session.role !== 'buyer') {
+            window.location.href = 'index.html';
+        }
+    };
+</script>
+</body>
+</html>
+
