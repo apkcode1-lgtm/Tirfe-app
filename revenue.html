@@ -5,56 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=0.5, maximum-scale=3.0">
     <meta name="theme-color" content="#0b0f19">
     <title>ገቢዎች (Revenue) - ትርፌ</title>
-    <style>
-    /* CSS Variables */
-    :root {
-        --bg-color: #0b0f19;
-        --card-bg: #1e293b;
-        --accent-color: #3b82f6;
-        --purple-color: #8b5cf6;
-        --success-color: #10b981;
-        --warning-color: #f59e0b;
-        --danger-color: #ef4444;
-        --text-color: #f8fafc;
-    }
-
-    /* Reset & Base */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: sans-serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; }
-    .hidden { display: none !important; }
-
-    /* Layout */
-    .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
-    .section-box { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid #334155; }
-    
-    /* Dashboard & Cards */
-    .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-    .card { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid #334155; }
-    
-    /* Buttons */
-    .btn-config, .btn-expense, .btn-sell, .btn-add { 
-        padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; color: white; 
-    }
-    .btn-block { width: 100%; display: block; }
-    .btn-expense { background-color: var(--danger-color); }
-    .btn-sell { background-color: var(--success-color); }
-
-    /* Table */
-    .table-responsive { overflow-x: auto; margin-top: 15px; }
-    table { width: 100%; border-collapse: collapse; background: var(--card-bg); }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
-
-    /* Modal */
-    .modal-overlay { position: fixed; top:0; left:0; width: 100%; height:100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-    .modal-card { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 90%; max-width: 500px; }
-
-    /* Utilities */
-    .text-warning { color: var(--warning-color); }
-    .text-danger { color: var(--danger-color); }
-    .text-success { color: var(--success-color); }
-    input { padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; width: 100%; }
-</style>
-
+    <link rel="stylesheet" href="style.css">
     <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -186,4 +137,3 @@
 </script>
 </body>
 </html>
-
