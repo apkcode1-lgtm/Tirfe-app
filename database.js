@@ -307,8 +307,6 @@ if(typeof db !== 'undefined') {
             }
         }
         
-        let adminPage = document.getElementById('adminPage');
-        if(adminPage && !adminPage.classList.contains('hidden')) { 
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
             if(typeof renderAdminPanel === 'function') renderAdminPanel();
             if(typeof renderAdminMotors === 'function') renderAdminMotors();
