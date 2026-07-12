@@ -185,6 +185,7 @@ async function handleUnifiedLogin() {
                 currentUserRole = "owner";
                 localDB.tenants[user] = t; 
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
+                pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 launchApp(t);
@@ -220,6 +221,7 @@ async function handleUnifiedLogin() {
                 currentBuyer = b;
                 localDB.buyers[user] = b;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: user }));
+                pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 switchView('buyerPage');
@@ -256,6 +258,7 @@ async function handleUnifiedLogin() {
                 currentUserRole = "revenue";
                 localDB.revenueAuthorities[user] = r;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'revenue', loginMode: 'revenue', username: user }));
+                pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 switchView('revenuePage');
@@ -297,6 +300,7 @@ async function handleUnifiedLogin() {
                 currentUserRole = "motor";
                 localDB.motors[user] = m;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'motor', loginMode: 'motor', username: user }));
+                pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 switchView('motorPage');
@@ -342,6 +346,7 @@ async function handleUnifiedLogin() {
                     currentUserRole = "staff";
                     localDB.tenants[s.tenantUsername] = parentTenant;
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: parentTenant.username }));
+                    pushToFirebase();
                     err.innerText = "";
                     if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                     launchApp(parentTenant);
@@ -375,6 +380,7 @@ async function handleUnifiedLogin() {
                             if (isTenantExpired(tLocal, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
                             currentUserRole = "staff";
                             localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: tLocal.username }));
+                            pushToFirebase();
                             err.innerText = "";
                             if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                             launchApp(tLocal);
