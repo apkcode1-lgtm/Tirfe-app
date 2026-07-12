@@ -349,8 +349,7 @@ async function handleUnifiedLogin() {
                     pushToFirebase();
                     err.innerText = "";
                     if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                    launchApp(parentTenant);
-                    if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
+                    window.location.href = "shop.html";
                     return;
                 } else {
                     err.innerText = "❌ የሱቁ ባለቤት መረጃ ሲስተም ውስጥ አልተገኘም!";
