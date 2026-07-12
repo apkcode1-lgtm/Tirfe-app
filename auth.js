@@ -170,7 +170,11 @@ async function handleUnifiedLogin() {
         }
         if(!t && localDB.tenants && localDB.tenants[user]) t = localDB.tenants[user];
         if(t) {
-            if(isFirebaseAuthSuccess || (String(t.gmail || "").toLowerCase() === email.toLowerCase() && (String(t.password) === hashedInputPass || String(t.password).trim() === pass))) {
+            let tEmailMatch = String(t.gmail || "").toLowerCase() === email.toLowerCase();
+            let tPassMatch = (String(t.password) === hashedInputPass || String(t.password).trim() === pass);
+            
+            // 💡 ማስተካከያ፡ Firebase ካሳለፈው፣ ኢሜሉ የዚሁ ዩዘር መሆኑ መረጋገጥ አለበት!
+            if((isFirebaseAuthSuccess && tEmailMatch) || (tEmailMatch && tPassMatch)) {
                 
                 if(String(t.password).trim() === pass && String(t.password) !== hashedInputPass) {
                     t.password = hashedInputPass;
@@ -181,7 +185,6 @@ async function handleUnifiedLogin() {
                 currentUserRole = "owner";
                 localDB.tenants[user] = t; 
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
-                pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 launchApp(t);
@@ -200,7 +203,10 @@ async function handleUnifiedLogin() {
         }
         if(!b && localDB.buyers && localDB.buyers[user]) b = localDB.buyers[user];
         if(b) {
-            if(isFirebaseAuthSuccess || (String(b.email || "").toLowerCase() === email.toLowerCase() && (String(b.password) === hashedInputPass || String(b.password).trim() === pass))) {
+            let bEmailMatch = String(b.email || "").toLowerCase() === email.toLowerCase();
+            let bPassMatch = (String(b.password) === hashedInputPass || String(b.password).trim() === pass);
+
+            if((isFirebaseAuthSuccess && bEmailMatch) || (bEmailMatch && bPassMatch)) {
                 
                 if(String(b.password).trim() === pass && String(b.password) !== hashedInputPass) {
                     b.password = hashedInputPass;
@@ -214,7 +220,6 @@ async function handleUnifiedLogin() {
                 currentBuyer = b;
                 localDB.buyers[user] = b;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: user }));
-                pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 switchView('buyerPage');
@@ -235,7 +240,10 @@ async function handleUnifiedLogin() {
         if(r) {
             let rEmail = String(r.authEmail || r.email || r.gmail || "");
             let rPass = String(r.authPass || r.password || r.pass || "").trim();
-            if(isFirebaseAuthSuccess || (rEmail.toLowerCase() === email.toLowerCase() && (rPass === hashedInputPass || rPass === pass))) {
+            let rEmailMatch = rEmail.toLowerCase() === email.toLowerCase();
+            let rPassMatch = (rPass === hashedInputPass || rPass === pass);
+
+            if((isFirebaseAuthSuccess && rEmailMatch) || (rEmailMatch && rPassMatch)) {
                 
                 if(rPass === pass && rPass !== hashedInputPass) {
                     if (r.authPass) r.authPass = hashedInputPass;
@@ -248,7 +256,6 @@ async function handleUnifiedLogin() {
                 currentUserRole = "revenue";
                 localDB.revenueAuthorities[user] = r;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'revenue', loginMode: 'revenue', username: user }));
-                pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 switchView('revenuePage');
@@ -268,7 +275,10 @@ async function handleUnifiedLogin() {
         }
         if(!m && localDB.motors && localDB.motors[user]) m = localDB.motors[user];
         if(m) {
-            if(isFirebaseAuthSuccess || (String(m.email || "").toLowerCase() === email.toLowerCase() && (String(m.password) === hashedInputPass || String(m.password).trim() === pass))) {
+            let mEmailMatch = String(m.email || "").toLowerCase() === email.toLowerCase();
+            let mPassMatch = (String(m.password) === hashedInputPass || String(m.password).trim() === pass);
+
+            if((isFirebaseAuthSuccess && mEmailMatch) || (mEmailMatch && mPassMatch)) {
                 
                 if(String(m.password).trim() === pass && String(m.password) !== hashedInputPass) {
                     m.password = hashedInputPass;
@@ -287,7 +297,6 @@ async function handleUnifiedLogin() {
                 currentUserRole = "motor";
                 localDB.motors[user] = m;
                 localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'motor', loginMode: 'motor', username: user }));
-                pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 switchView('motorPage');
@@ -296,7 +305,7 @@ async function handleUnifiedLogin() {
             }
         }
 
-        // --- STAFF ACCOUNTS CHECK ---
+        // --- STAFF ACCOUNTS CHECK (FIREBASE) ---
         let s = null;
         if(isOnline && typeof db !== 'undefined') {
             try {
@@ -306,7 +315,10 @@ async function handleUnifiedLogin() {
         }
         
         if (s) {
-            if (isFirebaseAuthSuccess || (String(s.gmail || "").toLowerCase() === email.toLowerCase() && (String(s.pass) === hashedInputPass || String(s.pass).trim() === pass))) {
+            let sEmailMatch = String(s.gmail || "").toLowerCase() === email.toLowerCase();
+            let sPassMatch = (String(s.pass) === hashedInputPass || String(s.pass).trim() === pass);
+
+            if ((isFirebaseAuthSuccess && sEmailMatch) || (sEmailMatch && sPassMatch)) {
                 
                 if(String(s.pass).trim() === pass && String(s.pass) !== hashedInputPass) {
                      s.pass = hashedInputPass;
@@ -330,7 +342,6 @@ async function handleUnifiedLogin() {
                     currentUserRole = "staff";
                     localDB.tenants[s.tenantUsername] = parentTenant;
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: parentTenant.username }));
-                    pushToFirebase();
                     err.innerText = "";
                     if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                     launchApp(parentTenant);
@@ -344,32 +355,38 @@ async function handleUnifiedLogin() {
             }
         }
         
+        // --- STAFF ACCOUNTS CHECK (LOCALDB) ---
         if(localDB.tenants) {
             for(let tKey in localDB.tenants) {
                 let tLocal = localDB.tenants[tKey];
                 if(tLocal && tLocal.staffAccounts) {
-                    let found = tLocal.staffAccounts.find(st => st.user === user && String(st.gmail || "").toLowerCase() === email.toLowerCase() && (String(st.pass) === hashedInputPass || String(st.pass).trim() === pass));
-                    if(isFirebaseAuthSuccess || found) {
+                    // 💡 ማስተካከያ፡ ፋውንድ (found) የሚሆነው በትክክል ዩዘርኔሙ እና ኢሜሉ ሲገኝ ብቻ ነው!
+                    let found = tLocal.staffAccounts.find(st => st.user === user && String(st.gmail || "").toLowerCase() === email.toLowerCase());
+                    
+                    if(found) {
+                        let stPassMatch = (String(found.pass) === hashedInputPass || String(found.pass).trim() === pass);
                         
-                        if (found && String(found.pass).trim() === pass && String(found.pass) !== hashedInputPass) {
-                            found.pass = hashedInputPass;
-                            pushToFirebase();
-                        }
+                        if(isFirebaseAuthSuccess || stPassMatch) {
+                            if (String(found.pass).trim() === pass && String(found.pass) !== hashedInputPass) {
+                                found.pass = hashedInputPass;
+                                pushToFirebase();
+                            }
 
-                        if (isTenantExpired(tLocal, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
-                        currentUserRole = "staff";
-                        localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: tLocal.username }));
-                        err.innerText = "";
-                        if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                        launchApp(tLocal);
-                        if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
-                        return;
+                            if (isTenantExpired(tLocal, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
+                            currentUserRole = "staff";
+                            localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: tLocal.username }));
+                            err.innerText = "";
+                            if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
+                            launchApp(tLocal);
+                            if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
+                            return;
+                        }
                     }
                 }
             }
         }
 
-        err.innerText = "❌ መረጃው ስህተት ነው! አካውንት አልተገኘም።";
+        err.innerText = "❌ መረጃው ስህተት ነው! አካውንት አልተገኘም። እባክዎ ዩዘርኔምዎን ያረጋግጡ።";
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
         
     } catch (error) {
@@ -741,4 +758,3 @@ function verifyEmailCodeSubmit() {
         showCustomAlert("❌ ስህተት", "ያስገቡት ማረጋገጫ ኮድ የተሳሳተ ነው!");
     }
 }
-
