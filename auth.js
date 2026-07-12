@@ -225,7 +225,7 @@ async function handleUnifiedLogin() {
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 switchView('buyerPage');
-                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
+                window.location.href = "buyer.html";
                 return;
             }
         }
