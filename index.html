@@ -8,7 +8,49 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Tirfe%20App%22%2C%22short_name%22%3A%22Tirfe%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230b0f19%22%2C%22theme_color%22%3A%22%2338bdf8%22%7D">
     <title>ትርፌ የሱቅ መቆጣጠሪያ አፕሊኬሽን - Ultimate v12.0</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        ﻿:root {
+    --bg-color: #0b0f19; --card-bg: #151f32; --text-color: #f1f5f9;
+    --accent-color: #38bdf8; --success-color: #4ade80; --danger-color: #f87171;
+    --warning-color: #fbbf24;
+    --purple-color: #c084fc;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --hover-color: rgba(56, 189, 248, 0.1);
+}
+
+.theme-deepblue { --bg-color: #0b0f19; --card-bg: #151f32; --accent-color: #38bdf8;
+--success-color: #4ade80; }
+.theme-emerald { --bg-color: #061e1a; --card-bg: #0b3c34; --accent-color: #2ec4b6; --success-color: #4ade80; }
+.theme-purple { --bg-color: #1a0933; --card-bg: #2d1254; --accent-color: #a29bfe;
+--success-color: #00cec9; }
+.theme-charcoal { --bg-color: #121212; --card-bg: #1e1e1e; --accent-color: #9b59b6; --success-color: #2ecc71; }
+
+* { box-sizing: border-box; margin: 0; padding: 0;
+font-family: system-ui, -apple-system, sans-serif; }
+
+html, body {
+    width: 100%; min-height: 100vh; background-color: var(--bg-color); color: var(--text-color);
+padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    font-size: calc(12px + 0.4vw); -webkit-text-size-adjust: 100%;
+}
+
+.container { width: 100%; max-width: 1200px; margin: 0 auto;
+padding: 12px; }
+.hidden { display: none !important; }
+.text-success { color: var(--success-color) !important; }
+.text-danger { color: var(--danger-color) !important;
+}
+.text-warning { color: var(--warning-color) !important; }
+.text-purple { color: var(--purple-color) !important; }
+
+.gateway-box, .login-box {
+    width: 100%; max-width: 450px;
+margin: 40px auto; background-color: var(--card-bg); 
+    padding: 30px 25px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    text-align: center;
+border: 1px solid var(--border-color); transition: transform 0.3s ease;
+}
+    </style>
     <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
