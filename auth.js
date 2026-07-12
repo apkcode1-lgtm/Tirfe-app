@@ -90,7 +90,7 @@ async function isSystemDataTaken(u, p, skipTenantUser, skipBuyerUser) {
 }
 
 // ---------------------------------------------------------------------
-// NEW LOGIN LOGIC (Firebase Auth + Fallback to LocalDB)
+// NEW LOGIN LOGIC (Firebase Auth + Fallback to LocalDB) - FIXED
 // ---------------------------------------------------------------------
 async function handleUnifiedLogin() {
     let user = document.getElementById('loginUnifiedUser').value.trim().toLowerCase();
@@ -140,26 +140,28 @@ async function handleUnifiedLogin() {
         }
     }
 
-    err.innerText = "🔄 በማረጋገጥ ላይ...";
+    // ማስተካከያ 1፡ እዚህ ጋር የነበረው ትርፍ "በማረጋገጥ ላይ" የሚል ጽሑፍ ተጠፍቶ ባዶ ተደርጓል
+    err.innerText = "";
     
-    // 2. Try Firebase Authentication First
-    let isFirebaseAuthSuccess = false;
+    // ማስተካከያ 2፡ ሁሉም ቀሪ ኮድ ወደ አንድ ትልቅ Try...Catch ውስጥ ገብቷል ድምፅ አልባ ክራሽ እንዳይኖር
     try {
-        await auth.signInWithEmailAndPassword(email, pass);
-        isFirebaseAuthSuccess = true;
-    } catch (fbAuthError) {
-        console.warn("Firebase Auth Failed: ", fbAuthError.message);
-        const strictErrors = ['auth/wrong-password', 'auth/user-not-found', 'auth/invalid-credential', 'auth/invalid-email', 'auth/invalid-login-credentials'];
-        if (strictErrors.includes(fbAuthError.code)) {
-            err.innerText = "❌ የተሳሳተ ኢሜል ወይም የይለፍ ቃል! (አካውንቱ የለም ወይም ፓስዎርድ ተሳስቷል)";
-            if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-            return;
+        // 2. Try Firebase Authentication First
+        let isFirebaseAuthSuccess = false;
+        try {
+            await auth.signInWithEmailAndPassword(email, pass);
+            isFirebaseAuthSuccess = true;
+        } catch (fbAuthError) {
+            console.warn("Firebase Auth Failed: ", fbAuthError.message || fbAuthError);
+            const strictErrors = ['auth/wrong-password', 'auth/user-not-found', 'auth/invalid-credential', 'auth/invalid-email', 'auth/invalid-login-credentials'];
+            if (fbAuthError.code && strictErrors.includes(fbAuthError.code)) {
+                err.innerText = "❌ የተሳሳተ ኢሜል ወይም የይለፍ ቃል! (አካውንቱ የለም ወይም ፓስዎርድ ተሳስቷል)";
+                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
+                return;
+            }
         }
-    }
 
-    let hashedInputPass = await hashPassword(pass);
-    
-    try {
+        let hashedInputPass = await hashPassword(pass);
+        
         // --- TENANT CHECK ---
         let t = null;
         if(isOnline && typeof db !== 'undefined') {
@@ -173,7 +175,6 @@ async function handleUnifiedLogin() {
             let tEmailMatch = String(t.gmail || "").toLowerCase() === email.toLowerCase();
             let tPassMatch = (String(t.password) === hashedInputPass || String(t.password).trim() === pass);
             
-            // 💡 ማስተካከያ፡ Firebase ካሳለፈው፣ ኢሜሉ የዚሁ ዩዘር መሆኑ መረጋገጥ አለበት!
             if((isFirebaseAuthSuccess && tEmailMatch) || (tEmailMatch && tPassMatch)) {
                 
                 if(String(t.password).trim() === pass && String(t.password) !== hashedInputPass) {
@@ -188,8 +189,9 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                launchApp(t);
-                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
+                
+                // ማስተካከያ 3፡ ፋይሎቹ ስለተከፋፈሉ በቀጥታ ወደ ሱቁ ገጽ (shop.html) እንዲወስድ ተደርጓል
+                window.location.href = "shop.html"; 
                 return;
             }
         }
@@ -208,7 +210,6 @@ async function handleUnifiedLogin() {
             let bPassMatch = (String(b.password) === hashedInputPass || String(b.password).trim() === pass);
 
             if((isFirebaseAuthSuccess && bEmailMatch) || (bEmailMatch && bPassMatch)) {
-                
                 if(String(b.password).trim() === pass && String(b.password) !== hashedInputPass) {
                     b.password = hashedInputPass;
                     if(isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/buyers/${user}/password`).set(hashedInputPass);
@@ -224,7 +225,6 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                switchView('buyerPage');
                 window.location.href = "buyer.html";
                 return;
             }
@@ -246,7 +246,6 @@ async function handleUnifiedLogin() {
             let rPassMatch = (rPass === hashedInputPass || rPass === pass);
 
             if((isFirebaseAuthSuccess && rEmailMatch) || (rEmailMatch && rPassMatch)) {
-                
                 if(rPass === pass && rPass !== hashedInputPass) {
                     if (r.authPass) r.authPass = hashedInputPass;
                     else if (r.password) r.password = hashedInputPass;
@@ -261,7 +260,6 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                switchView('revenuePage');
                 window.location.href = "revenue.html";
                return;
             }
@@ -281,7 +279,6 @@ async function handleUnifiedLogin() {
             let mPassMatch = (String(m.password) === hashedInputPass || String(m.password).trim() === pass);
 
             if((isFirebaseAuthSuccess && mEmailMatch) || (mEmailMatch && mPassMatch)) {
-                
                 if(String(m.password).trim() === pass && String(m.password) !== hashedInputPass) {
                     m.password = hashedInputPass;
                     if(isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/motors/${user}/password`).set(hashedInputPass);
@@ -321,7 +318,6 @@ async function handleUnifiedLogin() {
             let sPassMatch = (String(s.pass) === hashedInputPass || String(s.pass).trim() === pass);
 
             if ((isFirebaseAuthSuccess && sEmailMatch) || (sEmailMatch && sPassMatch)) {
-                
                 if(String(s.pass).trim() === pass && String(s.pass) !== hashedInputPass) {
                      s.pass = hashedInputPass;
                      if(isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/staffAccounts/${user}/pass`).set(hashedInputPass);
@@ -362,7 +358,6 @@ async function handleUnifiedLogin() {
             for(let tKey in localDB.tenants) {
                 let tLocal = localDB.tenants[tKey];
                 if(tLocal && tLocal.staffAccounts) {
-                    // 💡 ማስተካከያ፡ ፋውንድ (found) የሚሆነው በትክክል ዩዘርኔሙ እና ኢሜሉ ሲገኝ ብቻ ነው!
                     let found = tLocal.staffAccounts.find(st => st.user === user && String(st.gmail || "").toLowerCase() === email.toLowerCase());
                     
                     if(found) {
@@ -380,7 +375,8 @@ async function handleUnifiedLogin() {
                             pushToFirebase();
                             err.innerText = "";
                             if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                            launchApp(tLocal);
+                            
+                            // ማስተካከያ፡ ወደ ሱቅ ገጽ ቀጥታ መላክ
                             window.location.href = "shop.html";
                             return;
                         }
@@ -389,12 +385,13 @@ async function handleUnifiedLogin() {
             }
         }
 
+        // ከላይ ያሉት ማረጋገጫዎች ካልሰሩ ይሄን ያወጣል
         err.innerText = "❌ መረጃው ስህተት ነው! አካውንት አልተገኘም። እባክዎ ዩዘርኔምዎን ያረጋግጡ።";
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
         
     } catch (error) {
         console.error("Login Error: ", error);
-        err.innerText = "❌ ስህተት አጋጥሟል! እባክዎ ኢንተርኔትዎን ያረጋግጡ (" + error.message + ")";
+        err.innerText = "❌ ስህተት አጋጥሟል! " + (error.message || "ያልታወቀ የውስጥ ስህተት");
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
     }
 }
