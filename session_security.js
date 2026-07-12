@@ -25,7 +25,7 @@ function checkAutomaticLogin() {
         if (session.role === 'admin') {
             currentUserRole = 'admin';
             if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
-            setTimeout(() => { switchView('adminPage'); renderAdminPanel(); }, 300);
+            window.location.href = "admin.html";
         } else if (session.role === 'revenue' && localDB.revenueAuthorities && localDB.revenueAuthorities[session.username]) {
             currentRevenueOfficer = localDB.revenueAuthorities[session.username];
             currentUserRole = 'revenue';
@@ -35,19 +35,19 @@ function checkAutomaticLogin() {
                 localStorage.removeItem('tirfe_active_session');
             } else {
                 currentMotor = localDB.motors[session.username];
-                setTimeout(() => { switchView('motorPage'); }, 300);
+                window.location.href = "delivery.html";
             }
         } else if (session.role === 'buyer' && localDB.buyers && localDB.buyers[session.username]) {
             if(localDB.buyers[session.username].status === "blocked") {
                 localStorage.removeItem('tirfe_active_session');
             } else {
                 currentBuyer = localDB.buyers[session.username];
-                setTimeout(() => { switchView('buyerPage'); }, 300);
+                window.location.href = "buyer.html";
             }
         } else if (localDB.tenants && localDB.tenants[session.username]) {
             let t = localDB.tenants[session.username];
             currentTenant = t;
-            setTimeout(() => { launchApp(t); }, 300);
+            window.location.href = "shop.html";
         }
     }
 }
