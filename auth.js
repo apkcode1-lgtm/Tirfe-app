@@ -262,9 +262,8 @@ async function handleUnifiedLogin() {
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 switchView('revenuePage');
-                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
-                if(typeof renderRevenuePanel === "function") renderRevenuePanel();
-                return;
+                window.location.href = "revenue.html";
+               return;
             }
         }
 
