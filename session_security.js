@@ -29,7 +29,7 @@ function checkAutomaticLogin() {
         } else if (session.role === 'revenue' && localDB.revenueAuthorities && localDB.revenueAuthorities[session.username]) {
             currentRevenueOfficer = localDB.revenueAuthorities[session.username];
             currentUserRole = 'revenue';
-            setTimeout(() => { switchView('revenuePage'); if(typeof renderRevenuePanel === "function") renderRevenuePanel(); }, 300);
+            window.location.href = "revenue.html"; if(typeof renderRevenuePanel === "function") renderRevenuePanel(); }, 300);
         } else if (session.role === 'motor' && localDB.motors && localDB.motors[session.username]) {
             if(localDB.motors[session.username].status === "blocked") {
                 localStorage.removeItem('tirfe_active_session');
