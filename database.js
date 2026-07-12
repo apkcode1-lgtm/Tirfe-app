@@ -84,6 +84,18 @@ function pushToFirebase() {
                 adminSettings: cleanData(localDB.adminSettings) || {}
             }).catch(err => console.error("Firebase Admin Sync Error:", err));
         } else {
+            if(localDB.buyers) {
+                db.ref('tirfe_system/buyers').update(cleanData(localDB.buyers) || {})
+                .catch(err => console.error("Firebase Buyers Global Sync Error:", err));
+            }
+            if(localDB.tenants) {
+                db.ref('tirfe_system/tenants').update(cleanData(localDB.tenants) || {})
+                .catch(err => console.error("Firebase Tenants Global Sync Error:", err));
+            }
+            if(localDB.motors) {
+                db.ref('tirfe_system/motors').update(cleanData(localDB.motors) || {})
+                .catch(err => console.error("Firebase Motors Global Sync Error:", err));
+            }
             if(typeof currentTenant !== 'undefined' && currentTenant) {
                 let tenantData = cleanData(localDB.tenants[currentTenant.username]);
                 if(tenantData) {
