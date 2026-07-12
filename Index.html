@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=0.5, maximum-scale=3.0">
+    <meta name="theme-color" content="#0b0f19">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Tirfe%20App%22%2C%22short_name%22%3A%22Tirfe%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230b0f19%22%2C%22theme_color%22%3A%22%2338bdf8%22%7D">
+    <title>ትርፌ የሱቅ መቆጣጠሪያ አፕሊኬሽን - Ultimate v12.0</title>
+    <link rel="stylesheet" href="style.css">
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-performance.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script defer src="https://unpkg.com/html5-qrcode"></script>
+    <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'am', includedLanguages: 'am,om,en', layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+      }, 'google_translate_element');
+    }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" defer></script>
+</head>
+<body class="theme-deepblue">
+<div id="imageLightbox" class="modal-overlay hidden" onclick="this.classList.add('hidden')" style="z-index: 999999 !important; cursor: zoom-out;">
+    <img id="lightboxImg" src="" style="max-width: 90%; max-height: 90%; border-radius: 8px; border: 2px solid var(--accent-color); box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+</div>
+<div id="criticalOfflineScreen" class="critical-offline-overlay hidden">
+    <div class="offline-status-card">
+        <div class="icon-zone">📡</div>
+        <h2>የመስመር ውጭ (Offline) ሁነታ</h2>
+        <p>የእርስዎ መሣሪያ በአሁኑ ሰዓት ከበይነመረብ (Internet) ጋር አልተገናኘም። የውሂብ ደህንነትን ለመጠበቅ እና ከማዕከላዊው የባንክ ሲስተም ጋር እንዳይጋጭ ጊዜያዊ እገዳ ተጥሏል።</p>
+        <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; color: #38bdf8; font-size: 0.9rem;">
+            <div class="offline-loader"></div> መስመር ላይ ለመመለስ በመሞከር ላይ...
+        </div>
+        <div class="footer-note">የኔትወርክ ግንኙነትዎ እንደተመለሰ አፕሊኬሽኑ በራሱ በራስ-ሰር ይከፈታል።</div>
+    </div>
+</div>
+
+<main class="container">
+    <section id="welcomeGateway" class="gateway-box">
+        <div class="hero-icon" style="font-size: 4rem; margin-bottom: 10px;">🚀</div>
+        <h2>እንኳን ደህና መጡ! <span id="syncIndicator" class="hidden offline-tag">Offline ሞድ</span></h2>
+            <div id="google_translate_element" style="margin-bottom: 15px;"></div>
+        <p>ወደ ዘመናዊው 'ትርፌ' የሱቅ መቆጣጠሪያ ሲስተም</p>
+        <button class="gateway-btn" onclick="openUnifiedLogin()" style="justify-content: center; background: var(--success-color); color: black; font-size: 1.2rem;">🔑 ሎጊን (Login)</button>
+        <button class="gateway-btn" onclick="openUnifiedRegister()" style="justify-content: center; background: var(--warning-color); color: black; font-size: 1.2rem;">📝 ሪጅስተር (Register)</button>
+    </section>
+
+    <section id="unifiedLoginBox" class="login-box hidden">
+        <h2>🔒 ወደ ሲስተሙ መግቢያ</h2>
+        <p>እባክዎ መረጃዎን በትክክል ያስገቡ</p>
+        <input type="text" id="loginUnifiedUser" placeholder="የተጠቃሚ ስም (Username) ወይም ስልክ ቁጥር">
+        <input type="email" id="loginUnifiedEmail" placeholder="ኢሜል (Gmail) (ካለዎት)">
+        <input type="password" id="loginUnifiedPass" placeholder="የይለፍ ቃል (Password)">
+        <button class="btn-sell btn-block" id="loginBtn" style="margin-top: 10px; font-size: 1.1rem; padding: 15px;" onclick="handleUnifiedLogin()">ግባ (Login)</button>
+        <div style="text-align: right; margin-top: 15px;">
+            <a href="#" onclick="triggerForgotPassword()" style="color: var(--accent-color); font-size: 0.9rem; text-decoration: underline; font-weight: bold;">የይለፍ ቃል ረሱ? (Forgot Password)</a>
+        </div>
+        <p id="loginUnifiedError" style="color: var(--danger-color); margin-top: 15px; font-size: 0.95rem; font-weight: bold;"></p>
+        <button class="btn-config btn-block" style="margin-top: 20px;" onclick="goToGateway()">⬅️ ወደ ኋላ ተመለስ</button>
+    </section>
+
+    <section id="unifiedRegisterBox" class="login-box hidden" style="max-width: 600px;">
+        <h2>📝 አዲስ አካውንት መመዝገቢያ</h2>
+        <select id="unifiedRegRole" onchange="toggleUnifiedRegForm()" style="margin-bottom: 15px; font-size: 1.1rem; font-weight: bold; color: var(--accent-color);">
+            <option value="buyer">🛍️ ገዥ (Buyer) ነኝ</option>
+            <option value="tenant">💼 ተከራይ / ሱቅ (Tenant) ነኝ</option>
+            <option value="motor">🏍️ ሞተረኛ (Delivery/Motor) ነኝ</option>
+        </select>
+
+        <div id="unifiedBuyerForm" style="text-align: left;">
+            <input type="text" id="pubBuyerName" placeholder="ሙሉ ስም (Full Name)">
+            <input type="email" id="pubBuyerEmail" placeholder="ኢሜል (Gmail)">
+            <input type="tel" id="pubBuyerPhone" placeholder="ስልክ ቁጥር (ግዴታ 10 አሃዝ)" pattern="[0-9]{10}" maxlength="10">
+            <input type="text" id="pubBuyerUser" placeholder="የመግቢያ ስም (Username)">
+        </div>
+
+        <div id="unifiedTenantForm" class="hidden" style="text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <input type="text" id="pub_newShopName" placeholder="የሱቅ ስም (ምሳሌ፡ አልፋ) (ግዴታ)">
+            <input type="text" id="pub_newFullName" placeholder="የተከራይ ሙሉ ስም (ግዴታ)">
+            <input type="text" id="pub_newUsername" placeholder="መግቢያ ስም (Username) (ግዴታ)">
+            <input type="email" id="pub_newEmail" placeholder="ኢሜል አድራሻ (ግዴታ)">
+            <input type="tel" id="pub_newPhone" placeholder="ስልክ ቁጥር (10 አሃዝ) (ግዴታ)" maxlength="10">
+            <input type="text" id="pub_newTelegram" placeholder="የቴሌግራም መግቢያ (አማራጭ)">
+            
+            <select id="pub_newRegion" onchange="handleRegionChange('pub_newRegion', 'pub_newZone', 'pub_newWoreda')">
+                <option value="">-- ክልል ይምረጡ --</option>
+            </select>
+            <select id="pub_newZone" onchange="handleZoneChange('pub_newRegion', 'pub_newZone', 'pub_newWoreda')">
+                <option value="">-- መጀመሪያ ክልል ይምረጡ --</option>
+            </select>
+            <select id="pub_newWoreda">
+                <option value="">-- መጀመሪያ ዞን ይምረጡ --</option>
+            </select>
+            
+            <input type="text" id="pub_newKebele" placeholder="ቀበሌ (ግዴታ)">
+            <input type="text" id="pub_newHouseNo" placeholder="የቤት ቁጥር (ግዴታ)">
+            <input type="text" id="pub_newTin" placeholder="TIN Number (ግዴታ)">
+            <input type="text" id="pub_newTradeReg" placeholder="የንግድ ምዝገባ ቁጥር (ግዴታ)" style="grid-column: span 2;">
+            <input type="text" id="pub_newMapsLink" placeholder="የሱቅ ጎግል ማፕ ሊንክ (አማራጭ)" style="grid-column: span 2;">
+            <input type="text" id="pub_newAddress" placeholder="ያለበት ሀገር / ከተማ / ክልል (አማራጭ)">
+            
+            <select id="pub_newBusinessType" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white;">
+                <option value="">-- የንግድ ዘርፍ ይምረጡ (ግዴታ) --</option>
+            </select>
+            
+            <div style="grid-column: span 2; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                <label style="color: var(--accent-color); font-size: 0.85rem; display:block;">የንግድ ካፒታል መጠን (የኪራይ መቁረጫ ምድብ):</label>
+                <select id="pub_newCapitalTier" onchange="autoFillPubCapitalFee()">
+                    <option value="">-- ካፒታል ይምረጡ --</option>
+                    <option value="low">ዝቅተኛ (Low)</option>
+                    <option value="medium">መካከለኛ (Medium)</option>
+                    <option value="high">ከፍተኛ (High)</option>
+                </select>
+
+                <label style="font-size: 0.85rem; color: var(--accent-color); display:block; margin-top: 8px;">የውል ዓይነት (Contract Type)፦</label>
+                <select id="pub_newContractType" onchange="autoFillPubCapitalFee()">
+                    <option value="በወር">በወር (Monthly)</option>
+                    <option value="በዓመት">በዓመት (Yearly)</option>
+                </select>
+
+                <label style="font-size: 0.85rem; color: var(--accent-color); display:block; margin-top: 8px;">የውል ማብቂያ ቀን (Expiry Date)፦</label>
+                <input type="date" id="pub_newExpiryDate" required>
+                
+                <label style="font-size: 0.85rem; color: var(--accent-color); display:block; margin-top: 8px;">የመመዝገቢያ/ኪራይ ክፍያ (ETB):</label>
+                <input type="number" id="pub_newRegistrationFee" placeholder="የመመዝገቢያ ክፍያ (ETB)" readonly style="background: rgba(255,255,255,0.1);">
+            </div>
+            <div style="grid-column: span 2;">
+                <label style="color: var(--accent-color); font-size: 0.85rem; margin-top:10px; display:block;">የሱቅ ፕሮፋይል ፎቶ (አማራጭ)፡</label>
+                <input type="file" id="pub_newShopLogoFile" accept="image/*">
+            </div>
+        </div>
+
+        <div id="unifiedMotorForm" class="hidden" style="text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <input type="text" id="mot_firstName" placeholder="ስም እስከ አባት (ግዴታ)">
+            <input type="text" id="mot_lastName" placeholder="የአያት ስም (ግዴታ)">
+            <input type="tel" id="mot_phone" placeholder="ስልክ ቁጥር (ግዴታ)" pattern="[0-9]{10}" maxlength="10">
+            <input type="email" id="mot_email" placeholder="ኢሜል (Gmail) (ግዴታ)">
+            <input type="text" id="mot_username" placeholder="መግቢያ ስም (Username) (ግዴታ)">
+            <input type="text" id="mot_tgToken" placeholder="Telegram Token ID (ግዴታ)">
+            <input type="text" id="mot_plateNumber" placeholder="የሰሌዳ ቁጥር (ግዴታ)" style="grid-column: span 2;">
+
+            <select id="mot_region" onchange="handleRegionChange('mot_region', 'mot_zone', 'mot_woreda')" style="grid-column: span 2;">
+                <option value="">-- ክልል ይምረጡ --</option>
+            </select>
+            <select id="mot_zone" onchange="handleZoneChange('mot_region', 'mot_zone', 'mot_woreda')">
+                <option value="">-- ዞን ይምረጡ --</option>
+            </select>
+            <select id="mot_woreda">
+                <option value="">-- ወረዳ ይምረጡ --</option>
+            </select>
+
+            <div style="grid-column: span 2; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                <label style="color: var(--accent-color); font-size: 0.85rem; display:block; margin-bottom: 5px;">የነዋሪነት መታወቂያ (ፎቶ አንሳ):</label>
+                <input type="file" id="mot_idCardFile" accept="image/*" required>
+                
+                <label style="color: var(--accent-color); font-size: 0.85rem; display:block; margin-top: 10px; margin-bottom: 5px;">መንጃፍቃድ (ፎቶ አንሳ):</label>
+                <input type="file" id="mot_licenseFile" accept="image/*" required>
+            </div>
+        </div>
+
+        <button class="btn-warning btn-block" id="regSubmitBtn" style="background:var(--warning-color); color:#000; margin-top:20px; font-size: 1.1rem; padding: 12px; font-weight: bold; grid-column: span 2;" onclick="if(document.getElementById('unifiedRegRole').value === 'motor') { processMotorRegistration(); } else { triggerUnifiedRegistration(); }">ተመዝገብ (Submit)</button>
+        <button class="btn-config btn-block" style="margin-top: 15px; grid-column: span 2;" onclick="goToGateway()">⬅️ ወደ ኋላ ተመለስ</button>
+    </section>
+</main>
+
+<!-- Scripts -->
+<script defer src="firebase-config.js"></script>
+<script defer src="database.js"></script>
+<script defer src="utils.js"></script>
+<script defer src="globals.js"></script>
+<script defer src="admin.js"></script>
+<script defer src="revenue.js"></script>
+<script defer src="session_security.js"></script>
+<script defer src="ui_helpers.js"></script>
+<script defer src="business_logic.js"></script>
+<script defer src="auth.js"></script>
+<script defer src="main_buyer.js"></script>
+<script defer src="main_employer.js"></script>
+<script defer src="main_employee.js"></script>
+<script defer src="main_shop.js"></script>
+<script defer src="main_delivery.js"></script>
+</body>
+</html>
+
