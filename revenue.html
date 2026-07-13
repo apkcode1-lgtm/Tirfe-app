@@ -25,8 +25,6 @@
 .theme-emerald { --bg-color: #061e1a; --card-bg: #0b3c34; --accent-color: #2ec4b6; --success-color: #4ade80; }
 .theme-purple { --bg-color: #1a0933; --card-bg: #2d1254; --accent-color: #a29bfe; --success-color: #00cec9; }
 .theme-charcoal { --bg-color: #121212; --card-bg: #1e1e1e; --accent-color: #9b59b6; --success-color: #2ecc71; }
-
-
 /* ==========================================================================
    የመነሻ ገጽ (Base Layout) እና የፎንት ማስተካከያ
    ========================================================================== */
@@ -37,8 +35,6 @@ html, body {
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     font-size: calc(12px + 0.4vw); -webkit-text-size-adjust: 100%;
 }
-
-
 /* ==========================================================================
    አጠቃላይ መገልገያዎች (Utilities & Text Colors) 
    ========================================================================== */
@@ -48,39 +44,6 @@ html, body {
 .text-danger { color: var(--danger-color) !important; }
 .text-warning { color: var(--warning-color) !important; }
 .text-purple { color: var(--purple-color) !important; }
-
-
-/* ==========================================================================
-   የመግቢያ ገጽ (Login & Gateway) ዲዛይን
-   ========================================================================== */
-.gateway-box, .login-box {
-    width: 100%; max-width: 450px;
-    margin: 40px auto; background-color: var(--card-bg); 
-    padding: 30px 25px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-    text-align: center;
-    border: 1px solid var(--border-color); transition: transform 0.3s ease;
-}
-.gateway-box {
-    background: linear-gradient(145deg, var(--card-bg), #0f172a); padding: 40px 30px;
-    border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-}
-
-.hero-icon { animation: bounce 2s infinite ease-in-out; }
-@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
-.gateway-box h2, .login-box h2 { color: var(--success-color); font-size: 1.6rem; margin-bottom: 8px; font-weight: 800; }
-.gateway-box p, .login-box p { color: #94a3b8; font-size: 0.85rem; margin-bottom: 20px; }
-
-.gateway-btn {
-    background-color: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);
-    color: var(--text-color); padding: 15px;
-    margin: 10px 0; width: 100%; border-radius: 10px;
-    font-size: 1.05rem; font-weight: bold; cursor: pointer; text-align: left; display: flex;
-    align-items: center; gap: 12px; transition: all 0.2s;
-}
-.gateway-btn:hover { background-color: var(--accent-color); color: #000; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(56, 189, 248, 0.3); }
-
-
 /* ==========================================================================
    ፎርም፣ መሙያ ሳጥኖች እና ምርጫዎች (Inputs & Selects)
    ========================================================================== */
@@ -98,7 +61,6 @@ select {
     background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
     appearance: none;
 }
-
 /* የኮድ መሙያ አራት ማዕዘን ሳጥን (Verification Code Box) */
 .code-box {
     width: 50px !important; height: 60px; text-align: center; font-size: 1.8rem;
@@ -106,7 +68,6 @@ select {
     background: var(--bg-color); color: var(--accent-color); padding: 0 !important;
 }
 .code-box:focus { border-color: #6366f1; box-shadow: 0 0 10px rgba(99, 102, 241, 0.5); }
-
 
 /* ==========================================================================
    የእንኳን ደህና መጡ ራስጌ እና ባጅ (Welcome Header & Session Badge)
@@ -124,7 +85,6 @@ select {
     background: rgba(251, 191, 36, 0.08); padding: 10px; border-radius: 8px; border: 1px dashed var(--warning-color);
 }
 
-
 /* ==========================================================================
    የዳሽቦርድ መረጃ ማሳያ ካርዶች (Dashboard Stats Cards)
    ========================================================================== */
@@ -137,7 +97,6 @@ select {
 .card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 .card h3 { margin: 0 0 6px 0; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; }
 .card p { margin: 0; font-size: 1.2rem; font-weight: bold; color: var(--success-color); word-break: break-all; }
-
 
 /* ==========================================================================
    በተኖች እና የድርጊት መቆጣጠሪያዎች (Action Buttons)
@@ -175,16 +134,10 @@ th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid rgba(255
 th { background-color: rgba(0,0,0,0.6) !important; color: var(--accent-color) !important; font-weight: bold; }
 tr:nth-child(even) td { background-color: rgba(255, 255, 255, 0.02) !important; }
 tr:hover td { background-color: var(--hover-color) !important; }
-
-/* እቃ ሲያልቅ የሚያሳይ (Low Stock Alerts) */
-.low-stock-row td { background-color: rgba(248, 113, 113, 0.1) !important; }
-.low-stock-badge { background: #f87171 !important; color: #000 !important; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; margin-left: 5px; }
-
 /* ልዩ ልዩ ባጆች (Badges) */
 .badge-danger { background: var(--danger-color); color: #000; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
 .badge-success { background: var(--success-color); color: #000; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
 .badge-warning { background: var(--warning-color); color: #000; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-
 
 /* ==========================================================================
    የፕሮፋይል መረጃ እና ሌሎች አቀማመጦች (Profile Data & Grid Layouts)
@@ -196,7 +149,6 @@ tr:hover td { background-color: var(--hover-color) !important; }
 .profile-data label { font-weight: bold; color: #94a3b8; }
 .profile-data span { color: var(--warning-color); font-weight: bold; }
 
-
 /* ==========================================================================
    የብቅ ባይ መስኮት (Modal / Popup) ዲዛይን
    ========================================================================== */
@@ -207,13 +159,11 @@ tr:hover td { background-color: var(--hover-color) !important; }
 .modal-body { margin-bottom: 15px; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 8px; }
 
-
 /* ==========================================================================
    የፍለጋ ሳጥን (Search Bar)
    ========================================================================== */
 .search-container { margin-bottom: 12px; }
 .search-input { border: 1px solid var(--accent-color); background: rgba(56, 189, 248, 0.05); }
-
 
 /* ==========================================================================
    የደረሰኝ እና የህትመት (Receipt & Print Output) ዲዛይን
@@ -239,7 +189,6 @@ tr:hover td { background-color: var(--hover-color) !important; }
     #printableReceiptArea { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; padding: 0; }
 }
 
-
 /* ==========================================================================
    የሱቆች ማሳያ ዝርዝር (Shops Grid & Cards)
    ========================================================================== */
@@ -252,21 +201,6 @@ tr:hover td { background-color: var(--hover-color) !important; }
 .shop-meta p { color: #94a3b8; font-size: 0.8rem; }
 .shop-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .btn-link-action { padding: 6px; font-size: 0.8rem; text-decoration: none; border-radius: 6px; text-align: center; font-weight: bold; display: block; }
-
-
-/* ==========================================================================
-   የእቃዎች ካታሎግ እና ማጣሪያ (Catalog Items & Category Filters)
-   ========================================================================== */
-.catalog-item-card { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px; margin-top: 8px; display: flex; gap: 10px; align-items: center; border: 1px solid rgba(255,255,255,0.03); flex-wrap: wrap;}
-.catalog-item-img { width: 55px; height: 55px; border-radius: 6px; object-fit: cover; background: #1c273a; cursor: pointer; transition: transform 0.2s;}
-.catalog-item-img:hover { transform: scale(1.05); }
-.catalog-item-info { flex: 1; min-width: 120px; }
-
-.category-filters { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; -webkit-overflow-scrolling: touch; }
-.category-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--accent-color); color: var(--text-color); padding: 8px 16px; border-radius: 20px; white-space: nowrap; cursor: pointer; font-size: 0.9rem; transition: 0.3s; }
-.category-btn:hover { background: rgba(56, 189, 248, 0.2); }
-.category-btn.active { background: var(--accent-color); color: #000; font-weight: bold; }
-
 
 /* ==========================================================================
    የኢንተርኔት መቋረጥ ማሳወቂያ እና አኒሜሽን (Offline Status UI)
@@ -284,29 +218,6 @@ tr:hover td { background-color: var(--hover-color) !important; }
 
 @keyframes spin-loader { to { transform: rotate(360deg); } }
 @keyframes pulse-glow { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }
-
-
-/* ==========================================================================
-   የዘንቢል/የካርት (Shopping Cart) ዲዛይን
-   ========================================================================== */
-.cart-section { background-color: rgba(0, 0, 0, 0.2); border: 1px solid #eab308; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-.cart-header { color: #eab308; margin-bottom: 10px; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
-.cart-empty-text { color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px; }
-.cart-total-bar { border-top: 1px dashed #eab308; padding-top: 12px; margin-bottom: 15px; font-size: 1.2rem; font-weight: bold; color: white; }
-
-
-/* ==========================================================================
-   የሞተረኛ (Toggle Switch) ማብሪያ ማጥፊያ ዲዛይን 
-   ========================================================================== */
-.switch { position: relative; display: inline-block; width: 50px; height: 24px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #f43f5e; transition: .4s; }
-.slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; }
-input:checked + .slider { background-color: #10b981; }
-input:checked + .slider:before { transform: translateX(26px); }
-.slider.round { border-radius: 24px; }
-.slider.round:before { border-radius: 50%; }
-
 
 /* ==========================================================================
    የጎግል ትራንስሌት አይኮን መደበቂያ (PageSpeed Insights Fix) 
@@ -427,23 +338,15 @@ img.goog-te-gadget-icon {
         </section>
     </section>
 </main>
-
-<!-- Scripts -->
 <script defer src="firebase-config.js"></script>
 <script defer src="database.js"></script>
 <script defer src="utils.js"></script>
 <script defer src="globals.js"></script>
-<script defer src="admin.js"></script>
-<script defer src="revenue.js"></script>
 <script defer src="session_security.js"></script>
 <script defer src="ui_helpers.js"></script>
 <script defer src="business_logic.js"></script>
 <script defer src="auth.js"></script>
-<script defer src="main_buyer.js"></script>
-<script defer src="main_employer.js"></script>
-<script defer src="main_employee.js"></script>
-<script defer src="main_shop.js"></script>
-<script defer src="main_delivery.js"></script>
+<script defer src="revenue.js"></script>
 </body>
 </html>
 
