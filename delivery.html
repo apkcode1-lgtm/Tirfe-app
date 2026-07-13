@@ -342,6 +342,21 @@ img.goog-te-gadget-icon {
             </section>
         </div>
     </section>
+    <div id="modalOverlay" class="modal-overlay hidden" onclick="if(event.target === this) { this.classList.add('hidden'); document.getElementById('motorCreditModal').classList.add('hidden'); }">
+    <div id="motorCreditModal" class="modal-card hidden" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3>💳 ክሬዲት መሙያ</h3>
+        </div>
+        <div class="modal-body">
+            <label style="color: #94a3b8; font-size: 0.9rem;">የብር መጠን ያስገቡ (ETB):</label>
+            <input type="number" id="motorCreditAmount" placeholder="ለምሳሌ: 100">
+        </div>
+        <div class="modal-footer">
+            <button class="btn-clear" onclick="document.getElementById('modalOverlay').classList.add('hidden'); document.getElementById('motorCreditModal').classList.add('hidden');">ሰርዝ</button>
+            <button class="btn-sell" onclick="submitMotorCredit()">አስገባ</button>
+        </div>
+    </div>
+</div>
 </main>
   
 <script defer src="firebase-config.js"></script>
