@@ -386,7 +386,29 @@ img.goog-te-gadget-icon {
         <button class="btn-warning btn-block" id="regSubmitBtn" style="background:var(--warning-color); color:#000; margin-top:20px; font-size: 1.1rem; padding: 12px; font-weight: bold; grid-column: span 2;" onclick="if(document.getElementById('unifiedRegRole').value === 'motor') { processMotorRegistration(); } else { triggerUnifiedRegistration(); }">ተመዝገብ (Submit)</button>
         <button class="btn-config btn-block" style="margin-top: 15px; grid-column: span 2;" onclick="goToGateway()">⬅️ ወደ ኋላ ተመለስ</button>
     </section>
+    <!-- የኢሜል ማረጋገጫ (OTP Modal) ኮድ -->
+<div id="emailVerifyModal" class="modal-overlay hidden">
+    <div class="modal-card" style="text-align: center;">
+        <div class="modal-header">
+            <h3>📧 የኢሜል ማረጋገጫ</h3>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom: 15px; color: var(--accent-color);">ባስገቡት ኢሜል (<span id="verifyEmailDisplay"></span>) የላክንልዎትን ባለ 5-አሃዝ ኮድ ያስገቡ።</p>
+            <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+                <input type="text" id="code1" class="code-box" maxlength="1" onkeyup="if(this.value) document.getElementById('code2').focus()">
+                <input type="text" id="code2" class="code-box" maxlength="1" onkeyup="if(this.value) document.getElementById('code3').focus()">
+                <input type="text" id="code3" class="code-box" maxlength="1" onkeyup="if(this.value) document.getElementById('code4').focus()">
+                <input type="text" id="code4" class="code-box" maxlength="1" onkeyup="if(this.value) document.getElementById('code5').focus()">
+                <input type="text" id="code5" class="code-box" maxlength="1">
+            </div>
+            <button class="btn-success btn-block" style="background: var(--success-color); padding: 12px; font-weight: bold;" onclick="verifyEmailCodeSubmit()">አረጋግጥ (Verify)</button>
+            <button class="btn-config btn-block" style="margin-top: 10px;" onclick="resendOTP()">🔄 ኮድ በድጋሚ ላክ</button>
+            <button class="btn-clear btn-block" style="margin-top: 10px;" onclick="document.getElementById('emailVerifyModal').classList.add('hidden')">❌ ሰርዝ (Cancel)</button>
+        </div>
+    </div>
+</div>
 </main>
+    
 <script defer src="firebase-config.js"></script>
 <script defer src="database.js"></script>
 <script defer src="utils.js"></script>
