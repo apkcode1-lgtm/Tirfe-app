@@ -364,65 +364,6 @@ img.goog-te-gadget-icon {
     </section>
 </main>
 
-<!-- 1. የፎርም መሙያ ሞዳል (ለፕሮፋይል እና ዴሊቨሪ ማዘዣ) -->
-<div id="formModal" class="modal-overlay hidden">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h3 id="formModalTitle">ፎርም</h3>
-        </div>
-        <div class="modal-body" id="formModalBody">
-            <!-- ፎርሙ በጃቫስክሪፕት እዚህ ይገባል -->
-        </div>
-        <div class="modal-footer">
-            <button class="btn-expense" onclick="document.getElementById('formModal').classList.add('hidden')">ዝጋ</button>
-            <button class="btn-add" id="formModalSubmitBtn">አስገባ</button>
-        </div>
-    </div>
-</div>
-<!-- 2. የማረጋገጫ መጠየቂያ (Confirm Modal - ለምሳሌ ዴሊቨሪ ለማዘዝ ወይም ዳታ ለማጥፋት) -->
-<div id="customConfirmModal" class="modal-overlay hidden">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h3 id="customConfirmTitle" style="color: var(--warning-color);">ማረጋገጫ</h3>
-        </div>
-        <div class="modal-body">
-            <p id="customConfirmMessage"></p>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-expense" onclick="document.getElementById('customConfirmModal').classList.add('hidden')">አልፈልግም</button>
-            <button class="btn-success" id="customConfirmBtn">እርግጠኛ ነኝ</button>
-        </div>
-    </div>
-</div>
-<!-- 3. የማሳወቂያ (Alert Modal) -->
-<div id="customAlertModal" class="modal-overlay hidden">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h3 id="customAlertTitle">ማሳወቂያ</h3>
-        </div>
-        <div class="modal-body">
-            <p id="customAlertMessage"></p>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-sell" onclick="document.getElementById('customAlertModal').classList.add('hidden')">እሺ</button>
-        </div>
-    </div>
-</div>
-<!-- 4. የ QR ኮድ ስካነር ካሜራ መያዣ -->
-<div id="qrScannerModal" class="modal-overlay hidden">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h3>📷 የሻጭ QR ኮድ ስካን ማድረጊያ</h3>
-        </div>
-        <div class="modal-body">
-            <div id="reader" style="width: 100%; min-height: 250px; background: #000; border-radius: 8px;"></div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-expense" onclick="closeQRScanner()">ዝጋ (Close)</button>
-        </div>
-    </div>
-</div>
-
 <!-- 5. ደረሰኝ ማሳወቂያ እና ፕሪንት ማድረጊያ መያዣ (የተረሳ) -->
 <div id="printableReceiptArea" class="hidden"></div>
 
