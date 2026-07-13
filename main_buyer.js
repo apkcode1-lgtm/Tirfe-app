@@ -2,14 +2,13 @@
 // ==========================================
 
 window.buyerCartData = window.buyerCartData || [];
-function logoutBuyer() {
+window.logoutBuyer = function() {
     currentBuyer = null;
     window.buyerCartData = [];
     localStorage.removeItem('tirfe_active_session');
     // የሎግ አውት (Logout) ችግርን ለመፍታት ሙሉ በሙሉ ፔጁን ሪፍሬሽ ያደርገዋል
     location.reload();
-}
-
+};
 // --- የተስተካከለው የዳታ ማፅጃ ፋንክሽን ---
 window.clearBuyerData = function() {
     if(!currentBuyer) return;
