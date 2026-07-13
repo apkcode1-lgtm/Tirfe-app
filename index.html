@@ -382,8 +382,7 @@ img.goog-te-gadget-icon {
                 <input type="file" id="mot_licenseFile" accept="image/*" required>
             </div>
         </div>
-
-        <button class="btn-warning btn-block" id="regSubmitBtn" style="background:var(--warning-color); color:#000; margin-top:20px; font-size: 1.1rem; padding: 12px; font-weight: bold; grid-column: span 2;" onclick="if(document.getElementById('unifiedRegRole').value === 'motor') { processMotorRegistration(); } else { triggerUnifiedRegistration(); }">ተመዝገብ (Submit)</button>
+        <button class="btn-warning btn-block" id="regSubmitBtn" style="background:var(--warning-color); color:#000; margin-top:20px; font-size: 1.1rem; padding: 12px; font-weight: bold; grid-column: span 2;" onclick="triggerUnifiedRegistration()">ተመዝገብ (Submit)</button>
         <button class="btn-config btn-block" style="margin-top: 15px; grid-column: span 2;" onclick="goToGateway()">⬅️ ወደ ኋላ ተመለስ</button>
     </section>
     <!-- የኢሜል ማረጋገጫ (OTP Modal) ኮድ -->
