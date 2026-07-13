@@ -620,26 +620,3 @@ window.viewBuyerReceipt = function(recId) {
         generateAdvancedReceipt([{name: rec.itemName, count: rec.count, unitPrice: subT/rec.count, total: subT}], subT, rec.seller, rec.recId, false, rec.shopName, rec.bType, bName, bPhone, vAmt, rec.ownerName, rec.ownerPhone);
     }
 };
-// ==========================================
-// የ QR ስካነር እና የማጣሪያ (Filter) ፋንክሽኖች
-// ==========================================
-window.openQRScanner = function() {
-    if(typeof showCustomAlert === 'function') {
-        showCustomAlert("ማሳሰቢያ", "የ QR ስካነር ሲስተም እየተከፈተ ነው...");
-    } else {
-        alert("የ QR ስካነር ሲስተም እየተከፈተ ነው...");
-    }
-};
-
-window.clearQRFilter = function() {
-    let qrIndicator = document.getElementById('qrFilterIndicator');
-    if(qrIndicator) qrIndicator.classList.add('hidden');
-    
-    let searchInput = document.getElementById('buyerSearchInput');
-    if(searchInput) searchInput.value = "";
-    
-    if(typeof renderBuyerCatalog === 'function') {
-        renderBuyerCatalog();
-    }
-};
-
