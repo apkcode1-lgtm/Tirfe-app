@@ -17,6 +17,11 @@ async function hashPassword(password) {
 
 function checkAutomaticLogin() {
     let savedSession = localStorage.getItem('tirfe_active_session');
+    
+    // ተጠቃሚው አሁን ያለበትን ገጽ ማወቅ (ለምሳሌ፡ index.html ወይም revenue.html)
+    let currentPage = window.location.pathname.toLowerCase();
+    let isLoginPage = currentPage.endsWith('index.html') || currentPage === '/' || currentPage.endsWith('login.html');
+
     if (savedSession) {
         let session = JSON.parse(savedSession);
         currentUserRole = session.role;
@@ -25,32 +30,54 @@ function checkAutomaticLogin() {
         if (session.role === 'admin') {
             currentUserRole = 'admin';
             if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
-            window.location.href = "admin.html";
-        } else if (session.role === 'revenue' && localDB.revenueAuthorities && localDB.revenueAuthorities[session.username]) {
+            if(isLoginPage) window.location.href = "admin.html"; // ሎጊን ገጽ ላይ ከሆነ ብቻ ቀይረው
+        } 
+        else if (session.role === 'revenue' && localDB.revenueAuthorities && localDB.revenueAuthorities[session.username]) {
             currentRevenueOfficer = localDB.revenueAuthorities[session.username];
             currentUserRole = 'revenue';
-            window.location.href = "revenue.html"; if(typeof renderRevenuePanel === "function") renderRevenuePanel();
-        } else if (session.role === 'motor' && localDB.motors && localDB.motors[session.username]) {
+            
+            if(isLoginPage) {
+                window.location.href = "revenue.html";
+            } else {
+                // ገቢዎች ገጽ ላይ ከሆነ ዳታውን ያምጣ
+                if(typeof renderRevenuePanel === "function") renderRevenuePanel(); 
+            }
+        } 
+        else if (session.role === 'motor' && localDB.motors && localDB.motors[session.username]) {
             if(localDB.motors[session.username].status === "blocked") {
                 localStorage.removeItem('tirfe_active_session');
+                if(!isLoginPage) window.location.href = "index.html";
             } else {
                 currentMotor = localDB.motors[session.username];
-                window.location.href = "delivery.html";
+                currentUserRole = 'motor';
+                if(isLoginPage) window.location.href = "delivery.html";
             }
-        } else if (session.role === 'buyer' && localDB.buyers && localDB.buyers[session.username]) {
+        } 
+        else if (session.role === 'buyer' && localDB.buyers && localDB.buyers[session.username]) {
             if(localDB.buyers[session.username].status === "blocked") {
                 localStorage.removeItem('tirfe_active_session');
+                if(!isLoginPage) window.location.href = "index.html";
             } else {
                 currentBuyer = localDB.buyers[session.username];
-                window.location.href = "buyer.html";
+                currentUserRole = 'buyer';
+                if(isLoginPage) window.location.href = "buyer.html";
             }
-        } else if (localDB.tenants && localDB.tenants[session.username]) {
+        } 
+        else if ((session.role === 'owner' || session.role === 'staff') && localDB.tenants && localDB.tenants[session.username]) {
             let t = localDB.tenants[session.username];
             currentTenant = t;
-            window.location.href = "shop.html";
+            if(isLoginPage) window.location.href = "shop.html";
+        }
+    } else {
+        // ሴሽን (Session) ከሌለ እና ሎጊን ገጽ ላይ ካልሆነ ወደ ሎጊን ይመለስ
+        if(!isLoginPage) {
+            window.location.href = "index.html";
         }
     }
 }
+
+// ገጹ ልክ ሲከፈት ሴሽኑን በራሱ ጊዜ እንዲያጣራ ይህን ከታች ይጨምሩ
+window.addEventListener('DOMContentLoaded', checkAutomaticLogin);
 
 function checkTimeLock() {
     if(!currentTenant || !currentTenant.data || currentUserRole === "staff") return;
