@@ -272,7 +272,65 @@ img.goog-te-gadget-icon {
         <div class="footer-note">የኔትወርክ ግንኙነትዎ እንደተመለሰ አፕሊኬሽኑ በራሱ በራስ-ሰር ይከፈታል።</div>
     </div>
 </div>
+<!-- ==========================================
+     አጠቃላይ የሞዳል ማስተናገጃ (Modal Overlay)
+     ========================================== -->
+<div id="modalOverlay" class="modal-overlay hidden">
+    
+    <!-- 1. ፎርም መሙያ ሞዳል (Form Modal) -->
+    <div id="formModal" class="modal-card hidden">
+        <div class="modal-header">
+            <h3 id="formModalTitle">ፎርም</h3>
+        </div>
+        <div id="formModalBody" class="modal-body">
+            <!-- ፎርሙ በጃቫስክሪፕት እዚህ ይገባል -->
+        </div>
+        <div id="formModalFooter" class="modal-footer">
+            <!-- በተኖች በጃቫስክሪፕት እዚህ ይገባሉ -->
+        </div>
+    </div>
 
+    <!-- 2. የማሳወቂያ ሞዳል (Alert Modal) -->
+    <div id="alertModal" class="modal-card hidden">
+        <div class="modal-header">
+            <h3 id="alertTitle" class="text-danger">ማሳወቂያ</h3>
+        </div>
+        <div class="modal-body">
+            <p id="alertMessage"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-add" onclick="closeActiveModal()">እሺ (OK)</button>
+        </div>
+    </div>
+
+    <!-- 3. ማረጋገጫ ሞዳል (Confirm Modal) -->
+    <div id="confirmModal" class="modal-card hidden">
+        <div class="modal-header">
+            <h3 id="confirmTitle" class="text-warning">ማረጋገጫ</h3>
+        </div>
+        <div class="modal-body">
+            <p id="confirmMessage"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-config" onclick="closeActiveModal()">ሰርዝ (Cancel)</button>
+            <button id="confirmYesBtn" class="btn-sell">አዎ (Yes)</button>
+        </div>
+    </div>
+    
+    <!-- 4. የ QR ስካነር ሞዳል -->
+    <div id="qrScannerModal" class="modal-card hidden">
+        <div class="modal-header">
+            <h3 class="text-success">📷 የQR ኮድ ስካነር</h3>
+        </div>
+        <div class="modal-body">
+            <div id="qr-reader" style="width: 100%"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-expense" onclick="closeQRScanner()">ዝጋ (Close)</button>
+        </div>
+    </div>
+</div>
+    
 <main class="container">
     <section id="buyerPage">
         <header class="welcome-header">
