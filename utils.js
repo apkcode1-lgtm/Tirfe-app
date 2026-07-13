@@ -53,11 +53,9 @@ function switchView(targetId) {
 
 function goToGateway() { switchView('welcomeGateway'); }
 
-    function openModalContainer() { 
-    let overlay = document.getElementById('modalOverlay');
-    if (overlay) {
-        overlay.classList.remove('hidden'); 
-    }
+function openModalContainer() { 
+    document.getElementById('modalOverlay').classList.remove('hidden'); 
+}
 
 function closeActiveModal() { 
     document.getElementById('modalOverlay').classList.add('hidden'); 
@@ -230,7 +228,6 @@ function openQRScanner() {
     }
     html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 }
-
 function closeQRScanner() {
     if (html5QrcodeScanner) {
         html5QrcodeScanner.clear().then(() => {
