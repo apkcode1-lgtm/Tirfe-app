@@ -53,9 +53,11 @@ function switchView(targetId) {
 
 function goToGateway() { switchView('welcomeGateway'); }
 
-function openModalContainer() { 
-    document.getElementById('modalOverlay').classList.remove('hidden'); 
-}
+    function openModalContainer() { 
+    let overlay = document.getElementById('modalOverlay');
+    if (overlay) {
+        overlay.classList.remove('hidden'); 
+    }
 
 function closeActiveModal() { 
     document.getElementById('modalOverlay').classList.add('hidden'); 
