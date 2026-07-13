@@ -620,3 +620,10 @@ window.viewBuyerReceipt = function(recId) {
         generateAdvancedReceipt([{name: rec.itemName, count: rec.count, unitPrice: subT/rec.count, total: subT}], subT, rec.seller, rec.recId, false, rec.shopName, rec.bType, bName, bPhone, vAmt, rec.ownerName, rec.ownerPhone);
     }
 };
+// ገጹ ልክ ሲከፈት የዕቃዎችን ዝርዝር እና ዳታዎችን በራሱ ጊዜ እንዲያመጣ
+window.addEventListener('DOMContentLoaded', () => {
+    if (typeof window.renderBuyerCatalog === 'function') {
+        window.renderBuyerCatalog();
+    }
+});
+
