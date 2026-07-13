@@ -327,7 +327,7 @@ window.checkoutBuyerCart = function(orderType) {
     }
 };
 
-async function renderBuyerCatalog() {
+window.renderBuyerCatalog = async function() {
     // አዲስ የተጨመረ - ተጠቃሚዎች ሎጊን ካደረጉ በኋላ የፋየርቤዝ ቀጥታ ማዳመጫ (Real-time listener) እንዲያያዝ 
     if (typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
     // --- አዲስ የተጨመረ ማስተካከያ: ገፁ ሲከፈት የዛሬውን ቀን በራሱ (አውቶማቲክ) እንዲያስገባ ---
