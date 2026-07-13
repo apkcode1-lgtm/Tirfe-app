@@ -658,6 +658,7 @@ async function triggerUnifiedRegistration() {
     }
 }
 
+// 1. የፎርጌት ማረጋገጫ (Loading አብሮት የተጨመረበት)
 async function triggerForgotPassword() {
     showFormModal("የይለፍ ቃል ማደሻ (Forgot Password)", [
         { id: "f_user", label: "የተጠቃሚ ስምዎን (Username) ያስገቡ፦", type: "text" },
@@ -667,38 +668,48 @@ async function triggerForgotPassword() {
         let e = res.f_email.trim();
         if(!u || !e) { showCustomAlert("ስህተት", "መረጃ አልሞሉም!"); return; }
 
+        // ሎዲንግ እያደረገ መሆኑን ለተጠቃሚው ማሳወቂያ
+        let submitBtn = document.querySelector('#formModalFooter button.btn-add');
+        if(submitBtn) { submitBtn.innerText = "በማረጋገጥ ላይ (Loading)..."; submitBtn.disabled = true; }
+
         let foundAccount = null;
         let accType = '';
         
         try {
+            // Firebase ላይ መፈለግ
             if (isOnline && typeof db !== 'undefined') {
                 let tSnap = await db.ref(`tirfe_system/tenants/${u}`).once('value');
                 if(tSnap.exists() && String(tSnap.val().gmail || "").toLowerCase() === e.toLowerCase()) {
                     foundAccount = tSnap.val(); accType = 'tenant';
-                    localDB.tenants[u] = foundAccount; 
                 } else {
                     let bSnap = await db.ref(`tirfe_system/buyers/${u}`).once('value');
                     if(bSnap.exists() && String(bSnap.val().email || "").toLowerCase() === e.toLowerCase()) {
-                        foundAccount = bSnap.val();
-                        accType = 'buyer';
-                        localDB.buyers[u] = foundAccount;
+                        foundAccount = bSnap.val(); accType = 'buyer';
                     } else {
                         let mSnap = await db.ref(`tirfe_system/motors/${u}`).once('value');
                         if(mSnap.exists() && String(mSnap.val().email || "").toLowerCase() === e.toLowerCase()) {
-                            foundAccount = mSnap.val();
-                            accType = 'motor';
-                            if(!localDB.motors) localDB.motors = {};
-                            localDB.motors[u] = foundAccount;
+                            foundAccount = mSnap.val(); accType = 'motor';
+                        } else {
+                            // የሰራተኞችንም ዩዘርኔም እንዲፈልግ የተጨመረ
+                            let sSnap = await db.ref(`tirfe_system/staffAccounts/${u}`).once('value');
+                            if(sSnap.exists() && String(sSnap.val().gmail || "").toLowerCase() === e.toLowerCase()) {
+                                foundAccount = sSnap.val(); accType = 'staff';
+                            }
                         }
                     }
                 }
             }
         } catch(err) { console.log(err); }
 
+        // በተኑን ወደ ነበረበት መመለስ
+        if(submitBtn) { submitBtn.innerText = "እሺ (OK)"; submitBtn.disabled = false; }
+
         if(!foundAccount) { 
             showCustomAlert("ስህተት", "በዚህ ዩዘርኔም እና ኢሜል የተመዘገበ አካውንት የለም!"); return;
         }
 
+        // ፎርሙን ዘግቶ ወደ OTP ኮድ መላኪያ ማለፍ
+        closeActiveModal(); 
         pendingRegType = 'forgot_pass';
         triggerOTPFlow(e);
         
@@ -712,31 +723,53 @@ async function triggerForgotPassword() {
                 let npHash = await hashPassword(np);
 
                 if(accType === 'tenant') { 
-                    localDB.tenants[u].password = npHash; 
+                    if(localDB.tenants[u]) localDB.tenants[u].password = npHash; 
                     if (isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/tenants/${u}/password`).set(npHash);
                 } 
                 else if(accType === 'buyer') { 
-                    localDB.buyers[u].password = npHash; 
+                    if(localDB.buyers[u]) localDB.buyers[u].password = npHash; 
                     if (isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/buyers/${u}/password`).set(npHash);
                 }
                 else if(accType === 'motor') { 
-                    localDB.motors[u].password = npHash;
+                    if(localDB.motors[u]) localDB.motors[u].password = npHash;
                     if (isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/motors/${u}/password`).set(npHash);
                 }
+                else if(accType === 'staff') { 
+                    if (isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/staffAccounts/${u}/pass`).set(npHash);
+                }
+
                 pushToFirebase();
-                showCustomAlert("✅ ተሳክቷል", "የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል! አሁን በአዲሱ መግባት ይችላሉ።");
+                showCustomAlert("✅ ተሳክቷል", "የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል! አሁን አዲሱን ተጠቅመው መግባት ይችላሉ።");
             });
         };
     });
 }
 
+// 2. የ OTP ማሳያ (Error እንዳይፈጥር የተስተካከለ)
 function triggerOTPFlow(emailAddress) {
     emailVerificationCode = Math.floor(10000 + Math.random() * 90000).toString();
-    document.getElementById('verifyEmailDisplay').innerText = emailAddress;
-    openModalContainer();
-    document.getElementById('emailVerifyModal').classList.remove('hidden');
-    for(let i=1; i<=5; i++) document.getElementById('code'+i).value = '';
-    document.getElementById('code1').focus();
+    
+    let emailDisp = document.getElementById('verifyEmailDisplay');
+    if(emailDisp) emailDisp.innerText = emailAddress;
+    
+    // openModalContainer() ባይኖር እንኳን ሲስተሙ እንዳይቆም ያደርገዋል
+    try { if (typeof openModalContainer === 'function') openModalContainer(); } catch(e){}
+    
+    let modalOverlay = document.getElementById('modalOverlay');
+    if(modalOverlay) modalOverlay.classList.remove('hidden');
+    
+    let otpModal = document.getElementById('emailVerifyModal');
+    if(otpModal) otpModal.classList.remove('hidden');
+    
+    for(let i=1; i<=5; i++) {
+        let codeInput = document.getElementById('code'+i);
+        if(codeInput) codeInput.value = '';
+    }
+    
+    setTimeout(() => {
+        let c1 = document.getElementById('code1');
+        if(c1) c1.focus();
+    }, 100);
     
     sendSecureVerificationEmail(emailAddress, emailVerificationCode);
 }
