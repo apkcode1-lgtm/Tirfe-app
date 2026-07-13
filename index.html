@@ -405,6 +405,31 @@ img.goog-te-gadget-icon {
         <button class="btn-sell btn-block" style="padding:15px; border-radius:10px; font-size:1.1rem; background:#6366f1; color:#fff;" onclick="verifyEmailCodeSubmit()">Confirm</button>
         <button class="btn-config btn-block" style="margin-top:10px; background:transparent; border:1px solid #64748b; color:#94a3b8;" onclick="closeActiveModal()">Cancel</button>
     </div>
+        <div id="modalOverlay" class="modal-overlay hidden">
+    
+    <div id="emailVerifyModal" class="modal-card hidden" style="text-align: center; max-width: 400px;">
+       </div>
+
+    <div id="alertModal" class="modal-card hidden" style="text-align: center;">
+        <h3 id="alertTitle" style="color: var(--danger-color); margin-bottom: 10px;"></h3>
+        <p id="alertMessage" style="margin-bottom: 20px;"></p>
+        <button class="btn-add btn-block">እሺ (OK)</button>
+    </div>
+
+    <div id="formModal" class="modal-card hidden">
+        <div class="modal-header">
+            <h3 id="formModalTitle"></h3>
+        </div>
+        <div id="formModalBody" class="modal-body" style="text-align: left;"></div>
+        <div id="formModalFooter" class="modal-footer"></div>
+    </div>
+    <div id="confirmModal" class="modal-card hidden" style="text-align: center;">
+        <h3 id="confirmTitle" style="color: var(--warning-color); margin-bottom: 10px;"></h3>
+        <p id="confirmMessage" style="margin-bottom: 20px;"></p>
+        <button id="confirmYesBtn" class="btn-sell">አዎ (Yes)</button>
+        <button class="btn-config" onclick="closeActiveModal()">አይ (No)</button>
+    </div>
+ </div>
 </div>
 
 </main>
