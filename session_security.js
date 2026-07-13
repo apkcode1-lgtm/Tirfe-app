@@ -117,3 +117,19 @@ function enableAllActions() {
 
 setInterval(() => { checkTimeLock(); }, 60000);
 
+// አዲሱ እና የተስተካከለው የሎግአውት (Logout) ፈንክሽን
+window.logout = function() {
+    // 1. የነበረውን ሴሽን ከማህደረ-ትውስታ (localStorage) ሰርዝ
+    localStorage.removeItem('tirfe_active_session');
+    
+    // 2. ግሎባል ተለዋዋጮቹን ወደ መጀመሪያው ባዶ ይዘት መልስ
+    currentUserRole = null;
+    currentRevenueOfficer = null;
+    currentMotor = null;
+    currentBuyer = null;
+    currentTenant = null;
+    
+    // 3. ተጠቃሚውን ወደ መነሻው (የሎጊን ገጽ) index.html መልሰው
+    window.location.href = "index.html";
+};
+
