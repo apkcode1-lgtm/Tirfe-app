@@ -385,7 +385,8 @@ img.goog-te-gadget-icon {
         <button class="btn-warning btn-block" id="regSubmitBtn" style="background:var(--warning-color); color:#000; margin-top:20px; font-size: 1.1rem; padding: 12px; font-weight: bold; grid-column: span 2;" onclick="triggerUnifiedRegistration()">ተመዝገብ (Submit)</button>
         <button class="btn-config btn-block" style="margin-top: 15px; grid-column: span 2;" onclick="goToGateway()">⬅️ ወደ ኋላ ተመለስ</button>
     </section>
-    
+
+    <div id="modalOverlay" class="modal-overlay hidden">
     <div id="emailVerifyModal" class="modal-card hidden" style="text-align: center; max-width: 400px;">
         <div style="font-size:3rem; color:var(--accent-color); margin-bottom:10px;">📧</div>
         <h3 style="color:var(--text-color); margin-bottom:10px; font-size: 1.4rem;">Verify Your Email</h3>
@@ -404,6 +405,7 @@ img.goog-te-gadget-icon {
         <button class="btn-sell btn-block" style="padding:15px; border-radius:10px; font-size:1.1rem; background:#6366f1; color:#fff;" onclick="verifyEmailCodeSubmit()">Confirm</button>
         <button class="btn-config btn-block" style="margin-top:10px; background:transparent; border:1px solid #64748b; color:#94a3b8;" onclick="closeActiveModal()">Cancel</button>
     </div>
+</div>
 
 </main>
 
