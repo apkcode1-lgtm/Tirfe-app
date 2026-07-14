@@ -498,16 +498,13 @@ function completeMotorOrder(index) {
 // 11. ከሞተረኛ ሲስተም መውጫ (Logout)
 function logoutMotor() {
     if(!confirm("ከሲስተሙ መውጣት ይፈልጋሉ?")) return;
-    // 1. የሞተረኛውን ዳታ ከሜሞሪ ማጥፋት
-    currentMotor = null;
-    // 2. ተመልሶ ራሱ እንዳይገባ የሎጊን ሴሽኖችን ከብሮውዘር ማጽዳት
-    localStorage.removeItem('currentMotor'); 
-    localStorage.removeItem('currentUser'); // ካለህ ለማጥፋት
-    sessionStorage.clear(); // ሁሉንም ጊዜያዊ ሴሽኖች ያጠፋል
     
-    // 3. ወደ ሎጊን ገፅ መውሰጃ (በ replace ስንቀይረው የነበረውን ገፅ ከብሮውዘር ታሪክ ይሰርዘዋል)
-    // በዚህ ምክንያት ተጠቃሚው 'Back' በተን ቢጫን እንኳ ወደ ዴሊቨሪ ገፅ መመለስ አይችልም!
-    window.location.replace("index.html"); 
+    // በቀጥታ የተስተካከለውንና Firebaseን የሚያጠፋውን ዋናውን የሎግአውት ፈንክሽን መጥራት
+    if (typeof window.logout === 'function') {
+        window.logout();
+    } else {
+        window.location.replace("index.html");
+    }
 }
 
 // 12. የሞተረኛን ፎቶዎች መጠን መቀነሻ (Compression)
