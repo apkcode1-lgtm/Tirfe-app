@@ -17,7 +17,6 @@ async function hashPassword(password) {
 
 function checkAutomaticLogin() {
     let savedSession = localStorage.getItem('tirfe_active_session');
-    
     // ተጠቃሚው አሁን ያለበትን ገጽ ማወቅ (ለምሳሌ፡ index.html ወይም revenue.html)
     let currentPage = window.location.pathname.toLowerCase();
     let isLoginPage = currentPage.endsWith('index.html') || currentPage === '/' || currentPage.endsWith('login.html');
@@ -40,7 +39,7 @@ function checkAutomaticLogin() {
                 window.location.href = "revenue.html";
             } else {
                 // ገቢዎች ገጽ ላይ ከሆነ ዳታውን ያምጣ
-                if(typeof renderRevenuePanel === "function") renderRevenuePanel(); 
+                if(typeof renderRevenuePanel === "function") renderRevenuePanel();
             }
         } 
         else if (session.role === 'motor' && localDB.motors && localDB.motors[session.username]) {
@@ -50,7 +49,9 @@ function checkAutomaticLogin() {
             } else {
                 currentMotor = localDB.motors[session.username];
                 currentUserRole = 'motor';
-                if(isLoginPage) window.location.href = "delivery.html";
+                if(isLoginPage) {
+                    window.location.href = "delivery.html";
+                }
             }
         } 
         else if (session.role === 'buyer' && localDB.buyers && localDB.buyers[session.username]) {
@@ -60,13 +61,24 @@ function checkAutomaticLogin() {
             } else {
                 currentBuyer = localDB.buyers[session.username];
                 currentUserRole = 'buyer';
-                if(isLoginPage) window.location.href = "buyer.html";
+                if(isLoginPage) {
+                    window.location.href = "buyer.html";
+                }
             }
         } 
         else if ((session.role === 'owner' || session.role === 'staff') && localDB.tenants && localDB.tenants[session.username]) {
             let t = localDB.tenants[session.username];
             currentTenant = t;
-            if(isLoginPage) window.location.href = "shop.html";
+            currentUserRole = session.role; // ሮሉን ማረጋገጥ
+            
+            if(isLoginPage) {
+                window.location.href = "shop.html";
+            } else {
+                // መፍትሄ፡ አሁን ሱቁ ገፅ ላይ (shop.html) ከሆነ አፑን እና በተኖቹን ማስነሳት (Launch) አለበት!
+                if(typeof launchApp === "function") {
+                    launchApp(currentTenant);
+                }
+            }
         }
     } else {
         // ሴሽን (Session) ከሌለ እና ሎጊን ገጽ ላይ ካልሆነ ወደ ሎጊን ይመለስ
@@ -75,6 +87,7 @@ function checkAutomaticLogin() {
         }
     }
 }
+
 
 // ገጹ ልክ ሲከፈት ሴሽኑን በራሱ ጊዜ እንዲያጣራ ይህን ከታች ይጨምሩ
 window.addEventListener('DOMContentLoaded', checkAutomaticLogin);
