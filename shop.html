@@ -156,6 +156,55 @@
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" defer></script>
 </head>
 <body class="theme-deepblue">
+    <!-- አጠቃላይ የሞዳል ማስተናገጃ (Overlay) -->
+<div id="modalOverlay" class="modal-overlay hidden"></div>
+
+<!-- 1. የፎርም መሙያ ሞዳል (አሁን ላጋጠመህ ስህተት መፍትሄ) -->
+<div id="formModal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 id="formModalTitle"></h3>
+        </div>
+        <div id="formModalBody" class="modal-body">
+            <!-- ፎርሞቹ እዚህ ይገባሉ -->
+        </div>
+        <div id="formModalFooter" class="modal-footer">
+            <!-- በተኖች እዚህ ይገባሉ -->
+        </div>
+    </div>
+</div>
+
+<!-- 2. የማስጠንቀቂያ (Alert) ሞዳል -->
+<div id="alertModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 400px; text-align: center;">
+        <div class="modal-header">
+            <h3 id="alertTitle" class="text-warning"></h3>
+        </div>
+        <div class="modal-body">
+            <p id="alertMessage" style="margin-bottom: 20px;"></p>
+        </div>
+        <div class="modal-footer" style="justify-content: center;">
+            <button class="btn-add btn-block">እሺ ተረድቻለሁ</button>
+        </div>
+    </div>
+</div>
+
+<!-- 3. የማረጋገጫ (Confirm) ሞዳል -->
+<div id="confirmModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 400px; text-align: center;">
+        <div class="modal-header">
+            <h3 id="confirmTitle" class="text-danger"></h3>
+        </div>
+        <div class="modal-body">
+            <p id="confirmMessage" style="margin-bottom: 20px; font-weight: bold;"></p>
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 10px; justify-content: space-between;">
+            <button class="btn-config" style="flex: 1;" onclick="closeActiveModal()">አይ (ሰርዝ)</button>
+            <button id="confirmYesBtn" class="btn-clear" style="flex: 1;">አዎ (እርግጠኛ ነኝ)</button>
+        </div>
+    </div>
+</div>
+
 <div id="imageLightbox" class="modal-overlay hidden" onclick="this.classList.add('hidden')" style="z-index: 999999 !important; cursor: zoom-out;">
     <img id="lightboxImg" src="" style="max-width: 90%; max-height: 90%; border-radius: 8px; border: 2px solid var(--accent-color); box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
 </div>
