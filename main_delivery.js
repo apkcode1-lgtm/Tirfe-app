@@ -500,10 +500,9 @@ function completeMotorOrder(index) {
 function logoutMotor() {
     if(!confirm("ከሲስተሙ መውጣት ይፈልጋሉ?")) return;
     currentMotor = null;
-    document.getElementById('motorPage').classList.add('hidden');
-    document.getElementById('welcomeGateway').classList.remove('hidden');
+    // ቀጥታ ወደ መግቢያው (index.html) ገፅ እንዲወስደው ማዘዝ
+    window.location.href = "index.html";
 }
-
 // 12. የሞተረኛን ፎቶዎች መጠን መቀነሻ (Compression)
 function compressMotorImage(file) {
     return new Promise((resolve, reject) => {
