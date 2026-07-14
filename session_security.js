@@ -117,19 +117,28 @@ function enableAllActions() {
 
 setInterval(() => { checkTimeLock(); }, 60000);
 
-// አዲሱ እና የተስተካከለው የሎግአውት (Logout) ፈንክሽን
+//  (Logout) ፈንክሽን
 window.logout = function() {
     // 1. የነበረውን ሴሽን ከማህደረ-ትውስታ (localStorage) ሰርዝ
     localStorage.removeItem('tirfe_active_session');
+    sessionStorage.clear(); // ተጨማሪ የሴሽን ማጽጃ
     
-    // 2. ግሎባል ተለዋዋጮቹን ወደ መጀመሪያው ባዶ ይዘት መልስ
+    // 2. የ Firebase ሴሽንን መዝጋት (ዋናው የተደበቀው ችግር ይሄ ነበር!)
+    if (typeof auth !== 'undefined') {
+        auth.signOut().catch(function(error) {
+            console.log("Firebase SignOut Error:", error);
+        });
+    }
+    
+    // 3. ግሎባል ተለዋዋጮቹን ወደ መጀመሪያው ባዶ ይዘት መልስ
     currentUserRole = null;
     currentRevenueOfficer = null;
     currentMotor = null;
     currentBuyer = null;
     currentTenant = null;
     
-    // 3. ተጠቃሚውን ወደ መነሻው (የሎጊን ገጽ) index.html መልሰው
-    window.location.href = "index.html";
+    // 4. ተጠቃሚውን ወደ መነሻው (የሎጊን ገጽ) በ replace መልሰው (ከ History ላይ ለማጥፋት)
+    window.location.replace("index.html");
 };
+
 
