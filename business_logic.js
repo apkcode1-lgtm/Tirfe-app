@@ -185,4 +185,35 @@ function configureBank() {
         saveAndRefresh(); showCustomAlert("ተሳክቷል", "የማያያዣ መቼቶች በተሳካ ሁኔታ ተቀምጠዋል!");
     });
 }
+// የዕለቱን ሂሳብ መዝጊያ ሪፖርት የሚያስነሳ ፋንክሽን (ይህን መጨረሻ ላይ ይጨምሩ)
+window.triggerShiftReport = function() {
+    // እርግጠኛ መሆንዎን የሚጠይቅ መልዕክት
+    if(typeof showCustomAlert === 'function') {
+        showCustomAlert("ሪፖርት", "የዕለት ሂሳብ መዝጊያ ሂደት ተጀምሯል...");
+    } else {
+        alert("የዕለት ሂሳብ መዝጊያ ሂደት ተጀምሯል...");
+    }
+    
+    // ማሳሰቢያ፦ የሪፖርት ማቅረቢያ ዋናውን ኮድ (ሂሳብ ማስላቱን እና ሪፖርት መላኩን) እዚህ ውስጥ ይፃፉ።
+};
+window.logout = function() {
+    // 1. መውጣቱን ለተጠቃሚው ማሳወቅ (አማራጭ)
+    console.log("ከሲስተም እየወጣ ነው...");
+
+    // 2. ከፋየርቤዝ (Firebase) አገልጋይ ላይ ደህንነቱ በተጠበቀ ሁኔታ ሳይን አውት ማድረግ
+    if (typeof auth !== 'undefined' && auth.signOut) {
+        auth.signOut().then(() => {
+            // ፋየርቤዝ በተሳካ ሁኔታ ካስወጣ በኋላ ወደ ሆም ፔጅ ይመልሳል
+            window.location.replace("index.html");
+        }).catch((error) => {
+            console.error("በመውጣት ሂደት ላይ ስህተት ተፈጥሯል:", error);
+            // ስህተት ቢፈጠርም አፑ እንዳይፈዝዝ በግድ ወደ ሆም ፔጅ ይመልሳል
+            window.location.replace("index.html");
+        });
+    } else {
+        // የፋየርቤዝ ግንኙነት ከሌለ ወይም ቀጥታ ለሚሰሩ (Offline)
+        window.location.replace("index.html");
+    }
+};
+
 
