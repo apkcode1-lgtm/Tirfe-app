@@ -301,6 +301,23 @@ img.goog-te-gadget-icon {
         </div>
     </div>
 </div>
+<!-- 4. የሰራተኛ ማስተዳደሪያ ሞዳል (ይህን አዲስ ይጨምሩ) -->
+<div id="staffManageModal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>👥 የሰራተኞች ማስተዳደሪያ</h3>
+        </div>
+        <!-- ጃቫስክሪፕቱ ፎርሙን የሚያስገባው እዚህ ኮንቴነር ውስጥ ነው -->
+        <div id="staffFormsContainer" class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+            
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="btn-add" onclick="addStaffFormRow()">➕ ሌላ ጨምር</button>
+            <button class="btn-sell" onclick="saveAllStaff()">💾 መዝግብ / አስቀምጥ</button>
+            <button class="btn-clear" onclick="closeActiveModal()">❌ ዝጋ</button>
+        </div>
+    </div>
+</div>
 
 <div id="imageLightbox" class="modal-overlay hidden" onclick="this.classList.add('hidden')" style="z-index: 999999 !important; cursor: zoom-out;">
     <img id="lightboxImg" src="" style="max-width: 90%; max-height: 90%; border-radius: 8px; border: 2px solid var(--accent-color); box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
