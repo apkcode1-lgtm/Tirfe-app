@@ -14,5 +14,6 @@ if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 var db = firebase.database();
+db.setForceWebSocket(true);
 var auth = firebase.auth();
 var perf = firebase.performance();
