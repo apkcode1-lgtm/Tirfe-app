@@ -433,6 +433,53 @@ img.goog-te-gadget-icon {
         </section>
     </section>
 </main>
+    <div id="modalOverlay" class="modal-overlay hidden" style="z-index: 1000;"></div>
+
+<div id="bizTypeModal" class="modal-overlay hidden" style="z-index: 1001;">
+    <div class="modal-card">
+        <div class="modal-header"><h3>🏢 የንግድ ዘርፎች ማስተዳደሪያ</h3></div>
+        <div class="modal-body">
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <input type="text" id="newBizTypeName" placeholder="አዲስ የንግድ ዘርፍ ስም...">
+                <button class="btn-add" onclick="addNewBizType()">➕ ጨምር</button>
+            </div>
+            <div id="bizTypeListContainer" style="max-height: 250px; overflow-y: auto;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-expense" onclick="document.getElementById('bizTypeModal').classList.add('hidden'); document.getElementById('modalOverlay').classList.add('hidden');">ዝጋ</button>
+        </div>
+    </div>
+</div>
+
+<div id="alertModal" class="modal-overlay hidden" style="z-index: 1002;">
+    <div class="modal-card">
+        <div class="modal-header"><h3 id="alertTitle" style="color:var(--success-color);">ማሳወቂያ</h3></div>
+        <div class="modal-body" id="alertMessage" style="color:white;"></div>
+        <div class="modal-footer">
+            <button class="btn-add btn-block" onclick="document.getElementById('alertModal').classList.add('hidden'); document.getElementById('modalOverlay').classList.add('hidden'); typeof closeActiveModal === 'function' ? closeActiveModal() : null;">እሺ (OK)</button>
+        </div>
+    </div>
+</div>
+
+<div id="confirmModal" class="modal-overlay hidden" style="z-index: 1002;">
+    <div class="modal-card">
+        <div class="modal-header"><h3 id="confirmTitle" style="color:var(--warning-color);">ማረጋገጫ</h3></div>
+        <div class="modal-body" id="confirmMessage" style="color:white;"></div>
+        <div class="modal-footer">
+            <button class="btn-expense" id="confirmCancelBtn" onclick="document.getElementById('confirmModal').classList.add('hidden'); document.getElementById('modalOverlay').classList.add('hidden');">ሰርዝ (Cancel)</button>
+            <button class="btn-success" id="confirmOkBtn">አረጋግጥ (Confirm)</button>
+        </div>
+    </div>
+</div>
+
+<div id="formModal" class="modal-overlay hidden" style="z-index: 1001;">
+    <div class="modal-card">
+        <div class="modal-header"><h3 id="formModalTitle" style="color:var(--accent-color);">ፎርም</h3></div>
+        <div class="modal-body" id="formModalBody"></div>
+        <div class="modal-footer" id="formModalFooter">
+            </div>
+    </div>
+</div>
 
 <script defer src="firebase-config.js"></script>
 <script defer src="database.js"></script>
