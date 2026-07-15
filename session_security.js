@@ -8,59 +8,29 @@ document.addEventListener('keydown', event => {
 // ---------------------------------------------------------------------
 // SECURITY UTILITY: Password Hashing (SHA-256)
 // ---------------------------------------------------------------------
+async function hashPassword(password) {
+    const msgBuffer = new TextEncoder().encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
-// 1. የተስተካከለው የ logout ፈንክሽን
-window.logout = async function() {
-    // አውቶማቲክ ሎጊኑ እንዳይነሳ መከላከያ ምልክት እናስቀምጣለን
-    sessionStorage.setItem('just_logged_out', 'true');
-    
-    // የነበረውን ሴሽን ከማህደረ-ትውስታ ሰርዝ
-    localStorage.removeItem('tirfe_active_session');
-    
-    // የ Firebase ሴሽንን ሙሉ በሙሉ መዝጋት (await ተጠቅመን እስኪያልቅ እንጠብቃለን)
-    if (typeof auth !== 'undefined') {
-        try {
-            await auth.signOut();
-        } catch(error) {
-            console.log("Firebase SignOut Error:", error);
-        }
-    }
-    
-    // ግሎባል ተለዋዋጮቹን ወደ መጀመሪያው ባዶ ይዘት መልስ
-    window.currentUserRole = null;
-    window.currentRevenueOfficer = null;
-    window.currentMotor = null;
-    window.currentBuyer = null;
-    window.currentTenant = null;
-    
-    // ተጠቃሚውን ወደ መነሻው (የሎጊን ገጽ) መልሰው
-    window.location.replace("index.html");
-};
-
-// 2. የተስተካከለው የ checkAutomaticLogin ፈንክሽን
 function checkAutomaticLogin() {
-    // ተጠቃሚው አሁን ሎግ አውት አድርጎ ከሆነ፣ አውቶማቲክ ሎጊኑን አቁመው!
-    if (sessionStorage.getItem('just_logged_out')) {
-        // ምልክቱን አጥፋውና እዚሁ አቁም
-        sessionStorage.removeItem('just_logged_out');
-        return; 
-    }
-
     let savedSession = localStorage.getItem('tirfe_active_session');
+    // ተጠቃሚው አሁን ያለበትን ገጽ ማወቅ (ለምሳሌ፡ index.html ወይም revenue.html)
     let currentPage = window.location.pathname.toLowerCase();
     let isLoginPage = currentPage.endsWith('index.html') || currentPage === '/' || currentPage.endsWith('login.html');
 
     if (savedSession) {
         let session = JSON.parse(savedSession);
-        window.currentUserRole = session.role;
-        window.currentLoginMode = session.loginMode || 'unified';
+        currentUserRole = session.role;
+        currentLoginMode = session.loginMode || 'unified';
         
         if (session.role === 'admin') {
-            window.currentUserRole = 'admin';
+            currentUserRole = 'admin';
             if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
-            if(isLoginPage) window.location.replace("admin.html");
+            if(isLoginPage) window.location.href = "admin.html"; // ሎጊን ገጽ ላይ ከሆነ ብቻ ቀይረው
         } 
-    
         else if (session.role === 'revenue' && localDB.revenueAuthorities && localDB.revenueAuthorities[session.username]) {
             currentRevenueOfficer = localDB.revenueAuthorities[session.username];
             currentUserRole = 'revenue';
