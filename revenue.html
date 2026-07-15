@@ -339,6 +339,35 @@ img.goog-te-gadget-icon {
         </section>
     </section>
 </main>
+    <div id="modalOverlay" class="modal-overlay hidden">
+    
+    <div id="alertModal" class="modal-card hidden">
+        <div class="modal-header">
+            <h3 id="alertTitle">ማሳወቂያ</h3>
+        </div>
+        <div class="modal-body">
+            <p id="alertMessage" style="font-size: 1rem; line-height: 1.5; color: var(--text-color);"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-add">እሺ (OK)</button>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal-card hidden">
+        <div class="modal-header">
+            <h3 id="confirmTitle">ማረጋገጫ</h3>
+        </div>
+        <div class="modal-body">
+            <p id="confirmMessage" style="font-size: 1rem; line-height: 1.5; color: var(--text-color);"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-config" onclick="closeActiveModal()">ሰርዝ (Cancel)</button>
+            <button id="confirmYesBtn" class="btn-sell">አዎ አረጋግጣለሁ</button>
+        </div>
+    </div>
+    
+</div>
+
 <script defer src="firebase-config.js"></script>
 <script defer src="database.js"></script>
 <script defer src="utils.js"></script>
