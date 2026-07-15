@@ -141,6 +141,8 @@ window.logout = function() {
     // 1. የነበረውን ሴሽን ከማህደረ-ትውስታ (localStorage) ሰርዝ
     localStorage.removeItem('tirfe_active_session');
     sessionStorage.clear(); // ተጨማሪ የሴሽን ማጽጃ
+    sessionStorage.setItem('just_logged_out', 'true'); // ሎግ አውት መደረጉን የሚይዝ ምልክት
+
     
     // 2. የ Firebase ሴሽንን መዝጋት (ዋናው የተደበቀው ችግር ይሄ ነበር!)
     if (typeof auth !== 'undefined') {
