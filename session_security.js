@@ -16,7 +16,13 @@ async function hashPassword(password) {
 }
 
 function checkAutomaticLogin() {
+    // ሎግ አውት ተደርጎ ከሆነ አውቶማቲክ ሎጊኑ እዚሁ ላይ ይቆማል
+    if (sessionStorage.getItem('just_logged_out')) {
+        sessionStorage.removeItem('just_logged_out');
+        return; 
+    }
     let savedSession = localStorage.getItem('tirfe_active_session');
+
     // ተጠቃሚው አሁን ያለበትን ገጽ ማወቅ (ለምሳሌ፡ index.html ወይም revenue.html)
     let currentPage = window.location.pathname.toLowerCase();
     let isLoginPage = currentPage.endsWith('index.html') || currentPage === '/' || currentPage.endsWith('login.html');
