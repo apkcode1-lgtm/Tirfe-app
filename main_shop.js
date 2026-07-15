@@ -804,7 +804,7 @@ function launchApp(tenant) {
         if(singleStaffBtn) singleStaffBtn.classList.remove('hidden');
         checkMonthlyAccessReset();
     }
-checkMorningSession() {
+function checkMorningSession() {
     let d = currentTenant.data || {};
     if (!d.sessionActive) {
         showFormModal("የቀኑ መጀመሪያ መመዝገቢያ (የካዝና ማስሞያ)", [
