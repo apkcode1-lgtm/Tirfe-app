@@ -307,6 +307,7 @@ img.goog-te-gadget-icon {
         <div class="modal-header">
             <h3>👥 የሰራተኞች ማስተዳደሪያ</h3>
         </div>
+        
         <!-- ጃቫስክሪፕቱ ፎርሙን የሚያስገባው እዚህ ኮንቴነር ውስጥ ነው -->
         <div id="staffFormsContainer" class="modal-body" style="max-height: 60vh; overflow-y: auto;">
             
@@ -335,7 +336,20 @@ img.goog-te-gadget-icon {
         </div>
     </div>
 </div>
-
+    <div id="taxReceiptDetailModal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="text-success">የግብር ደረሰኝ ዝርዝር</h3>
+            <button class="btn-expense btn-sm" onclick="document.getElementById('taxReceiptDetailModal').classList.add('hidden')">❌</button>
+        </div>
+        <div id="taxReceiptDetailBody" class="modal-body" style="background: white; padding: 15px; border-radius: 8px;">
+            </div>
+        <div class="modal-footer" style="margin-top: 15px;">
+            <button class="btn-config" onclick="document.getElementById('taxReceiptDetailModal').classList.add('hidden')">ዝጋ</button>
+            <button class="btn-sell" onclick="window.print()">𖖨️ አትም (Print)</button>
+        </div>
+    </div>
+</div>
 <div id="imageLightbox" class="modal-overlay hidden" onclick="this.classList.add('hidden')" style="z-index: 999999 !important; cursor: zoom-out;">
     <img id="lightboxImg" src="" style="max-width: 90%; max-height: 90%; border-radius: 8px; border: 2px solid var(--accent-color); box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
 </div>
