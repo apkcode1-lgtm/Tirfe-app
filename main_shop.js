@@ -804,8 +804,7 @@ function launchApp(tenant) {
         if(singleStaffBtn) singleStaffBtn.classList.remove('hidden');
         checkMonthlyAccessReset();
     }
-setTimeout(() => { if(currentUserRole === "owner") initChart(); checkMorningSession(); }, 200);
-}
+
 // Startup Calls
 loadLocalStorageBackup();
 checkAutomaticLogin();
