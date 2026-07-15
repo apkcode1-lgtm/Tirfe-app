@@ -805,44 +805,6 @@ function launchApp(tenant) {
         checkMonthlyAccessReset();
     }
 
-    // የጠዋት ክፍለ-ጊዜ መክፈቻ ፈንክሽን
-function checkMorningSession() {
-    // የተጠቃሚ ዳታ ከሌለ አቋርጥ
-    if (!currentTenant || !currentTenant.data) return;
-
-    let today = getTodayFormatted(); // የዛሬውን ቀን ያመጣል
-    let session = currentTenant.data.sessionData || {};
-
-    // የዛሬው ክፍለ-ጊዜ አስቀድሞ ተከፍቶ ከሆነ፣ ምንም አታድርግ (ይለፈው)
-    if (session.date === today && currentTenant.data.sessionActive && !currentTenant.data.shiftClosed) {
-        return;
-    }
-
-    // አዲስ ቀን ከሆነ ፎርም (Modal) ያመጣል
-    showFormModal("☀️ የጠዋት ክፍለ-ጊዜ መክፈቻ", [
-        { id: "initialFloat", label: "በካዝና ውስጥ ያለው መነሻ ብር (Initial Cash)", type: "number", placeholder: "0.00", defaultValue: 0 }
-    ], (res) => {
-        let floatAmt = parseFloat(res.initialFloat) || 0;
-        
-        // አዲሱን የክፍለ-ጊዜ መረጃ መዝግብ
-        currentTenant.data.sessionData = {
-            date: today,
-            employee: currentUserRole === 'staff' ? currentTenant.username : currentTenant.fullName,
-            initialFloat: floatAmt
-        };
-        
-        // ሲስተሙን ለአዲስ ቀን ክፍት አድርግ
-        currentTenant.data.sessionActive = true;
-        currentTenant.data.shiftClosed = false; 
-        currentTenant.data.collectedCreditToday = 0; // የዕለቱን የተሰበሰበ እዳ ዜሮ አድርግ
-
-        // ዳታውን ሴቭ አድርግ እና ገፁን አድስ
-        saveAndRefresh();
-        
-        showCustomAlert("ተከፍቷል!", `የዛሬው ስራ በመነሻ ካዝና ${floatAmt} ETB ተጀምሯል። መልካም የስራ ቀን!`);
-    });
-}
-
 setTimeout(() => { 
     if (currentUserRole === "owner") {
         initChart(); 
