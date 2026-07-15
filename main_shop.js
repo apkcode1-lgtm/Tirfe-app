@@ -804,6 +804,24 @@ function launchApp(tenant) {
         if(singleStaffBtn) singleStaffBtn.classList.remove('hidden');
         checkMonthlyAccessReset();
     }
+checkMorningSession() {
+    let d = currentTenant.data || {};
+    if (!d.sessionActive) {
+        showFormModal("የቀኑ መጀመሪያ መመዝገቢያ (የካዝና ማስሞያ)", [
+            { id: "employee", label: "የገቢ አድራጊው/ሰራተኛው ስም ያስገቡ፦", type: "text", placeholder: "ስም", defaultValue: currentUserRole === "staff" ? "ሰራተኛ" : "አሰሪ" },
+            { id: "initialFloat", label: "ጠዋት በካዝና/ሳጥን ውስጥ የተገኘ መነሻ ገንዘብ (Float)፦", type: "number", placeholder: "0.00", defaultValue: "0" }
+        ], (res) => {
+            d.sessionData = { date: getTodayFormatted(), loginTime: new Date().toLocaleTimeString('en-GB'), employee: res.employee || "ሰራተኛ", initialFloat: parseFloat(res.initialFloat) || 0 };
+            d.sessionActive = true; d.shiftClosed = false; d.expenses = d.expenses || []; 
+            d.drawerLog = []; d.debts = d.debts || []; d.receipts = d.receipts || [];
+            d.deliveryOrders = d.deliveryOrders || []; d.collectedCreditToday = 0;
+            currentTenant.data = d; 
+            document.getElementById('receiptDateFilter').value = getTodayFormatted();
+            saveAndRefresh();
+        });
+    } else { renderApp(); }
+}
+
 setTimeout(() => { if(currentUserRole === "owner") initChart(); checkMorningSession(); }, 200);
 }
 // Startup Calls
