@@ -798,16 +798,3 @@ async function hashPassword(password) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
-// አዲሱን HTML በንፁህ መንገድ በኩኪ እና በሪዳይሬክት ለመጫን የሚያገለግል ፈንክሽን
-function fetchAndRenderSecureHTML(role) {
-    // 'owner' እና 'motor' የሚሉትን ሚናዎች ወደ HTML ፋይል ስማቸው እንቀይራለን
-    let apiRole = role;
-    if (role === 'owner') apiRole = 'shop';
-    if (role === 'motor') apiRole = 'delivery';
-
-    // ሚናውን በደህንነቱ በተጠበቀ ኩኪ (Cookie) ውስጥ እናስቀምጣለን
-    document.cookie = `userRole=${apiRole}; path=/; max-age=3600; SameSite=Strict`;
-
-    // ሙሉ የገጽ ሪዳይሬክት እናደርጋለን (ይህም የጃቫስክሪፕት ሜሞሪውን ሙሉ በሙሉ ያጸዳል!)
-    window.location.href = '/api/get-html';
-}
