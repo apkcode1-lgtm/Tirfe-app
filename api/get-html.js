@@ -2,12 +2,28 @@
 const fs = require('fs');
 const path = require('path');
 
+// ኩኪዎችን በቀላሉ ለመገንጠል የሚረዳ ፈንክሽን
+const parseCookies = (cookieHeader) => {
+    const list = {};
+    if (!cookieHeader) return list;
+    cookieHeader.split(';').forEach(cookie => {
+        let [name, ...rest] = cookie.split('=');
+        name = name.trim();
+        if (!name) return;
+        const val = rest.join('=').trim();
+        list[name] = decodeURIComponent(val);
+    });
+    return list;
+};
+
 module.exports = async (req, res) => {
-    // ከደህንነት ጥበቃው (auth.js/session) የተላከውን የተጠቃሚ ሚና (Role) መቀበል
-    const userRole = req.headers['x-user-role']; 
+    // ከኩኪው ላይ የተጠቃሚውን ሚና (Role) እናገኛለን
+    const cookies = parseCookies(req.headers.cookie);
+    const userRole = cookies.userRole; 
 
     if (!userRole) {
-        return res.status(401).json({ error: "እባክዎ መጀመሪያ ይግቡ!" });
+        // መግቢያ ገጽ ላይ ካልሆኑ ወደ መግቢያ ይመለሱ
+        return res.redirect('/index.html');
     }
 
     // በሚናው መሠረት የሚገባውን ፋይል መምረጥ
@@ -19,20 +35,16 @@ module.exports = async (req, res) => {
         case 'shop':     fileName = 'shop.html'; break;
         case 'staff':    fileName = 'staff.html'; break;
         case 'delivery': fileName = 'delivery.html'; break;
-        default:         return res.status(403).json({ error: "የተከለከለ ገጽ!" });
+        default:         return res.status(403).send("የተከለከለ ገጽ!");
     }
 
     try {
-        // በ Vercel ላይ ፋይሎችን ለማንበብ ትክክለኛው መንገድ
         const filePath = path.join(process.cwd(), 'secure-html', fileName);
-        
-        // ፋይሉን በጽሑፍ (UTF-8) መልክ እናነባለን
         const htmlContent = fs.readFileSync(filePath, 'utf8');
         
-        // እንደ HTML መመለስ
         res.setHeader('Content-Type', 'text/html');
         return res.status(200).send(htmlContent);
     } catch (error) {
-        return res.status(500).json({ error: "ፋይሉን ማግኘት አልተቻለም!" });
+        return res.status(500).send("ይቅርታ፣ ገጹን መጫን አልተቻለም!");
     }
 };
