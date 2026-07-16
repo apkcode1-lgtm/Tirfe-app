@@ -30,7 +30,6 @@ function checkAutomaticLogin() {
             currentUserRole = 'admin';
             if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
             await fetchAndRenderSecureHTML('admin');
-            return;
         } 
         else if (session.role === 'revenue' && localDB.revenueAuthorities && localDB.revenueAuthorities[session.username]) {
             currentRevenueOfficer = localDB.revenueAuthorities[session.username];
@@ -63,7 +62,7 @@ function checkAutomaticLogin() {
                 currentBuyer = localDB.buyers[session.username];
                 currentUserRole = 'buyer';
                 if(isLoginPage) {
-                    window.location.href = "buyer.html";
+                await fetchAndRenderSecureHTML('buyer');
                 }
             }
         } 
