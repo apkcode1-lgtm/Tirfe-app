@@ -124,9 +124,8 @@ async function handleUnifiedLogin() {
                 currentUserRole = 'admin'; 
                 if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                await fetchAndRenderSecureHTML('admin');
+                window.location.href = "admin.html";
                 return;
-
 
             } else {
                 err.innerText = "❌ የተሳሳተ የአድሚን የይለፍ ቃል ወይም ኢሜል!";
@@ -190,7 +189,9 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                window.location.href = "shop.html";
+                
+                // ማስተካከያ 3፡ ፋይሎቹ ስለተከፋፈሉ በቀጥታ ወደ ሱቁ ገጽ (shop.html) እንዲወስድ ተደርጓል
+                window.location.href = "shop.html"; 
                 return;
             }
         }
@@ -224,7 +225,7 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                await fetchAndRenderSecureHTML('buyer');
+                window.location.href = "buyer.html";
                 return;
             }
         }
@@ -259,8 +260,8 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                await fetchAndRenderSecureHTML('revenue');
-                return;
+                window.location.href = "revenue.html";
+               return;
             }
         }
 
@@ -298,7 +299,7 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                await fetchAndRenderSecureHTML('motor');
+                window.location.href = "delivery.html";
                 return;
             }
         }
@@ -342,7 +343,7 @@ async function handleUnifiedLogin() {
                     pushToFirebase();
                     err.innerText = "";
                     if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                    await fetchAndRenderSecureHTML('staff');
+                    window.location.href = "staff.html";
                     return;
                 } else {
                     err.innerText = "❌ የሱቁ ባለቤት መረጃ ሲስተም ውስጥ አልተገኘም!";
@@ -376,7 +377,7 @@ async function handleUnifiedLogin() {
                             if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                             
                             // ማስተካከያ፡ ወደ ሱቅ ገጽ ቀጥታ መላክ
-                           await fetchAndRenderSecureHTML('staff');
+                            window.location.href = "staff.html";
                             return;
                         }
                     }
