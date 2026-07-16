@@ -53,102 +53,6 @@
 <main class="container">
 
 
-
-        <div id="unifiedBuyerForm" style="text-align: left;">
-            <input type="text" id="pubBuyerName" placeholder="ሙሉ ስም (Full Name)">
-            <input type="email" id="pubBuyerEmail" placeholder="ኢሜል (Gmail)">
-            <input type="tel" id="pubBuyerPhone" placeholder="ስልክ ቁጥር (ግዴታ 10 አሃዝ)" pattern="[0-9]{10}" maxlength="10">
-            <input type="text" id="pubBuyerUser" placeholder="የመግቢያ ስም (Username)">
-        </div>
-
-        <div id="unifiedTenantForm" class="hidden" style="text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <input type="text" id="pub_newShopName" placeholder="የሱቅ ስም (ምሳሌ፡ አልፋ) (ግዴታ)">
-            <input type="text" id="pub_newFullName" placeholder="የተከራይ ሙሉ ስም (ግዴታ)">
-            <input type="text" id="pub_newUsername" placeholder="መግቢያ ስም (Username) (ግዴታ)">
-            <input type="email" id="pub_newEmail" placeholder="ኢሜል አድራሻ (ግዴታ)">
-            <input type="tel" id="pub_newPhone" placeholder="ስልክ ቁጥር (10 አሃዝ) (ግዴታ)" maxlength="10">
-            <input type="text" id="pub_newTelegram" placeholder="የቴሌግራም መግቢያ (አማራጭ)">
-            
-            <select id="pub_newRegion" onchange="handleRegionChange('pub_newRegion', 'pub_newZone', 'pub_newWoreda')">
-                <option value="">-- ክልል ይምረጡ --</option>
-            </select>
-            <select id="pub_newZone" onchange="handleZoneChange('pub_newRegion', 'pub_newZone', 'pub_newWoreda')">
-                <option value="">-- መጀመሪያ ክልል ይምረጡ --</option>
-            </select>
-            <select id="pub_newWoreda">
-                <option value="">-- መጀመሪያ ዞን ይምረጡ --</option>
-            </select>
-            
-            <input type="text" id="pub_newKebele" placeholder="ቀበሌ (ግዴታ)">
-            <input type="text" id="pub_newHouseNo" placeholder="የቤት ቁጥር (ግዴታ)">
-            <input type="text" id="pub_newTin" placeholder="TIN Number (ግዴታ)">
-            <input type="text" id="pub_newTradeReg" placeholder="የንግድ ምዝገባ ቁጥር (ግዴታ)" style="grid-column: span 2;">
-            <input type="text" id="pub_newMapsLink" placeholder="የሱቅ ጎግል ማፕ ሊንክ (አማራጭ)" style="grid-column: span 2;">
-            <input type="text" id="pub_newAddress" placeholder="ያለበት ሀገር / ከተማ / ክልል (አማራጭ)">
-            
-            <select id="pub_newBusinessType" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white;">
-                <option value="">-- የንግድ ዘርፍ ይምረጡ (ግዴታ) --</option>
-            </select>
-            
-            <div style="grid-column: span 2; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                <label style="color: var(--accent-color); font-size: 0.85rem; display:block;">የንግድ ካፒታል መጠን (የኪራይ መቁረጫ ምድብ):</label>
-                <select id="pub_newCapitalTier" onchange="autoFillPubCapitalFee()">
-                    <option value="">-- ካፒታል ይምረጡ --</option>
-                    <option value="low">ዝቅተኛ (Low)</option>
-                    <option value="medium">መካከለኛ (Medium)</option>
-                    <option value="high">ከፍተኛ (High)</option>
-                </select>
-
-                <label style="font-size: 0.85rem; color: var(--accent-color); display:block; margin-top: 8px;">የውል ዓይነት (Contract Type)፦</label>
-                <select id="pub_newContractType" onchange="autoFillPubCapitalFee()">
-                    <option value="በወር">በወር (Monthly)</option>
-                    <option value="በዓመት">በዓመት (Yearly)</option>
-                </select>
-
-                <label style="font-size: 0.85rem; color: var(--accent-color); display:block; margin-top: 8px;">የውል ማብቂያ ቀን (Expiry Date)፦</label>
-                <input type="date" id="pub_newExpiryDate" required>
-                
-                <label style="font-size: 0.85rem; color: var(--accent-color); display:block; margin-top: 8px;">የመመዝገቢያ/ኪራይ ክፍያ (ETB):</label>
-                <input type="number" id="pub_newRegistrationFee" placeholder="የመመዝገቢያ ክፍያ (ETB)" readonly style="background: rgba(255,255,255,0.1);">
-            </div>
-            <div style="grid-column: span 2;">
-                <label style="color: var(--accent-color); font-size: 0.85rem; margin-top:10px; display:block;">የሱቅ ፕሮፋይል ፎቶ (አማራጭ)፡</label>
-                <input type="file" id="pub_newShopLogoFile" accept="image/*">
-            </div>
-        </div>
-
-        <div id="unifiedMotorForm" class="hidden" style="text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <input type="text" id="mot_firstName" placeholder="ስም እስከ አባት (ግዴታ)">
-            <input type="text" id="mot_lastName" placeholder="የአያት ስም (ግዴታ)">
-            <input type="tel" id="mot_phone" placeholder="ስልክ ቁጥር (ግዴታ)" pattern="[0-9]{10}" maxlength="10">
-            <input type="email" id="mot_email" placeholder="ኢሜል (Gmail) (ግዴታ)">
-            <input type="text" id="mot_username" placeholder="መግቢያ ስም (Username) (ግዴታ)">
-            <input type="text" id="mot_tgToken" placeholder="Telegram Token ID (ግዴታ)">
-            <input type="text" id="mot_plateNumber" placeholder="የሰሌዳ ቁጥር (ግዴታ)" style="grid-column: span 2;">
-
-            <select id="mot_region" onchange="handleRegionChange('mot_region', 'mot_zone', 'mot_woreda')" style="grid-column: span 2;">
-                <option value="">-- ክልል ይምረጡ --</option>
-            </select>
-            <select id="mot_zone" onchange="handleZoneChange('mot_region', 'mot_zone', 'mot_woreda')">
-                <option value="">-- ዞን ይምረጡ --</option>
-            </select>
-            <select id="mot_woreda">
-                <option value="">-- ወረዳ ይምረጡ --</option>
-            </select>
-
-            <div style="grid-column: span 2; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                <label style="color: var(--accent-color); font-size: 0.85rem; display:block; margin-bottom: 5px;">የነዋሪነት መታወቂያ (ፎቶ አንሳ):</label>
-                <input type="file" id="mot_idCardFile" accept="image/*" required>
-                
-                <label style="color: var(--accent-color); font-size: 0.85rem; display:block; margin-top: 10px; margin-bottom: 5px;">መንጃፍቃድ (ፎቶ አንሳ):</label>
-                <input type="file" id="mot_licenseFile" accept="image/*" required>
-            </div>
-        </div>
-
-        <button class="btn-warning btn-block" id="regSubmitBtn" style="background:var(--warning-color); color:#000; margin-top:20px; font-size: 1.1rem; padding: 12px; font-weight: bold; grid-column: span 2;" onclick="if(document.getElementById('unifiedRegRole').value === 'motor') { processMotorRegistration(); } else { triggerUnifiedRegistration(); }">ተመዝገብ (Submit)</button>
-        <button class="btn-config btn-block" style="margin-top: 15px; grid-column: span 2;" onclick="goToGateway()">⬅️ ወደ ኋላ ተመለስ</button>
-    </section>
-
     
     <section id="adminPage" class="hidden">
         <header class="welcome-header">
@@ -326,83 +230,6 @@
 
     </section>
 
-    <section id="revenuePage" class="hidden">
-        <header class="welcome-header">
-            <h1>🏛️ የገቢዎች ባለስልጣን ማዕከላዊ ሲስተም</h1>
-            <p id="revenueOfficerProfile" style="color: var(--accent-color); margin-top: 5px; font-weight: bold;"></p>
-            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-                <button class="btn-config" style="background-color: var(--purple-color); color: white;" onclick="document.getElementById('revenueProfileSettingsCard').classList.toggle('hidden')">⚙️ የፕሮፋይል ሲቲንግ (Profile Settings)</button>
-                <button class="btn-expense" style="width: 100%; max-width: 200px;" onclick="logout()">🚪 ከሲስተሙ ውጣ</button>
-            </div>
-        </header>
-
-        <section id="revenueProfileSettingsCard" class="section-box hidden" style="border-color: var(--purple-color); margin-bottom: 20px;">
-            <h3 style="color: var(--purple-color); margin-bottom: 10px;">⚙️ የገቢዎች ፕሮፋይል ማስተካከያ</h3>
-            <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 10px;">እዚህ ላይ የአስተዳዳሪውን ስም፣ ኢሜል እና የይለፍ ቃል ብቻ መቀየር ይችላሉ። ሌላ መረጃ መቀየር አይፈቀድም።</p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                <input type="text" id="revOfficerName" placeholder="የአስተዳዳሪው ስም (Admin Name)">
-                <input type="email" id="revOfficerEmail" placeholder="ኢሜል (Gmail)">
-                <input type="password" id="revOfficerPassword" placeholder="አዲስ የይለፍ ቃል (Password)">
-            </div>
-            <button class="btn-sell btn-block" style="margin-top: 10px; background-color: var(--purple-color);" onclick="saveRevenueProfileData()">💾 የፕሮፋይል ለውጦችን አስቀምጥ</button>
-        </section>
-
-        <section class="dashboard" style="margin-bottom: 20px;">
-            <div class="card" style="border-left: 4px solid var(--accent-color);">
-                <h3>በየወሩ የሚሰበሰበው ጠቅላላ ቫት</h3>
-                <p id="revenueMonthlyVatSum" style="color: var(--accent-color);">0.00 ETB</p>
-            </div>
-            <div class="card" style="border-left: 4px solid var(--success-color);">
-                <h3>የአመት አጠቃላይ የቫት ድምር (የወራት ድምር)</h3>
-                <p id="revenueAnnualVatSum" style="color: var(--success-color);">0.00 ETB</p>
-            </div>
-        </section>
-        
-        <div style="text-align: right; margin-bottom: 20px;">
-            <button class="btn-expense" style="background:#ef4444; color:#fff; font-weight:bold; padding: 10px 20px; border-radius: 8px;" onclick="closeRevenueBudgetAnnual()">🔒 በጀት ዝጋ (Close Budget)</button>
-        </div>
-
-        <section class="section-box" style="border-color: #f59e0b; margin-bottom: 20px;">
-            <h2 style="color: #f59e0b;">🏍️ የሞተረኛ ብዛት መቆጣጠሪያ (በእርስዎ ምድብ)</h2>
-            <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 10px;">በእርስዎ ስር ባለው ክልል፣ ዞን እና ወረዳ ስንት ሞተረኛ በቂ እንደሆነ ጣሪያውን (Limit) እዚህ መወሰን ይችላሉ። ሲሞላ አዲስ መመዝገብ አይቻልም።</p>
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
-                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; flex: 1;">
-                    <p style="margin:0; font-size: 0.9rem; color: var(--accent-color);">የአሁን የተመዘገቡ ሞተረኞች</p>
-                    <h3 id="revMotorCurrentCount" style="margin:5px 0 0 0; color: white;">0</h3>
-                </div>
-                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; flex: 1;">
-                    <p style="margin:0; font-size: 0.9rem; color: #f59e0b;">የተፈቀደው ከፍተኛ ጣሪያ (Limit)</p>
-                    <h3 id="revMotorMaxLimit" style="margin:5px 0 0 0; color: #f59e0b;">ያልተወሰነ</h3>
-                </div>
-            </div>
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <input type="number" id="revMotorLimitInput" placeholder="የሚፈቀደውን ብዛት ያስገቡ..." style="margin:0; flex: 1; min-width: 200px;">
-                <button class="btn-sell" style="background-color: #f59e0b; color: black; font-weight: bold; padding: 10px 20px; white-space: nowrap;" onclick="setMotorQuotaLimit()">💾 ጣሪያውን ወስን</button>
-            </div>
-        </section>
-
-        <section class="section-box" style="border-color: var(--success-color);">
-            <h2 style="color: var(--success-color);">📋 በእርስዎ ስር የተመደቡ ግብር ከፋዮች (ነጋዴዎች)</h2>
-            <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 10px;">በእርስዎ ምዝገባ ጊዜ ካስገቡት ክልል፣ ዞን እና ወረዳ ጋር አንድ አይነት መረጃ ያላቸው ተከራዮች ወደ እርስዎ ይላካሉ።</p>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>የተከራይ ሙሉ ስም (የሱቅ ስም)</th>
-                            <th>ስልክ ቁጥር</th>
-                            <th>ክልል / ዞን / ወረዳ</th>
-                            <th>ቀበሌ / የቤት ቁ.</th>
-                            <th>TIN Number</th>
-                            <th style="color: var(--warning-color);">የተሰበሰበ የቫት መጠን</th>
-                            <th>እርምጃ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="revenueTenantsBody"></tbody>
-                </table>
-            </div>
-        </section>
-    </section>
-
     
 
                 <div class="table-responsive">
@@ -483,6 +310,7 @@
 <script defer src="business_logic.js"></script>
 <script defer src="auth.js"></script>
 <script defer src="admin.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
 </body>
     </html>
