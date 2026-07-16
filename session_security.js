@@ -1,4 +1,4 @@
-document.addEventListener('contextmenu', event => event.preventDefault());
+﻿document.addEventListener('contextmenu', event => event.preventDefault());
 document.addEventListener('keydown', event => {
     if (event.keyCode === 123) { event.preventDefault(); }
     if (event.ctrlKey && event.shiftKey && (event.keyCode === 73 || event.keyCode === 74)) { event.preventDefault(); }
@@ -29,14 +29,14 @@ function checkAutomaticLogin() {
         if (session.role === 'admin') {
             currentUserRole = 'admin';
             if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
-            await fetchAndRenderSecureHTML('admin');
+            if(isLoginPage) window.location.href = "admin.html"; // ሎጊን ገጽ ላይ ከሆነ ብቻ ቀይረው
         } 
         else if (session.role === 'revenue' && localDB.revenueAuthorities && localDB.revenueAuthorities[session.username]) {
             currentRevenueOfficer = localDB.revenueAuthorities[session.username];
             currentUserRole = 'revenue';
             
             if(isLoginPage) {
-                await fetchAndRenderSecureHTML('revenue');
+                window.location.href = "revenue.html";
             } else {
                 // ገቢዎች ገጽ ላይ ከሆነ ዳታውን ያምጣ
                 if(typeof renderRevenuePanel === "function") renderRevenuePanel();
@@ -50,7 +50,7 @@ function checkAutomaticLogin() {
                 currentMotor = localDB.motors[session.username];
                 currentUserRole = 'motor';
                 if(isLoginPage) {
-                await fetchAndRenderSecureHTML('motor');
+                    window.location.href = "delivery.html";
                 }
             }
         } 
@@ -62,7 +62,7 @@ function checkAutomaticLogin() {
                 currentBuyer = localDB.buyers[session.username];
                 currentUserRole = 'buyer';
                 if(isLoginPage) {
-                await fetchAndRenderSecureHTML('buyer');
+                    window.location.href = "buyer.html";
                 }
             }
         } 
@@ -72,7 +72,7 @@ function checkAutomaticLogin() {
             currentUserRole = session.role; // ሮሉን ማረጋገጥ
             
             if(isLoginPage) {
-            window.location.href = "shop.html";
+                window.location.href = "shop.html";
             } else {
                 // መፍትሄ፡ አሁን ሱቁ ገፅ ላይ (shop.html) ከሆነ አፑን እና በተኖቹን ማስነሳት (Launch) አለበት!
                 if(typeof launchApp === "function") {
@@ -87,6 +87,7 @@ function checkAutomaticLogin() {
         }
     }
 }
+
 
 // ገጹ ልክ ሲከፈት ሴሽኑን በራሱ ጊዜ እንዲያጣራ ይህን ከታች ይጨምሩ
 window.addEventListener('DOMContentLoaded', checkAutomaticLogin);
@@ -129,35 +130,27 @@ function enableAllActions() {
 
 setInterval(() => { checkTimeLock(); }, 60000);
 
-// ---------------------------------------------------------------------
-// የተዋሃደ እና ደህንነቱ የተጠበቀ የ Logout ፈንክሽን (ለሁሉም ተጠቃሚዎች)
-// ---------------------------------------------------------------------
-window.forceLogout = async function() {
-    try {
-        // 1. የነበረውን ሴሽን ከማህደረ-ትውስታ (localStorage & sessionStorage) ሰርዝ
-        localStorage.removeItem('tirfe_active_session');
-        sessionStorage.clear(); 
-        
-        // 2. ግሎባል ተለዋዋጮቹን ወደ መጀመሪያው ባዶ ይዘት መልስ
-        currentUserRole = null;
-        currentRevenueOfficer = null;
-        currentMotor = null;
-        currentBuyer = null;
-        currentTenant = null;
-
-        // 3. የ Firebase ሴሽንን በአስተማማኝ ሁኔታ መዝጋት
-        if (typeof auth !== 'undefined' && auth.currentUser) {
-            await auth.signOut();
-        }
-        
-        // 4. ወደ መነሻው (የሎጊን ገጽ) በ replace መመለስ (ብሮውዘሩ በአሮጌ Cache እንዳያስገባው በሰዓት መለወጫ መላክ)
-        window.location.replace("index.html?logout=true&t=" + new Date().getTime());
-    } catch (error) {
-        console.error("Logout error:", error);
-        // ስህተት ቢፈጠርም እንኳ ተጠቃሚው መውጣት አለበት
-        window.location.replace("index.html");
+//  (Logout) ፈንክሽን
+window.logout = function() {
+    // 1. የነበረውን ሴሽን ከማህደረ-ትውስታ (localStorage) ሰርዝ
+    localStorage.removeItem('tirfe_active_session');
+    sessionStorage.clear(); // ተጨማሪ የሴሽን ማጽጃ
+    
+    // 2. የ Firebase ሴሽንን መዝጋት (ዋናው የተደበቀው ችግር ይሄ ነበር!)
+    if (typeof auth !== 'undefined') {
+        auth.signOut().catch(function(error) {
+            console.log("Firebase SignOut Error:", error);
+        });
     }
+    
+    // 3. ግሎባል ተለዋዋጮቹን ወደ መጀመሪያው ባዶ ይዘት መልስ
+    currentUserRole = null;
+    currentRevenueOfficer = null;
+    currentMotor = null;
+    currentBuyer = null;
+    currentTenant = null;
+    
+    // 4. ተጠቃሚውን ወደ መነሻው (የሎጊን ገጽ) በ replace መልሰው (ከ History ላይ ለማጥፋት)
+    window.location.replace("index.html");
 };
 
-// የሌሎቹ ገጾች logout() የሚለውን ስም ቢጠቀሙም እንኳ ወደ አዲሱ እንዲመሩ ማድረግ
-window.logout = window.forceLogout;
