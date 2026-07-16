@@ -124,8 +124,9 @@ async function handleUnifiedLogin() {
                 currentUserRole = 'admin'; 
                 if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                window.location.href = "admin.html";
+                await fetchAndRenderSecureHTML('admin');
                 return;
+
 
             } else {
                 err.innerText = "❌ የተሳሳተ የአድሚን የይለፍ ቃል ወይም ኢሜል!";
