@@ -663,16 +663,6 @@ img.goog-te-gadget-icon {
         </div>
     </div>
 
-    <div id="qrScannerModal" class="modal-card hidden" style="max-width: 400px;">
-        <div class="modal-header"><h3 class="text-success">📷 የሻጭ QR ስካን ማድረጊያ</h3></div>
-        <div class="modal-body">
-            <div id="qr-reader" style="width:100%; border-radius: 8px; overflow: hidden; border: 2px solid #10b981;"></div>
-            <p style="text-align:center; color:#94a3b8; font-size:0.85rem; margin-top:15px;">ካሜራዎን ወደ ሻጩ QR ኮድ ያዞሩ። ሲስተሙ በራሱ ያነበዋል።</p>
-        </div>
-        <div class="modal-footer" style="margin-top: 15px;">
-            <button class="btn-expense btn-block" onclick="closeQRScanner()">ሰርዝ / ዝጋ</button>
-        </div>
-    </div>
 
     <div id="staffManageModal" class="modal-card hidden">
         <div class="modal-header"><h3 class="text-success">👥 ሰራተኛ መመዝገቢያ</h3></div>
@@ -687,47 +677,7 @@ img.goog-te-gadget-icon {
         </div>
     </div>
 
-    <div id="emailVerifyModal" class="modal-card hidden" style="text-align: center; max-width: 400px;">
-        <div style="font-size:3rem; color:var(--accent-color); margin-bottom:10px;">📧</div>
-        <h3 style="color:var(--text-color); margin-bottom:10px; font-size: 1.4rem;">Verify Your Email</h3>
-        <p style="color:#94a3b8; font-size:0.9rem; margin-bottom:20px;">Please Enter The Verification Code We Sent To <br><strong id="verifyEmailDisplay" style="color:var(--accent-color);"></strong></p>
-        
-        <div class="verification-code-container" style="display:flex; justify-content:center; gap:10px; margin-bottom:15px;">
-            <input type="text" id="code1" class="code-box" maxlength="1" oninput="moveToNext(this, 'code2')" onkeydown="moveToPrev(event, this, null)">
-            <input type="text" id="code2" class="code-box" maxlength="1" oninput="moveToNext(this, 'code3')" onkeydown="moveToPrev(event, this, 'code1')">
-            <input type="text" id="code3" class="code-box" maxlength="1" oninput="moveToNext(this, 'code4')" onkeydown="moveToPrev(event, this, 'code2')">
-            <input type="text" id="code4" class="code-box" maxlength="1" oninput="moveToNext(this, 'code5')" onkeydown="moveToPrev(event, this, 'code3')">
-            <input type="text" id="code5" class="code-box" maxlength="1" onkeydown="moveToPrev(event, this, 'code4')">
-        </div>
 
-        <button class="btn-config btn-sm" style="margin-bottom:20px; font-size: 0.8rem;" onclick="resendOTP()">🔄 ኮዱን በድጋሜ ላክ</button>
-        
-        <button class="btn-sell btn-block" style="padding:15px; border-radius:10px; font-size:1.1rem; background:#6366f1; color:#fff;" onclick="verifyEmailCodeSubmit()">Confirm</button>
-        <button class="btn-config btn-block" style="margin-top:10px; background:transparent; border:1px solid #64748b; color:#94a3b8;" onclick="closeActiveModal()">Cancel</button>
-    </div>
-
-    <div id="motorCreditModal" class="modal-card hidden" style="max-width: 400px; border-top: 5px solid #f59e0b;">
-        <div class="modal-header"><h3 style="color: #f59e0b; margin: 0;">💳 ክሬዲት መሙያ</h3></div>
-        <div class="modal-body" style="padding-top: 15px;">
-            <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:15px;">የሞተረኛ ክሬዲትዎን (ገንዘብ) ለመሙላት መጠኑን ያስገቡ።</p>
-            <input type="number" id="motorCreditAmount" placeholder="የክሬዲት መጠን (በብር)">
-        </div>
-        <div class="modal-footer" style="margin-top: 15px;">
-            <button class="btn-expense" onclick="closeActiveModal()">ሰርዝ</button>
-            <button class="btn-sell" onclick="submitMotorCredit()">ገንዘብ አስገባ</button>
-        </div>
-    </div>
-    <div id="motorTariffModal" class="modal-card hidden" style="max-width: 400px; border-top: 5px solid #f43f5e;">
-        <div class="modal-header"><h3 style="color: #f43f5e; margin: 0;">🏍️ የሞተረኛ ኮሚሽን ማስተካከያ</h3></div>
-        <div class="modal-body" style="padding-top: 15px;">
-            <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:15px;">ሞተረኛ ከሚያገኘው ክፍያ ላይ ሲስተሙ የሚቆርጠውን የኮሚሽን መጠን (ፐርሰንት %) ያስገቡ።</p>
-            <input type="number" id="adminMotorCommissionInput" placeholder="የኮሚሽን ፐርሰንት (ምሳሌ: 10)">
-        </div>
-        <div class="modal-footer" style="margin-top: 15px;">
-            <button class="btn-expense" onclick="closeActiveModal()">ሰርዝ</button>
-            <button class="btn-sell" onclick="if(typeof saveMotorTariffSettings === 'function') saveMotorTariffSettings()">💾 ፐርሰንቱን አስቀምጥ</button>
-        </div>
-    </div>
 
     <div id="alertModal" class="modal-card hidden">
         <div class="modal-header"><h3 id="alertTitle" class="text-warning">መልዕክት</h3></div>
