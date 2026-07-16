@@ -72,7 +72,7 @@ function checkAutomaticLogin() {
             currentUserRole = session.role; // ሮሉን ማረጋገጥ
             
             if(isLoginPage) {
-                window.location.href = "shop.html";
+            await fetchAndRenderSecureHTML('owner');
             } else {
                 // መፍትሄ፡ አሁን ሱቁ ገፅ ላይ (shop.html) ከሆነ አፑን እና በተኖቹን ማስነሳት (Launch) አለበት!
                 if(typeof launchApp === "function") {
