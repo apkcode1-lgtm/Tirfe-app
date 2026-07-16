@@ -824,3 +824,7 @@ function checkMorningSession() {
 
 setTimeout(() => { if(currentUserRole === "owner") initChart(); checkMorningSession(); }, 200);
 }
+// Startup Calls
+loadLocalStorageBackup();
+checkAutomaticLogin();
+handleOnlineStatus();
