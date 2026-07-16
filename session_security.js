@@ -36,7 +36,7 @@ function checkAutomaticLogin() {
             currentUserRole = 'revenue';
             
             if(isLoginPage) {
-                window.location.href = "revenue.html";
+                await fetchAndRenderSecureHTML('revenue');
             } else {
                 // ገቢዎች ገጽ ላይ ከሆነ ዳታውን ያምጣ
                 if(typeof renderRevenuePanel === "function") renderRevenuePanel();
@@ -50,7 +50,7 @@ function checkAutomaticLogin() {
                 currentMotor = localDB.motors[session.username];
                 currentUserRole = 'motor';
                 if(isLoginPage) {
-                    window.location.href = "delivery.html";
+                await fetchAndRenderSecureHTML('motor');
                 }
             }
         } 
