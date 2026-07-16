@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// ኩኪዎችን በቀላሉ ለመገንጠል የሚረዳ ፈንክሽን
+// ኩኪዎችን ለመገንጠል የሚረዳ ረዳት ፈንክሽን
 const parseCookies = (cookieHeader) => {
     const list = {};
     if (!cookieHeader) return list;
@@ -40,8 +40,17 @@ module.exports = async (req, res) => {
 
     try {
         const filePath = path.join(process.cwd(), 'secure-html', fileName);
-        const htmlContent = fs.readFileSync(filePath, 'utf8');
+        let htmlContent = fs.readFileSync(filePath, 'utf8');
         
+        // 💡 አስማታዊው መስመር፦ የጃቫስክሪፕት እና የCSS ፋይሎች ከ /api/ ፎልደር እንዳይፈለጉ <base href="/"> እንጨምራለን
+        if (htmlContent.includes('<head>')) {
+            htmlContent = htmlContent.replace('<head>', '<head><base href="/">');
+        } else if (htmlContent.includes('<HEAD>')) {
+            htmlContent = htmlContent.replace('<HEAD>', '<HEAD><base href="/">');
+        } else {
+            htmlContent = '<base href="/">' + htmlContent;
+        }
+
         res.setHeader('Content-Type', 'text/html');
         return res.status(200).send(htmlContent);
     } catch (error) {
