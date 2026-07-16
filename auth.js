@@ -191,7 +191,7 @@ async function handleUnifiedLogin() {
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 
-                await fetchAndRenderSecureHTML('owner');
+                window.location.href = "shop.html";
                 return;
             }
         }
