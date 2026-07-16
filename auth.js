@@ -226,7 +226,7 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                window.location.href = "buyer.html";
+                await fetchAndRenderSecureHTML('buyer');
                 return;
             }
         }
@@ -261,8 +261,8 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                window.location.href = "revenue.html";
-               return;
+                await fetchAndRenderSecureHTML('revenue');
+                return;
             }
         }
 
@@ -300,7 +300,7 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                window.location.href = "delivery.html";
+                await fetchAndRenderSecureHTML('motor');
                 return;
             }
         }
