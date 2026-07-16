@@ -800,3 +800,45 @@ async function hashPassword(password) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// አዲሱን HTML ከ API ጎትቶ በገጹ ላይ ለመተካት የሚረዳ ረዳት ፈንክሽን
+async function fetchAndRenderSecureHTML(role) {
+    try {
+        // 'owner' እና 'motor' የሚሉትን ሚናዎች ወደ HTML ፋይል ስማቸው እንቀይራለን
+        let apiRole = role;
+        if (role === 'owner') apiRole = 'shop';
+        if (role === 'motor') apiRole = 'delivery';
+
+        const response = await fetch('/api/get-html', {
+            method: 'GET',
+            headers: {
+                'x-user-role': apiRole
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("ይህንን ገጽ የመጫን ፈቃድ የለዎትም!");
+        }
+
+        const htmlContent = await response.text();
+        
+        // አሁን ያለውን የ index.html ይዘት በሙሉ በአዲሱ HTML መተካት
+        document.open();
+        document.write(htmlContent);
+        document.close();
+
+        // የገጹን ጃቫስክሪፕቶች ለማስነሳት (ለምሳሌ launchApp ካለ)
+        if (typeof launchApp === "function") {
+            launchApp();
+        } else if (typeof triggerUIRefresh === "function") {
+            triggerUIRefresh();
+        }
+    } catch (error) {
+        console.error("Secure HTML Fetch Error:", error);
+        if (typeof showCustomAlert === "function") {
+            showCustomAlert("ስህተት", "ገጹን መጫን አልተቻለም: " + error.message);
+        } else {
+            alert("ስህተት: " + error.message);
+        }
+    }
+}
+
