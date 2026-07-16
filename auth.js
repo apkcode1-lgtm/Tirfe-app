@@ -804,7 +804,7 @@ async function fetchAndRenderSecureHTML(role) {
     try {
         // 'owner' እና 'motor' የሚሉትን ሚናዎች ወደ HTML ፋይል ስማቸው እንቀይራለን
         let apiRole = role;
-        if (role === 'owner') apiRole = 'shop';
+        if (role === 'shop') apiRole = 'shop';
         if (role === 'motor') apiRole = 'delivery';
 
         const response = await fetch('/api/get-html', {
