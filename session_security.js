@@ -29,7 +29,8 @@ function checkAutomaticLogin() {
         if (session.role === 'admin') {
             currentUserRole = 'admin';
             if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
-            if(isLoginPage) window.location.href = "admin.html"; // ሎጊን ገጽ ላይ ከሆነ ብቻ ቀይረው
+            await fetchAndRenderSecureHTML('admin');
+            return;
         } 
         else if (session.role === 'revenue' && localDB.revenueAuthorities && localDB.revenueAuthorities[session.username]) {
             currentRevenueOfficer = localDB.revenueAuthorities[session.username];
