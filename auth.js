@@ -190,7 +190,7 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                await fetchAndRenderSecureHTML('shop');
+                window.location.href = "shop.html";
                 return;
             }
         }
