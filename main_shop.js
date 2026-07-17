@@ -564,7 +564,6 @@ window.generateStandaloneVatReceipt = function() {
     let iPrice = parseFloat(document.getElementById('specialVatItemPrice').value) || 0;
     if(iPrice <= 0) { showCustomAlert("ስህተት", "እባክዎ ትክክለኛ የዕቃ ዋጋ ያስገቡ!"); return; }
     if(iPrice >= 3000) { showCustomAlert("ስህተት", "የብር መጠኑ ከ3000 እና ከዚያ በላይ ስለሆነ እባክዎ መደበኛውን ካርት (Cart) ይጠቀሙ!"); return; }
-
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 15;
     let subTotal = iPrice;
     let iQty = 1;
@@ -745,94 +744,65 @@ function generateDigitalReceipt(itemName, count, totalVal, recId = null, sellerR
     let currentSeller = sellerRole || (currentUserRole === 'staff' ? 'ሰራተኛ (Employee)' : 'ባለቤት (Employer)');
     generateAdvancedReceipt(items, totalVal, currentSeller, recId, saveToHistory, null, null, buyerUserForReceipt, buyerPhoneForReceipt, vatAmount);
 }
+
 function launchApp(tenant) {
     currentTenant = tenant;
-    
-    // ሎጊን ካደረጉ በኋላ ማዳመጫው በድጋሚ እንዲጠራ ያደርጋል
-    if (typeof setupSecureUserListeners === 'function') {
-        setupSecureUserListeners();
-    }
-    
+    // አዲስ የተጨመረ - ሱቆች ሎጊን ካደረጉ በኋላ ማዳመጫው (Listener) በድጋሚ እንዲጠራ ያደርጋል
+    if (typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
     switchView('appPage');
-
-    // 1. የሱቅ ርዕስ ጥበቃ
-    const shopTitleEl = document.getElementById('shopTitle');
-    if (shopTitleEl) {
-        shopTitleEl.innerText = tenant.shopName + (currentUserRole === "staff" ? " (የሰራተኛ ገጽ)" : " (የባለቤት ገጽ)");
-    }
-
-    // 2. የሮል ማብራሪያ ጥበቃ
-    const roleSubTitleEl = document.getElementById('roleSubTitle');
-    if (roleSubTitleEl) {
-        roleSubTitleEl.innerText = currentUserRole === "staff" ? "🛠️ የተገደበ የሰራተኛ መሸጫ እና መመዝገቢያ ሞድ" : "👑 ሙሉ የሱቅና የኪራይ መቆጣጠሪያ ፓነል";
-    }
-
-    // 3. የፕሮፋይል ሱቅ ስም ጥበቃ
-    const profShopNameEl = document.getElementById('profShopName');
-    if (profShopNameEl) {
-        profShopNameEl.innerText = tenant.shopName;
-    }
-
-    // 4. የፕሮፋይል ጂሜይል ጥበቃ
-    const profGmailEl = document.getElementById('profGmail');
-    if (profGmailEl) {
-        profGmailEl.innerText = tenant.gmail || "-";
-    }
-
-    // 5. የፕሮፋይል ማለፊያ ቀን ጥበቃ
-    const profExpiryEl = document.getElementById('profExpiry');
-    if (profExpiryEl) {
-        profExpiryEl.innerText = tenant.expiryDate ? `${tenant.expiryDate} (${tenant.contractType})` : "ያልተገደበ";
-    }
-
-    // 6. የኪራይ ክፍያ ጥበቃ
+    document.getElementById('shopTitle').innerText = tenant.shopName + (currentUserRole === "staff" ? " (የሰራተኛ ገጽ)" : " (የባለቤት ገጽ)");
+    document.getElementById('roleSubTitle').innerText = currentUserRole === "staff" ? "🛠️ የተገደበ የሰራተኛ መሸጫ እና መመዝገቢያ ሞድ" : "👑 ሙሉ የሱቅና የኪራይ መቆጣጠሪያ ፓነል";
+    document.getElementById('profShopName').innerText = tenant.shopName;
+    document.getElementById('profGmail').innerText = tenant.gmail || "-";
+    document.getElementById('profExpiry').innerText = tenant.expiryDate ? `${tenant.expiryDate} (${tenant.contractType})` : "ያልተገደበ";
     let rentDisplay = document.getElementById('tenantRentDisplay');
-    if (rentDisplay) { 
-        rentDisplay.innerText = (tenant.registrationFee || 0) + " ETB"; 
-    }
+    if(rentDisplay) { rentDisplay.innerText = (tenant.registrationFee || 0) + " ETB"; }
 
-    // የቫት እና ኪራይ ስሌት
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
     let rentAmount = parseFloat(tenant.registrationFee) || 0;
     let calculatedVat = (rentAmount * vatRate) / 100;
-    
-    // 7. የቫት ማሳያ ጥበቃ
     let vatDisplay = document.getElementById('tenantVatDisplay');
-    if (vatDisplay) { 
-        vatDisplay.innerText = calculatedVat.toFixed(2) + " ETB (" + vatRate + "%)"; 
-    }
+    if(vatDisplay) { vatDisplay.innerText = calculatedVat.toFixed(2) + " ETB (" + vatRate + "%)"; }
 
-    // 8. የሪሲት ፊልተር ቀን ጥበቃ
-    const receiptDateFilterEl = document.getElementById('receiptDateFilter');
-    if (receiptDateFilterEl) {
-        receiptDateFilterEl.value = getTodayFormatted();
-    }
-
-    // የፊም (Theme) አቀናባበር
+    document.getElementById('receiptDateFilter').value = getTodayFormatted();
     let activeTheme = tenant.theme || 'theme-deepblue';
-    document.body.className = activeTheme; 
+    document.body.className = activeTheme; document.getElementById('themeSelector').value = activeTheme;
+    document.getElementById('inventorySearchInput').value = "";
     
-    // 9. የጭብጥ መምረጫ ጥበቃ
-    const themeSelectorEl = document.getElementById('themeSelector');
-    if (themeSelectorEl) {
-        themeSelectorEl.value = activeTheme;
-    }
-
-    // 10. የኢንቬንተሪ ፍለጋ ኢንፑት ጥበቃ
-    const inventorySearchInputEl = document.getElementById('inventorySearchInput');
-    if (inventorySearchInputEl) {
-        inventorySearchInputEl.value = "";
-    }
-    
-    // የሰራተኛ ምዝገባ በተን ማጽጃ ጥበቃ
     let staffRegBtns = document.querySelectorAll('#btn_staff_reg');
-    if (staffRegBtns.length > 1) {
-        for (let i = 1; i < staffRegBtns.length; i++) {
+    if(staffRegBtns.length > 1) {
+        for(let i = 1; i < staffRegBtns.length; i++) {
             staffRegBtns[i].remove();
         }
     }
-}
-
+    
+    let singleStaffBtn = document.getElementById('btn_staff_reg');
+    if (currentUserRole === "staff") {
+        document.getElementById('ownerDashboard').classList.add('hidden');
+        document.getElementById('chartContainer').classList.add('hidden');
+        document.getElementById('btn_add_item').classList.add('hidden');
+        document.getElementById('btn_expense').classList.add('hidden');
+        document.getElementById('btn_next_day').classList.add('hidden');
+        document.getElementById('btn_clear_all').classList.add('hidden');
+        document.getElementById('owner_add_box').classList.add('hidden');
+        document.getElementById('btn_settlement').classList.add('hidden');
+        document.getElementById('historySection').classList.add('hidden');
+        document.getElementById('tenantProfileSection').classList.add('hidden');
+        if(singleStaffBtn) singleStaffBtn.classList.add('hidden');
+    } else {
+        document.getElementById('ownerDashboard').classList.remove('hidden');
+        document.getElementById('chartContainer').classList.remove('hidden');
+        document.getElementById('btn_add_item').classList.remove('hidden');
+        document.getElementById('btn_expense').classList.remove('hidden');
+        document.getElementById('btn_next_day').classList.remove('hidden');
+        document.getElementById('btn_clear_all').classList.remove('hidden');
+        document.getElementById('owner_add_box').classList.remove('hidden');
+        document.getElementById('btn_settlement').classList.remove('hidden');
+        document.getElementById('historySection').classList.remove('hidden');
+        document.getElementById('tenantProfileSection').classList.remove('hidden');
+        if(singleStaffBtn) singleStaffBtn.classList.remove('hidden');
+        checkMonthlyAccessReset();
+    }
 function checkMorningSession() {
     let d = currentTenant.data || {};
     if (!d.sessionActive) {
