@@ -66,20 +66,24 @@ function checkAutomaticLogin() {
                 }
             }
         } 
-        else if ((session.role === 'owner' || session.role === 'staff') && localDB.tenants && localDB.tenants[session.username]) {
-            let t = localDB.tenants[session.username];
-            currentTenant = t;
-            currentUserRole = session.role; // ሮሉን ማረጋገጥ
-            
-            if(isLoginPage) {
-                window.location.href = "shop.html";
-            } else {
-                // መፍትሄ፡ አሁን ሱቁ ገፅ ላይ (shop.html) ከሆነ አፑን እና በተኖቹን ማስነሳት (Launch) አለበት!
-                if(typeof launchApp === "function") {
-                    launchApp(currentTenant);
-                }
-            }
+    let t = localDB.tenants[session.username];
+    currentTenant = t;
+    currentUserRole = session.role; // ሮሉን ማረጋገጥ
+    
+    if(isLoginPage) {
+        // የባለቤቱን እና የሰራተኛውን መግቢያ ገፅ እዚህ ጋር እንለያለን
+        if (session.role === 'owner') {
+            window.location.href = "owner.html";  // <-- የአሰሪው/የባለቤቱ HTML ፋይል ስም
+        } else if (session.role === 'staff') {
+            window.location.href = "staff.html";  // <-- የሰራተኛው HTML ፋይል ስም
         }
+    } else {
+        // አሁን ባሉበት ገፅ ላይ አፑን ማስነሳት
+        if(typeof launchApp === "function") {
+            launchApp(currentTenant);
+        }
+    }
+}
     } else {
         // ሴሽን (Session) ከሌለ እና ሎጊን ገጽ ላይ ካልሆነ ወደ ሎጊን ይመለስ
         if(!isLoginPage) {
