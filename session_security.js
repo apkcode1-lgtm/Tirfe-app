@@ -131,7 +131,7 @@ function enableAllActions() {
 setInterval(() => { checkTimeLock(); }, 60000);
 
 //  (Logout) ፈንክሽን
-window.logout = function() {
+window.forceLogout = function() {
     // 1. የነበረውን ሴሽን ከማህደረ-ትውስታ (localStorage) ሰርዝ
     localStorage.removeItem('tirfe_active_session');
     sessionStorage.clear(); // ተጨማሪ የሴሽን ማጽጃ
