@@ -747,8 +747,12 @@ function generateDigitalReceipt(itemName, count, totalVal, recId = null, sellerR
 }
 function launchApp(tenant) {
     currentTenant = tenant;
-    // አዲስ የተጨመረ - ሱቆች ሎጊን ካደረጉ በኋላ ማዳመጫው (Listener) በድጋሚ እንዲጠራ ያደርጋል
-    if (typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
+    
+    // ሎጊን ካደረጉ በኋላ ማዳመጫው በድጋሚ እንዲጠራ ያደርጋል
+    if (typeof setupSecureUserListeners === 'function') {
+        setupSecureUserListeners();
+    }
+    
     switchView('appPage');
 
     // 1. የሱቅ ርዕስ ጥበቃ
@@ -808,7 +812,7 @@ function launchApp(tenant) {
     let activeTheme = tenant.theme || 'theme-deepblue';
     document.body.className = activeTheme; 
     
-    // 9. የጭብጥ መምረጫ (Theme Selector) ጥበቃ
+    // 9. የጭብጥ መምረጫ ጥበቃ
     const themeSelectorEl = document.getElementById('themeSelector');
     if (themeSelectorEl) {
         themeSelectorEl.value = activeTheme;
