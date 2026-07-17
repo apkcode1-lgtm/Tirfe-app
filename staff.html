@@ -529,6 +529,21 @@ img.goog-te-gadget-icon {
         </section>
     </section>
 </main>
+    <!-- 🚨 ለፎርም እና ለአለርት ማሳያ የሚያስፈልጉ የብቅ ባይ መስኮቶች (Modals) -->
+<div id="formModal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 id="formModalTitle">ማሳወቂያ</h3>
+        </div>
+        <div class="modal-body" id="formModalBody"></div>
+        <div class="modal-footer" id="formModalFooter">
+            <button class="btn-expense" onclick="closeActiveModal()">ዝጋ</button>
+        </div>
+    </div>
+</div>
+
+<!-- ማስታወሻ፦ utils.js መስመር 70 ላይ ሄደህ showCustomAlert የሚጠቀመውን 
+ የ alert መዋቅር ID (ለምሳሌ 'customAlertModal') እይና እሱንም በዚህ መልኩ አክለው። -->
 
 <script defer src="firebase-config.js"></script>
 <script defer src="database.js"></script>
