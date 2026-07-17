@@ -1,4 +1,4 @@
-﻿document.addEventListener('contextmenu', event => event.preventDefault());
+document.addEventListener('contextmenu', event => event.preventDefault());
 document.addEventListener('keydown', event => {
     if (event.keyCode === 123) { event.preventDefault(); }
     if (event.ctrlKey && event.shiftKey && (event.keyCode === 73 || event.keyCode === 74)) { event.preventDefault(); }
@@ -66,24 +66,20 @@ function checkAutomaticLogin() {
                 }
             }
         } 
-    let t = localDB.tenants[session.username];
-    currentTenant = t;
-    currentUserRole = session.role; // ሮሉን ማረጋገጥ
-    
-    if(isLoginPage) {
-        // የባለቤቱን እና የሰራተኛውን መግቢያ ገፅ እዚህ ጋር እንለያለን
-        if (session.role === 'owner') {
-            window.location.href = "shop.html";  // <-- የአሰሪው/የባለቤቱ HTML ፋይል ስም
-        } else if (session.role === 'staff') {
-            window.location.href = "staff.html";  // <-- የሰራተኛው HTML ፋይል ስም
+        else if ((session.role === 'owner' || session.role === 'staff') && localDB.tenants && localDB.tenants[session.username]) {
+            let t = localDB.tenants[session.username];
+            currentTenant = t;
+            currentUserRole = session.role; // ሮሉን ማረጋገጥ
+            
+            if(isLoginPage) {
+                window.location.href = "shop.html";
+            } else {
+                // መፍትሄ፡ አሁን ሱቁ ገፅ ላይ (shop.html) ከሆነ አፑን እና በተኖቹን ማስነሳት (Launch) አለበት!
+                if(typeof launchApp === "function") {
+                    launchApp(currentTenant);
+                }
+            }
         }
-    } else {
-        // አሁን ባሉበት ገፅ ላይ አፑን ማስነሳት
-        if(typeof launchApp === "function") {
-            launchApp(currentTenant);
-        }
-    }
-}
     } else {
         // ሴሽን (Session) ከሌለ እና ሎጊን ገጽ ላይ ካልሆነ ወደ ሎጊን ይመለስ
         if(!isLoginPage) {
@@ -135,7 +131,7 @@ function enableAllActions() {
 setInterval(() => { checkTimeLock(); }, 60000);
 
 //  (Logout) ፈንክሽን
-window.forceLogout = function() {
+window.logout = function() {
     // 1. የነበረውን ሴሽን ከማህደረ-ትውስታ (localStorage) ሰርዝ
     localStorage.removeItem('tirfe_active_session');
     sessionStorage.clear(); // ተጨማሪ የሴሽን ማጽጃ
