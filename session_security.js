@@ -73,7 +73,7 @@ function checkAutomaticLogin() {
     if(isLoginPage) {
         // የባለቤቱን እና የሰራተኛውን መግቢያ ገፅ እዚህ ጋር እንለያለን
         if (session.role === 'owner') {
-            window.location.href = "owner.html";  // <-- የአሰሪው/የባለቤቱ HTML ፋይል ስም
+            window.location.href = "shop.html";  // <-- የአሰሪው/የባለቤቱ HTML ፋይል ስም
         } else if (session.role === 'staff') {
             window.location.href = "staff.html";  // <-- የሰራተኛው HTML ፋይል ስም
         }
