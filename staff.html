@@ -349,21 +349,6 @@ img.goog-te-gadget-icon {
 <div id="imageLightbox" class="modal-overlay hidden" onclick="this.classList.add('hidden')" style="z-index: 999999 !important; cursor: zoom-out;">
     <img id="lightboxImg" src="" style="max-width: 90%; max-height: 90%; border-radius: 8px; border: 2px solid var(--accent-color); box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
 </div>
-    <!-- 🚨 ለ showCustomAlert መስሪያ የሚሆን የአለርት ብቅ ባይ መስኮት (Alert Modal) -->
-<div id="alertModal" class="modal-overlay hidden">
-    <div class="modal-card" style="max-width: 400px; text-align: center;">
-        <div class="modal-header">
-            <h3 id="alertTitle" style="color: var(--warning-color);">ማሳወቂያ</h3>
-        </div>
-        <div class="modal-body">
-            <p id="alertMessage" style="margin: 15px 0; font-size: 1.05rem; font-weight: 500; color: var(--text-color);"></p>
-        </div>
-        <div class="modal-footer" style="justify-content: center; border-top: none; padding-top: 0;">
-            <button class="btn-add" style="min-width: 120px; padding: 10px 20px;">እሺ</button>
-        </div>
-    </div>
-</div>
-
 <div id="criticalOfflineScreen" class="critical-offline-overlay hidden">
     <div class="offline-status-card">
         <div class="icon-zone">📡</div>
@@ -544,21 +529,6 @@ img.goog-te-gadget-icon {
         </section>
     </section>
 </main>
-    <!-- 🚨 ለፎርም እና ለአለርት ማሳያ የሚያስፈልጉ የብቅ ባይ መስኮቶች (Modals) -->
-<div id="formModal" class="modal-overlay hidden">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h3 id="formModalTitle">ማሳወቂያ</h3>
-        </div>
-        <div class="modal-body" id="formModalBody"></div>
-        <div class="modal-footer" id="formModalFooter">
-            <button class="btn-expense" onclick="closeActiveModal()">ዝጋ</button>
-        </div>
-    </div>
-</div>
-
-<!-- ማስታወሻ፦ utils.js መስመር 70 ላይ ሄደህ showCustomAlert የሚጠቀመውን 
- የ alert መዋቅር ID (ለምሳሌ 'customAlertModal') እይና እሱንም በዚህ መልኩ አክለው። -->
 
 <script defer src="firebase-config.js"></script>
 <script defer src="database.js"></script>
@@ -578,5 +548,3 @@ img.goog-te-gadget-icon {
     
 </body>
 </html>
-
-
