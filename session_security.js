@@ -76,7 +76,7 @@ function checkAutomaticLogin() {
             } else {
                 // መፍትሄ፡ አሁን ሱቁ ገፅ ላይ (shop.html) ከሆነ አፑን እና በተኖቹን ማስነሳት (Launch) አለበት!
                 if(typeof launchApp === "function") {
-                    launchApp(currentTenant);
+                    launchApp(currentStaff);
                 }
             }
         }
