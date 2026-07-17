@@ -343,7 +343,7 @@ async function handleUnifiedLogin() {
                     pushToFirebase();
                     err.innerText = "";
                     if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                    window.location.href = "staff.html";
+                    window.location.href = "shop.html";
                     return;
                 } else {
                     err.innerText = "❌ የሱቁ ባለቤት መረጃ ሲስተም ውስጥ አልተገኘም!";
@@ -377,7 +377,7 @@ async function handleUnifiedLogin() {
                             if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                             
                             // ማስተካከያ፡ ወደ ሱቅ ገጽ ቀጥታ መላክ
-                            window.location.href = "staff.html";
+                            window.location.href = "shop.html";
                             return;
                         }
                     }
