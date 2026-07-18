@@ -253,7 +253,7 @@ function renderMotorOrders() {
 
     // ዳታውን ከ Firebase ማምጣት
     if (typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined' && currentMotor && currentMotor.username) {
-        db.ref(`tirfe_system/motors/${currentMotor.username}/activeOrders`).on('value').then(snap => {
+        db.ref(`tirfe_system/motors/${currentMotor.username}/activeOrders`).once('value').then(snap => {
             let liveOrders = snap.val() || [];
             currentMotor.activeOrders = liveOrders; // ዳታውን አፕዴት እናደርጋለን
             drawOrdersTable(liveOrders); // ቴብሉን የምንስልበትን ፈንክሽን እንጠራለን
