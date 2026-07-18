@@ -243,69 +243,81 @@ function submitMotorCredit() {
     renderMotorPage();
 }
 
-// 7. ትዕዛዞችን ማሳያ (Active Deliveries) - አዲስ ማስተካከያ (Point 1)
+// 7. ትዕዛዞችን ማሳያ (Active Deliveries) - ከ Firebase ጋር የተገናኘ
 function renderMotorOrders() {
     const tbody = document.getElementById('motorActiveOrdersBody');
     if (!tbody) return;
-    tbody.innerHTML = '';
-    let activeOrders = currentMotor.activeOrders || [];
-    if (activeOrders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">በአሁኑ ሰዓት የተመደበ ምንም ትዕዛዝ የለም</td></tr>`;
-        return;
+    
+    // ትዕዛዞቹ እስኪመጡ ድረስ 'እየፈለገ ነው' የሚል እናሳያለን
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">ትዕዛዞችን ከሰርቨር በማምጣት ላይ...</td></tr>`;
+
+    // ዳታውን ከ Firebase ማምጣት
+    if (typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined' && currentMotor && currentMotor.username) {
+        db.ref(`tirfe_system/motors/${currentMotor.username}/activeOrders`).once('value').then(snap => {
+            let liveOrders = snap.val() || [];
+            currentMotor.activeOrders = liveOrders; // ዳታውን አፕዴት እናደርጋለን
+            drawOrdersTable(liveOrders); // ቴብሉን የምንስልበትን ፈንክሽን እንጠራለን
+        }).catch(err => {
+            console.error(err);
+            drawOrdersTable(currentMotor.activeOrders || []); // ስህተት ካጋጠመ የቆየውን ያሳያል
+        });
+    } else {
+        drawOrdersTable(currentMotor.activeOrders || []); // ኦፍላይን ከሆነ የቆየውን ያሳያል
     }
 
-    // ማስተካከያ: ሞተረኛው አስቀድሞ የተቀበለው ትዕዛዝ ወይም ያልተወራረደ ክፍያ ካለው ማረጋገጫ
-    let feeReceived = (currentMotor.incomingFee && parseFloat(currentMotor.incomingFee) > 0);
-    let hasActiveJob = activeOrders.some(o => o.status === 'accepted') || feeReceived;
-    activeOrders.forEach((order, index) => {
-        let tr = document.createElement('tr');
-        let actionBtn = "";
-        let statusBadge = "";
-
-        if(order.status === 'pending_motor') {
-            statusBadge = `<span class="badge-warning">አዲስ ጥሪ (በመጠባበቅ ላይ)</span><br>`;
-            
-            // ሌላ የተቀበለው ስራ ካለ አዳዲስ ጥሪዎች ላይ በተኑን እናፈዝዘዋለን (Disable)
-            if (hasActiveJob) {
-                actionBtn = `<button class="btn-add btn-sm" style="background-color: #64748b; color: #cbd5e1; cursor: not-allowed; opacity: 0.5;" disabled>🔒 በስራ ላይ ነዎት</button>`;
-            } else {
-                actionBtn = `<button class="btn-add btn-sm" onclick="acceptMotorOrder(${index})">✋ ተቀበል (Accept)</button>`;
-            }
-        } else {
-            statusBadge = `<span class="badge-success">በእርስዎ የተያዘ</span><br>`;
-            
-            if(feeReceived) {
-                // ብሩ ገብቷል፣ በተኑ አረንጓዴ ሆኖ መነካት ይችላል
-                actionBtn = `<button class="btn-sell btn-sm" onclick="completeMotorOrder(${index})">✅ አድርሻለሁ (Deliver)</button>`;
-            } else {
-                // ክፍያ ስላልገባ በተኑ ፍዝዝ ብሎ ይቆለፋል (Disabled)
-                actionBtn = `<button class="btn-sell btn-sm" style="background-color: #64748b; color: #cbd5e1; cursor: not-allowed; opacity: 0.7;"
-                disabled>⏳ ክፍያ አልገባም</button>`;
-            }
+    // ቴብሉን የምንስልበት (Loop የሚያደርገው) ሎጂክ
+    function drawOrdersTable(activeOrders) {
+        tbody.innerHTML = '';
+        if (activeOrders.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">በአሁኑ ሰዓት የተመደበ ምንም ትዕዛዝ የለም</td></tr>`;
+            return;
         }
 
-        tr.innerHTML = `
-            <td>${order.shopName}<br><a href="${order.shopMap}" target="_blank" style="color:var(--accent-color);">📍 የሻጭ ማፕ</a> |
-            📞 ${order.shopPhone}</td>
-            <td>${order.buyerName}<br><a href="${order.buyerMap}" target="_blank" style="color:var(--accent-color);">📍 የገዥ ማፕ</a> |
-            📞 ${order.buyerPhone}</td>
-            <td>${order.itemName} (x${order.qty})<br><strong style="color:var(--warning-color);">${order.totalPrice} ETB</strong><br>${statusBadge}</td>
-            <td>${actionBtn}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
+        let feeReceived = (currentMotor.incomingFee && parseFloat(currentMotor.incomingFee) > 0);
+        let hasActiveJob = activeOrders.some(o => o.status === 'accepted') || feeReceived;
+        
+        activeOrders.forEach((order, index) => {
+            let tr = document.createElement('tr');
+            let actionBtn = "";
+            let statusBadge = "";
 
-// 8. ኦርደር ሲቀበል (Lock & Link)
+            if(order.status === 'pending_motor') {
+                statusBadge = `<span class="badge-warning">አዲስ ጥሪ (በመጠባበቅ ላይ)</span><br>`;
+                
+                if (hasActiveJob) {
+                    actionBtn = `<button class="btn-add btn-sm" style="background-color: #64748b; color: #cbd5e1; cursor: not-allowed; opacity: 0.5;" disabled>🔒 በስራ ላይ ነዎት</button>`;
+                } else {
+                    actionBtn = `<button class="btn-add btn-sm" onclick="acceptMotorOrder(${index})">✋ ተቀበል (Accept)</button>`;
+                }
+            } else {
+                statusBadge = `<span class="badge-success">በእርስዎ የተያዘ</span><br>`;
+                
+                if(feeReceived) {
+                    actionBtn = `<button class="btn-sell btn-sm" onclick="completeMotorOrder(${index})">✅ አድርሻለሁ (Deliver)</button>`;
+                } else {
+                    actionBtn = `<button class="btn-sell btn-sm" style="background-color: #64748b; color: #cbd5e1; cursor: not-allowed; opacity: 0.7;" disabled>⏳ ክፍያ አልገባም</button>`;
+                }
+            }
+
+            tr.innerHTML = `
+                <td>${order.shopName}<br><a href="${order.shopMap}" target="_blank" style="color:var(--accent-color);">📍 የሻጭ ማፕ</a> | 📞 ${order.shopPhone}</td>
+                <td>${order.buyerName}<br><a href="${order.buyerMap}" target="_blank" style="color:var(--accent-color);">📍 የገዥ ማፕ</a> | 📞 ${order.buyerPhone}</td>
+                <td>${order.itemName} (x${order.qty})<br><strong style="color:var(--warning-color);">${order.totalPrice} ETB</strong><br>${statusBadge}</td>
+                <td>${actionBtn}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+}
+// 8. ኦርደር ሲቀበል (Lock & Link) - ከ Firebase ጋር የተገናኘ
 window.acceptMotorOrder = function(index) {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
-    // ክፍያ ሳይጨርስ አዲስ እንዳይቀበል መቆለፊያ
+    
     if (currentMotor.incomingFee > 0) {
         alert("⚠️ እባክዎ መጀመሪያ የያዙትን ትዕዛዝ በማድረስ ከገዥ የተላከውን ክፍያ ያረጋግጡ (ዳሽቦርድዎ ላይ 0.00 ይሁን)! ከዚያ በኋላ ብቻ አዲስ ትዕዛዝ መቀበል ይችላሉ።");
         return;
     }
 
-    // ተጨማሪ ማረጋገጫ: ሌላ የተቀበለው ትዕዛዝ ካለ ይከለክላል
     let hasActiveJob = currentMotor.activeOrders.some(o => o.status === 'accepted');
     if (hasActiveJob) {
         alert("⚠️ አስቀድመው የተቀበሉት ሌላ ትዕዛዝ አለ! እባክዎ መጀመሪያ ያንን ያድርሱ።");
@@ -316,64 +328,65 @@ window.acceptMotorOrder = function(index) {
     acceptedOrder.status = 'accepted';
     
     let poolId = acceptedOrder.poolId;
-    if(poolId && localDB.motors) {
-        Object.keys(localDB.motors).forEach(mUser => {
-            if(mUser !== currentMotor.username) {
-                let otherMotor = localDB.motors[mUser];
-                if(otherMotor.activeOrders) {
-                    otherMotor.activeOrders = otherMotor.activeOrders.filter(o => o.poolId !== poolId);
-                    if(typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
-                        db.ref(`tirfe_system/motors/${mUser}`).set(otherMotor).catch(err => console.error(err));
+    let shopUser = acceptedOrder.shopUsername; // ሻጩ ሲያዝ ያስቀመጥነው አዲስ መለያ
+
+    // 1. ሌሎች ሞተረኞች ጋር የተላከውን ጥሪ ከ Firebase ላይ ማጥፋት
+    if(poolId && typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
+        db.ref('tirfe_system/motors').once('value').then(snap => {
+            let allMotors = snap.val() || {};
+            Object.keys(allMotors).forEach(mUser => {
+                if(mUser !== currentMotor.username) {
+                    let otherMotorActive = allMotors[mUser].activeOrders || [];
+                    // ይሄንን poolId የሌለውን ብቻ እናስቀራለን (እንጠራዋለን)
+                    let filteredOrders = otherMotorActive.filter(o => o.poolId !== poolId);
+                    
+                    if(otherMotorActive.length !== filteredOrders.length) {
+                        db.ref(`tirfe_system/motors/${mUser}/activeOrders`).set(filteredOrders);
                     }
                 }
-            }
-        });
+            });
+        }).catch(err => console.error("Error updating other motors:", err));
     }
 
-    let shopKey = acceptedOrder.shopKey;
-    if (!shopKey) {
-        let foundKey = Object.keys(localDB.tenants).find(k => localDB.tenants[k].shopName === acceptedOrder.shopName);
-        if (foundKey) shopKey = foundKey;
-    }
-    
-    if (shopKey && localDB.tenants[shopKey] && localDB.tenants[shopKey].data && localDB.tenants[shopKey].data.deliveryOrders) {
-        let shopOrders = localDB.tenants[shopKey].data.deliveryOrders;
-        let sOrd = shopOrders.find(o => o.orderId == acceptedOrder.orderId || (o.buyerPhone == acceptedOrder.buyerPhone && o.itemName == acceptedOrder.itemName));
-        if (sOrd) {
-            sOrd.motorUser = currentMotor.username;
-            sOrd.status = 'accepted';
-            if (typeof db !== 'undefined' && isOnline) {
-                db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(shopOrders);
+    // 2. የሻጩን ዳታቤዝ አፕዴት ማድረግ (ኦንላይን)
+    if (shopUser && typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
+        let shopPath = `tirfe_system/tenants/${shopUser}/data/deliveryOrders`;
+        db.ref(shopPath).once('value').then(snap => {
+            let shopOrders = snap.val() || [];
+            let sOrd = shopOrders.find(o => o.poolId === poolId || (o.buyerPhone == acceptedOrder.buyerPhone && o.itemName == acceptedOrder.itemName));
+            
+            if (sOrd) {
+                sOrd.motorUser = currentMotor.username; // ሞተረኛውን እንመድባለን
+                sOrd.status = 'accepted'; // ስታተሱን እንቀይራለን
+                db.ref(shopPath).set(shopOrders); // መልሰን Firebase ላይ እንጭነዋለን
             }
-        }
+        }).catch(err => console.error("Error updating shop orders:", err));
     }
 
+    // 3. የቴሌግራም መልዕክት ለሞተረኛው
     let tgMessage = `📦 አዲስ ትዕዛዝ ተቀብለዋል!\n\n` +
-                    `📱 የገዥ ስልክ: ${acceptedOrder.buyerPhone ||
-                    '-'}\n` +
-                    `📍 ገዥ ያለበት ቦታ: ${acceptedOrder.address ||
-                    '-'}\n` +
-                    `🗺️ የገዥ ጎግል ማፕ: ${acceptedOrder.buyerMap ||
-                    '-'}\n\n` +
-                    `📞 የሻጭ ስልክ: ${acceptedOrder.shopPhone ||
-                    '-'}\n` +
-                    `🗺️ የሻጭ ጎግል ማፕ: ${acceptedOrder.shopMap ||
-                    '-'}\n\n` +
-                    `🛍️ የዕቃው አይነት: ${acceptedOrder.itemName ||
-                    '-'}\n` +
-                    `🔢 የዕቃው ብዛት: ${acceptedOrder.qty ||
-                    '-'}\n\n` +
+                    `📱 የገዥ ስልክ: ${acceptedOrder.buyerPhone || '-'}\n` +
+                    `📍 ገዥ ያለበት ቦታ: ${acceptedOrder.address || '-'}\n` +
+                    `🗺️ የገዥ ጎግል ማፕ: ${acceptedOrder.buyerMap || '-'}\n\n` +
+                    `📞 የሻጭ ስልክ: ${acceptedOrder.shopPhone || '-'}\n` +
+                    `🗺️ የሻጭ ጎግል ማፕ: ${acceptedOrder.shopMap || '-'}\n\n` +
+                    `🛍️ የዕቃው አይነት: ${acceptedOrder.itemName || '-'}\n` +
+                    `🔢 የዕቃው ብዛት: ${acceptedOrder.qty || '-'}\n\n` +
                     `መልካም ስራ!\nአድራሻውን ተጠቅመው እቃውን ያድርሱ።`;
+    
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, tgMessage);
     }
 
+    // 4. ወደ ሎካል እና ፋየርቤዝ ሴቭ ማድረግ
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') pushToFirebase();
+    
     alert("ትዕዛዙን በተሳካ ሁኔታ ተቀብለዋል! ዝርዝር መረጃው በቴሌግራም ተልኮልዎታል።");
-    renderMotorPage();
+    renderMotorOrders(); // ቴብሉን ዳግም እንስላለን
 };
+
 // ብሩን ሲቀበል (ኮሚሽን ቆርጦ 0.00 ያደርጋል፣ ከ 25 በታች ከሆነም ይዘጋል)
 window.clearIncomingFee = function() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
