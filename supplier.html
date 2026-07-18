@@ -4,59 +4,155 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ትርፌ - የአከፋፋይ መቆጣጠሪያ ማዕከል</title>
-    <link rel="stylesheet" href="style.css"> <!-- ካለህ የሲኤስኤስ ስታይል ጋር እንዲመሳሰል -->
+    <style>
+        :root { --bg-color: #0b0f19; --card-bg: #151f32; --text-color: #f1f5f9; --accent-color: #38bdf8; --success-color: #4ade80; --danger-color: #f87171; --border-color: rgba(255, 255, 255, 0.08); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        /* Header & Dashboard */
+        header { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+        h1 { color: var(--success-color); font-size: 1.5rem; }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .card { background: var(--card-bg); padding: 20px; border-radius: 10px; text-align: center; border-left: 4px solid var(--accent-color); border-top: 1px solid var(--border-color); }
+        .card h3 { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; }
+        .card p { font-size: 1.5rem; font-weight: bold; color: var(--success-color); }
+
+        /* Forms & Boxes */
+        .section-box { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+        .section-box h2 { font-size: 1.2rem; margin-bottom: 15px; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #3a506b; background: rgba(0,0,0,0.3); color: white; outline: none; }
+        button { padding: 12px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-add { background: var(--accent-color); color: #000; width: 100%; margin-top: 10px; }
+        .btn-settings { background: #64748b; color: #fff; }
+        
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background: rgba(0,0,0,0.4); color: var(--accent-color); }
+
+        /* Modal / Popup */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 12px; max-width: 400px; width: 100%; border: 1px solid var(--border-color); }
+        .hidden { display: none !important; }
+    </style>
 </head>
-<body class="theme-deepblue">
-<main class="container">
-    <header style="display:flex; justify-content:space-between; align-items:center; background:#151f32; padding:20px; border-radius:12px; margin-bottom:20px;">
+<body>
+
+<div class="container">
+    <!-- ራስጌ -->
+    <header>
         <div>
-            <h1 style="color:#4ade80;">🏢 የአከፋፋይ (Supplier) ማዕከል</h1>
-            <p style="color:#94a3b8; font-size:0.85rem;">የእቃ ክምችት፣ ትዕዛዞች እና የትርፍ መከታተያ ዳሽቦርድ</p>
+            <h1>🏢 የአከፋፋይ (Supplier) ማዕከል</h1>
+            <p style="color: #94a3b8; font-size: 0.85rem;">የእቃ ክምችት፣ ትዕዛዞች እና የትርፍ መከታተያ ዳሽቦርድ</p>
         </div>
-        <button class="btn-config" onclick="document.getElementById('settingsModal').classList.remove('hidden')">⚙️ ሲቲንግ</button>
+        <button class="btn-settings" onclick="toggleModal('settingsModal')">⚙️ ሲቲንግ</button>
     </header>
 
+    <!-- ዳሽቦርድ -->
     <section class="dashboard">
-        <div class="card"><h3>ጠቅላላ ካፒታል (በእቃ ላይ ያለ)</h3><p id="distCapital">0.00 ETB</p></div>
-        <div class="card" style="border-left-color:#4ade80;"><h3>የዚህ ወር የተጣራ ትርፍ</h3><p id="distProfit">0.00 ETB</p></div>
+        <div class="card">
+            <h3>ጠቅላላ ካፒታል (በእቃ ላይ ያለ)</h3>
+            <p id="distCapital">0.00 ETB</p>
+        </div>
+        <div class="card" style="border-left-color: var(--success-color);">
+            <h3>የዚህ ወር የተጣራ ትርፍ</h3>
+            <p id="distProfit">0.00 ETB</p>
+            <span style="font-size:0.75rem; color:#94a3b8;">(በየወሩ ቀን 1 አውቶማቲክ 00 ይሆናል)</span>
+        </div>
     </section>
 
+    <!-- እቃ መመዝገቢያ ፎርም -->
     <section class="section-box">
         <h2>📦 አዲስ የጅምላ እቃ መመዝገቢያ ፎርም</h2>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <input type="text" id="pName" placeholder="የእቃ ስም">
-            <input type="text" id="pModel" placeholder="የእቃው ሞዴል">
-            <input type="number" id="pCost" placeholder="የተገዛበት ዋጋ (ካፒታል)">
+            <input type="text" id="pModel" placeholder="የእቃው ሞዴል (Model)">
+            <input type="number" id="pCost" placeholder="የተገዛበት ዋጋ (መነሻ ካፒታል)">
             <input type="number" id="pPrice" placeholder="የሚሸጥበት የጅምላ ዋጋ">
-            <input type="number" id="pQty" placeholder="የእቃ ብዛት">
+            <input type="number" id="pQty" placeholder="የእቃ ብዛት (Stock)">
         </div>
-        <input type="file" id="pInputImg" accept="image/*" style="margin-top:10px;">
-        <button class="btn-sell btn-block" onclick="registerDistItem()">📥 እቃውን በጅምላ ዝርዝር ውስጥ አክል</button>
+        <label style="font-size: 0.85rem; color: var(--accent-color); margin-top: 10px; display: block;">የእቃው ፎቶ (አማራጭ)፦</label>
+        <input type="file" id="pInputImg" accept="image/*">
+        <button class="btn-add" onclick="registerDistItem()">📥 እቃውን በጅምላ ዝርዝር ውስጥ አክል</button>
     </section>
 
+    <!-- የመጡ ትዕዛዞች መከታተያ ዳሽቦርድ -->
     <section class="section-box">
         <h2>🚚 ከሻጮች የመጡ አዳዲስ የትዕዛዝ መከታተያ</h2>
-        <div class="table-responsive">
-            <table>
-                <thead><tr><th>የታዘዘው እቃ</th><th>ብዛት</th><th>ስልክ ቁጥር</th><th>አድራሻ (ሀገር/ሰፈር)</th><th>ሁኔታ</th></tr></thead>
-                <tbody id="ordersTableBody"><tr><td colspan="5" style="text-align:center; color:#94a3b8;">ትዕዛዝ አልመጣም</td></tr></tbody>
-            </table>
-        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>የታዘዘው እቃ</th>
+                    <th>ብዛት</th>
+                    <th>ስልክ ቁጥር</th>
+                    <th>አድራሻ (ሀገር/ሰፈር)</th>
+                    <th>ሁኔታ</th>
+                </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+                <!-- ከሻጩ ፖፓፕ የሚመጡት ትዕዛዞች እዚህ ይደረደራሉ -->
+                <tr><td colspan="5" style="text-align:center; color:#94a3b8;">እስካሁን የመጣ ምንም ትዕዛዝ የለም</td></tr>
+            </tbody>
+        </table>
     </section>
-</main>
+</div>
 
-<div id="settingsModal" class="modal-overlay hidden">
-    <div class="modal-card">
-        <h3>⚙️ የአከፋፋይ መቼቶች</h3>
-        <input type="email" id="newEmail" placeholder="ኢሜል መቀየሪያ">
-        <input type="password" id="newPassword" placeholder="ፓስወርድ ማስተካከያ">
-        <button class="btn-sell btn-block" onclick="alert('መቼቱ ተቀምጧል!')">💾 አስቀምጥ</button>
-        <button class="btn-clear btn-block" style="margin-top:5px;" onclick="alert('ዳታው ጠፍቷል!')">🗑️ ዳታ ማጽጃ</button>
-        <button class="btn-expense btn-block" style="margin-top:5px;" onclick="document.getElementById('settingsModal').classList.add('hidden')">ዝጋ</button>
+<!-- የሲቲንግ ፖፓፕ ሞዳል -->
+<div id="settingsModal" class="modal hidden">
+    <div class="modal-content">
+        <h3 style="color: var(--accent-color); margin-bottom: 15px;">⚙️ የአከፋፋይ መቼቶች</h3>
+        <input type="email" id="newEmail" placeholder="አዲስ ኢሜል መቀየሪያ">
+        <input type="password" id="newPassword" placeholder="አዲስ ፓስወርድ ማስተካከያ">
+        <button class="btn-add" style="background:#10b981;" onclick="alert('መረጃው ተቀይሯል!')">💾 አስቀምጥ</button>
+        <hr style="border: 0.5px solid var(--border-color); margin: 15px 0;">
+        <button class="btn-add" style="background: var(--danger-color); color: #fff;" onclick="alert('ሁሉም ዳታ ጠፍቷል!')">🗑️ ዳታ ማጽጃ (Clear Data)</button>
+        <button class="btn-settings" style="width:100%; margin-top:10px;" onclick="toggleModal('settingsModal')">ዝጋ</button>
     </div>
 </div>
 
-<script defer src="main_supplier.js" defer></script>
+<script>
+    let inventory = [];
+    let monthlyProfit = 5400; // ለሙከራ የተቀመጠ ትርፍ
+
+    function toggleModal(id) {
+        document.getElementById(id).classList.toggle('hidden');
+    }
+
+    // በየወሩ ፈረንጆች ቀን 1 ሲሆን ትርፍን 00 የማድረጊያ አውቶማቲክ ሎጂክ
+    function checkMonthlyReset() {
+        let today = new Date();
+        if (today.getDate() === 1) { 
+            monthlyProfit = 0; // ቀን 1 ሲሆን ወደ 00 ይመለሳል
+        }
+        document.getElementById('distProfit').innerText = monthlyProfit.toFixed(2) + " ETB";
+    }
+
+    function registerDistItem() {
+        let name = document.getElementById('pName').value;
+        let model = document.getElementById('pModel').value;
+        let cost = parseFloat(document.getElementById('pCost').value) || 0;
+        let price = parseFloat(document.getElementById('pPrice').value) || 0;
+        let qty = parseInt(document.getElementById('pQty').value) || 0;
+
+        if(!name || cost <= 0 || qty <= 0) return alert("እባክዎ መረጃዎችን በትክክል ይሙሉ!");
+
+        inventory.push({ name, model, cost, price, qty });
+        calculateCapital();
+        alert("እቃው በተሳካ ሁኔታ ተመዝግቧል!");
+    }
+
+    // ካፒታልን (የተገዛበት ዋጋ * ብዛት) የመደመር ሎጂክ
+    function calculateCapital() {
+        let totalCapital = 0;
+        inventory.forEach(item => {
+            totalCapital += (item.cost * item.qty);
+        });
+        document.getElementById('distCapital').innerText = totalCapital.toFixed(2) + " ETB";
+    }
+
+    // ገጹ ሲከፈት የቀን ቼከሩን ስራ ማስጀመር
+    window.onload = checkMonthlyReset;
+</script>
 </body>
 </html>
-
