@@ -447,6 +447,16 @@ img.goog-te-gadget-icon {
             <button class="btn-next-day" id="btn_next_day" onclick="startNewDaySession()">🔄 አዲስ ቀን ጀምር</button>
             <button class="btn-clear" id="btn_clear_all" onclick="clearAllTenantData()">🗑️ ዳታ አጽዳ</button>
             <button class="btn-expense" id="btn_close_shift" style="background:#f59e0b; color:#000;" onclick="triggerShiftReport()">🔒 የዕለት ሂሳብ ዝጋ (ሪፖርት)</button>
+            <!-- 1. የወርሃዊ/አመት የሲስተም ኪራይ መክፈያ በተን -->
+            <button class="btn-config" style="background-color: #475569; color: white;" onclick="alert('ይህ የሲስተም ኪራይ መክፈያ ፋንክሽን ገና አልተሰራም!')">🔑 የሲስተም ኪራይ መክፈያ</button>
+
+<!-- 2. ግብር መክፈያ በተን -->
+           <button class="btn-expense" style="background-color: #b91c1c; color: white;" onclick="alert('ይህ የግብር መክፈያ ፋንክሽን ገና አልተሰራም!')">🏛️ ግብር መክፈያ</button>
+
+<!-- 3. የእቃ አከፋፋዮችን ማግኛ በተን (አዲስ ገጽ የሚከፍት) -->
+            <button class="btn-add" style="background-color: #06b6d4; color: black;" onclick="openDistributorsPage()">🔍 አከፋፋዮችን ፈልግ</button>
+
+            
         </nav>
         <section id="tenantVatReceiptSection" class="section-box hidden" style="border-color: #ef4444; margin-top: 15px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
