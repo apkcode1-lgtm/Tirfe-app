@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ትርፌ - የአከፋፋይ መቆጣጠሪያ ማዕከል</title>
+    <link rel="stylesheet" href="style.css"> <!-- ካለህ የሲኤስኤስ ስታይል ጋር እንዲመሳሰል -->
+</head>
+<body class="theme-deepblue">
+<main class="container">
+    <header style="display:flex; justify-content:space-between; align-items:center; background:#151f32; padding:20px; border-radius:12px; margin-bottom:20px;">
+        <div>
+            <h1 style="color:#4ade80;">🏢 የአከፋፋይ (Supplier) ማዕከል</h1>
+            <p style="color:#94a3b8; font-size:0.85rem;">የእቃ ክምችት፣ ትዕዛዞች እና የትርፍ መከታተያ ዳሽቦርድ</p>
+        </div>
+        <button class="btn-config" onclick="document.getElementById('settingsModal').classList.remove('hidden')">⚙️ ሲቲንግ</button>
+    </header>
+
+    <section class="dashboard">
+        <div class="card"><h3>ጠቅላላ ካፒታል (በእቃ ላይ ያለ)</h3><p id="distCapital">0.00 ETB</p></div>
+        <div class="card" style="border-left-color:#4ade80;"><h3>የዚህ ወር የተጣራ ትርፍ</h3><p id="distProfit">0.00 ETB</p></div>
+    </section>
+
+    <section class="section-box">
+        <h2>📦 አዲስ የጅምላ እቃ መመዝገቢያ ፎርም</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <input type="text" id="pName" placeholder="የእቃ ስም">
+            <input type="text" id="pModel" placeholder="የእቃው ሞዴል">
+            <input type="number" id="pCost" placeholder="የተገዛበት ዋጋ (ካፒታል)">
+            <input type="number" id="pPrice" placeholder="የሚሸጥበት የጅምላ ዋጋ">
+            <input type="number" id="pQty" placeholder="የእቃ ብዛት">
+        </div>
+        <input type="file" id="pInputImg" accept="image/*" style="margin-top:10px;">
+        <button class="btn-sell btn-block" onclick="registerDistItem()">📥 እቃውን በጅምላ ዝርዝር ውስጥ አክል</button>
+    </section>
+
+    <section class="section-box">
+        <h2>🚚 ከሻጮች የመጡ አዳዲስ የትዕዛዝ መከታተያ</h2>
+        <div class="table-responsive">
+            <table>
+                <thead><tr><th>የታዘዘው እቃ</th><th>ብዛት</th><th>ስልክ ቁጥር</th><th>አድራሻ (ሀገር/ሰፈር)</th><th>ሁኔታ</th></tr></thead>
+                <tbody id="ordersTableBody"><tr><td colspan="5" style="text-align:center; color:#94a3b8;">ትዕዛዝ አልመጣም</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<div id="settingsModal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <h3>⚙️ የአከፋፋይ መቼቶች</h3>
+        <input type="email" id="newEmail" placeholder="ኢሜል መቀየሪያ">
+        <input type="password" id="newPassword" placeholder="ፓስወርድ ማስተካከያ">
+        <button class="btn-sell btn-block" onclick="alert('መቼቱ ተቀምጧል!')">💾 አስቀምጥ</button>
+        <button class="btn-clear btn-block" style="margin-top:5px;" onclick="alert('ዳታው ጠፍቷል!')">🗑️ ዳታ ማጽጃ</button>
+        <button class="btn-expense btn-block" style="margin-top:5px;" onclick="document.getElementById('settingsModal').classList.add('hidden')">ዝጋ</button>
+    </div>
+</div>
+
+<script defer src="main_supplier.js" defer></script>
+</body>
+</html>
+
