@@ -289,3 +289,27 @@ function deleteInventoryItem(idx) {
         currentTenant.data.inventory.splice(idx, 1); saveAndRefresh(); 
     });
 }
+
+// አከፋፋዮች ያቀረቡትን እቃ የሚያሳይ አዲስ ገጽ ይከፍታል
+function openDistributedItemsPage() {
+    window.open('supplier.html', '_blank');
+}
+
+let selectedSupplierItem = "";
+function openBuyPopup(itemName, price) {
+    selectedSupplierItem = itemName;
+    document.getElementById('modalItemDetail').innerText = "የተመረጠው እቃ፦ " + itemName + " (" + price + " ETB)";
+    document.getElementById('supplierBuyModal').classList.remove('hidden');
+}
+
+function submitOrderToSupplier() {
+    let qty = document.getElementById('orderQty').value;
+    let country = document.getElementById('orderCountry').value;
+    let phone = document.getElementById('orderPhone').value;
+    let area = document.getElementById('orderArea').value;
+
+    if(!qty || !country || !phone || !area) return alert("እባክዎ ሁሉንም መረጃዎች ያሟሉ!");
+
+    alert("ትዕዛዝዎ በተሳካ ሁኔታ ተላልፏል! አከፋፋዩ ካረጋገጠ በኋላ ያደርስልዎታል።");
+    document.getElementById('supplierBuyModal').classList.add('hidden');
+}
