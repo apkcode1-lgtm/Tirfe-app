@@ -768,6 +768,23 @@ img.goog-te-gadget-icon {
         </div>
     </div>
 </div>
+    <div id="supplierBuyModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 400px; border-top: 5px solid #06b6d4;">
+        <div class="modal-header"><h3 style="color: #06b6d4; margin: 0;">🛍️ ከጅምላ አከፋፋይ ማዘዣ ፎርም</h3></div>
+        <div class="modal-body" style="padding-top: 10px;">
+            <p id="modalItemDetail" style="font-weight: bold; margin-bottom: 10px; color: var(--success-color);"></p>
+            <input type="number" id="orderQty" placeholder="የሚፈልጉት ብዛት" min="1" value="1">
+            <input type="text" id="orderCountry" placeholder="ያሉበት ሀገር/ከተማ">
+            <input type="tel" id="orderPhone" placeholder="የስልክ ቁጥር (09...)">
+            <input type="text" id="orderArea" placeholder="ልዩ ቦታ ወይም ሰፈር">
+        </div>
+        <div class="modal-footer">
+            <button class="btn-expense" onclick="document.getElementById('supplierBuyModal').classList.add('hidden')">ሰርዝ</button>
+            <button class="btn-sell" style="background-color: #06b6d4; color: black;" onclick="submitOrderToSupplier()">🚀 ትዕዛዝ አስተላልፍ</button>
+        </div>
+    </div>
+</div>
+
 
 <script defer src="firebase-config.js"></script>
 <script defer src="database.js"></script>
