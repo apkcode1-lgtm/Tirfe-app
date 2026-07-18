@@ -2,10 +2,9 @@ let localDB = {
     tenants: {}, 
     buyers: {}, 
     revenueAuthorities: {}, 
-    motors: {}, // አዲሱ የሞተረኞች ዳታቤዝ
-    motorQuotas: {}, // አዲሱ የሞተረኛ ብዛት መቆጣጠሪያ (ጣሪያ) ማከማቻ
+    motors: {}, 
+    motorQuotas: {}, 
     taxReceipts: [], 
-    // የዴሊቨሪ ኮሚሽን (10%) በዲፎልት ተጨምሯል
     adminSettings: { bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 }, 
     tariffs: { low: 500, medium: 1000, high: 2000 }, 
     businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"] 
@@ -39,18 +38,18 @@ function loadLocalStorageBackup() {
     if(backup) {
         let parsedBackup = JSON.parse(backup);
         
+        // ዳታውን ሎድ ስናደርግ ለተጠቃሚው ሚና የሚያስፈልገውን ብቻ እናወጣለን
         if(parsedBackup.tenants) localDB.tenants = parsedBackup.tenants;
         if(parsedBackup.buyers) localDB.buyers = parsedBackup.buyers;
         if(parsedBackup.revenueAuthorities) localDB.revenueAuthorities = parsedBackup.revenueAuthorities;
         if(parsedBackup.motors) localDB.motors = parsedBackup.motors;
-        if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas; // የኮታ ዳታ
+        if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas; 
         if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
         if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
         if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
         
         if(parsedBackup.adminSettings) {
             localDB.adminSettings = parsedBackup.adminSettings;
-            // ዲፎልት ኮሚሽን መጠን ከሌለው 10% እንዲሆን
             if (localDB.adminSettings.deliveryCommissionRate === undefined) {
                 localDB.adminSettings.deliveryCommissionRate = 10;
             }
@@ -65,6 +64,21 @@ function saveToLocalStorage() {
     localStorage.setItem('tirfe_local_db', JSON.stringify(localDB));
 }
 
+// ሚስጥራዊ የሆኑትን የሻጭ መረጃዎች አውጥቶ ለ public የሚያዘጋጅ
+function getPublicTenantsData(tenantsData) {
+    let publicData = {};
+    for (let k in tenantsData) {
+        publicData[k] = Object.assign({}, tenantsData[k]);
+        delete publicData[k].password;
+        delete publicData[k].activationCode; 
+        delete publicData[k].staffAccounts; 
+        delete publicData[k].telegramToken; 
+        delete publicData[k].bankAccount; 
+    }
+    return publicData;
+}
+
+// ⚠️ ማሻሻያ 1: ፋየርቤዝ ላይ ዳታ ሲላክ የሌላውን ሰው ዳታ እንዳያጠፋ (Least Privilege Push)
 function pushToFirebase() { 
     saveToLocalStorage();
     if(isOnline && typeof db !== 'undefined') { 
@@ -72,34 +86,39 @@ function pushToFirebase() {
         const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
 
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
-            db.ref('tirfe_system').update({
-                tenants: cleanData(localDB.tenants) || {},
-                buyers: cleanData(localDB.buyers) || {},
-                revenueAuthorities: cleanData(localDB.revenueAuthorities) || {},
-                motors: cleanData(localDB.motors) || {},
-                motorQuotas: cleanData(localDB.motorQuotas) || {},
-                taxReceipts: cleanData(localDB.taxReceipts) || [],
-                tariffs: cleanData(localDB.tariffs) || {},
-                businessTypes: cleanData(localDB.businessTypes) || [],
-                adminSettings: cleanData(localDB.adminSettings) || {}
-            }).catch(err => console.error("Firebase Admin Sync Error:", err));
+            // አድሚን ብቻ ነው ጀነራል ሴቲንግ እና ሌሎች የጋራ ዳታዎችን መላክ የሚችለው
+            let adminUpdates = {};
+            
+            // የ public ዳታ ማዘመኛ
+            if (localDB.tenants) {
+                let cTenants = cleanData(localDB.tenants);
+                let pTenants = getPublicTenantsData(cTenants);
+                for(let t in pTenants) { adminUpdates[`public_tenants/${t}`] = pTenants[t]; }
+                for(let t in cTenants) { adminUpdates[`tenants/${t}`] = cTenants[t]; }
+            }
+            
+            adminUpdates['motorQuotas'] = cleanData(localDB.motorQuotas) || {};
+            adminUpdates['tariffs'] = cleanData(localDB.tariffs) || {};
+            adminUpdates['businessTypes'] = cleanData(localDB.businessTypes) || [];
+            adminUpdates['adminSettings'] = cleanData(localDB.adminSettings) || {};
+
+            db.ref('tirfe_system').update(adminUpdates)
+              .catch(err => console.error("Firebase Admin Sync Error:", err));
+
         } else {
-            if(localDB.buyers) {
-                db.ref('tirfe_system/buyers').update(cleanData(localDB.buyers) || {})
-                .catch(err => console.error("Firebase Buyers Global Sync Error:", err));
-            }
-            if(localDB.tenants) {
-                db.ref('tirfe_system/tenants').update(cleanData(localDB.tenants) || {})
-                .catch(err => console.error("Firebase Tenants Global Sync Error:", err));
-            }
-            if(localDB.motors) {
-                db.ref('tirfe_system/motors').update(cleanData(localDB.motors) || {})
-                .catch(err => console.error("Firebase Motors Global Sync Error:", err));
-            }
+            // ተራ ተጠቃሚዎች የየራሳቸውን መረጃ ብቻ (Deep Path) ወደ ፋየርቤዝ ይልካሉ።
+            // የ `fallbackUpdates` አደገኛ ኮድ ሙሉ በሙሉ ጠፍቷል!
+
             if(typeof currentTenant !== 'undefined' && currentTenant) {
                 let tenantData = cleanData(localDB.tenants[currentTenant.username]);
                 if(tenantData) {
-                    db.ref(`tirfe_system/tenants/${currentTenant.username}`).set(tenantData)
+                    let updates = {};
+                    updates[`tenants/${currentTenant.username}`] = tenantData;
+                    
+                    let publicT = getPublicTenantsData({ [currentTenant.username]: tenantData });
+                    updates[`public_tenants/${currentTenant.username}`] = publicT[currentTenant.username];
+
+                    db.ref('tirfe_system').update(updates)
                     .catch(err => console.error("Firebase Tenant Sync Error:", err));
                 }
             }
@@ -116,7 +135,6 @@ function pushToFirebase() {
                     db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).set(revData)
                     .catch(err => console.error("Firebase Revenue Sync Error:", err));
                 }
-                // ገቢዎች የወሰኑት የሞተረኛ ኮታ ወደ ፋየርቤዝ እንዲገባ
                 if(localDB.motorQuotas) {
                     db.ref(`tirfe_system/motorQuotas`).set(cleanData(localDB.motorQuotas))
                     .catch(err => console.error("Firebase Quota Sync Error:", err));
@@ -129,98 +147,73 @@ function pushToFirebase() {
                     .catch(err => console.error("Firebase Motor Sync Error:", err));
                 }
             }
-            
-            let updates = {};
-            if(localDB.taxReceipts) updates.taxReceipts = cleanData(localDB.taxReceipts);
-            if(localDB.tariffs) updates.tariffs = cleanData(localDB.tariffs);
-            if(localDB.businessTypes) updates.businessTypes = cleanData(localDB.businessTypes);
-
-            if(Object.keys(updates).length > 0) {
-                db.ref('tirfe_system').update(updates).catch(err => console.error("Firebase Global Updates Error:", err));
-            }
         }
     } 
 }
 
+// Telegram Functions
 function sendAdminTelegramAlert(message) {
     const backendAPIUrl = "/api/sendAdminTelegram";
-    
-    // 💡 ማሻሻያ፡ አድሚኑ በሲስተሙ (UI) ላይ ያስገባውን ቶከን አውጥቶ ወደ API ይልካል
     let tgToken = (localDB.adminSettings && localDB.adminSettings.tgToken) ? localDB.adminSettings.tgToken : null;
     let tgChatId = (localDB.adminSettings && localDB.adminSettings.tgChatId) ? localDB.adminSettings.tgChatId : null;
-
-    fetch(backendAPIUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            text: message,
-            token: tgToken,
-            chatId: tgChatId
-        })
-    }).catch(err => console.log("Admin Telegram API Alert Error: ", err));
+    fetch(backendAPIUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: message, token: tgToken, chatId: tgChatId }) }).catch(err => console.log(err));
 }
 
 function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant) return;
-    const backendAPIUrl = "/api/sendTenantTelegram";
-    fetch(backendAPIUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            username: currentTenant.username, 
-            text: message 
-        })
-    }).catch(err => console.log("Telegram API Error: ", err));
+    fetch("/api/sendTenantTelegram", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentTenant.username, text: message }) }).catch(err => console.log(err));
 }
 
-// አዲሱ የሞተረኛ ቴሌግራም ኖቲፊኬሽን መላኪያ
 function sendMotorTelegramAlert(username, message) {
-    const backendAPIUrl = "/api/sendMotorTelegram";
-    fetch(backendAPIUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            username: username, 
-            text: message 
-        })
-    }).catch(err => console.log("Motor Telegram API Error: ", err));
+    fetch("/api/sendMotorTelegram", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username, text: message }) }).catch(err => console.log(err));
 }
 
 if(typeof db !== 'undefined') {
     
-    // ማስተካከያ 1:- revenueAuthorities እና motorQuotas ወደ publicNodes ተጨምሯል
-    const publicNodes = ['tariffs', 'businessTypes', 'adminSettings', 'revenueAuthorities', 'motorQuotas'];
-    publicNodes.forEach(node => {
-        db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
-            if(snapshot.exists()) {
-                localDB[node] = snapshot.val();
-                saveToLocalStorage();
-                triggerUIRefresh();
-            }
-        }, (error) => {
-            console.log(`Firebase Error on ${node}, running offline mode.`);
-            isOnline = false;
-            handleOnlineStatus();
+    // ⚠️ ማሻሻያ 2: የማይለዋወጡ መረጃዎችን (Static Data) አንዴ ብቻ እንዲመጡ ተደርጓል (.once)
+    // ይሄ ኢንተርኔት ከመጨረስ ያድናል!
+    const fetchStaticData = function() {
+        const staticNodes = ['tariffs', 'businessTypes', 'adminSettings'];
+        staticNodes.forEach(node => {
+            db.ref(`tirfe_system/${node}`).once('value').then((snapshot) => {
+                if(snapshot.exists()) {
+                    localDB[node] = snapshot.val();
+                    saveToLocalStorage();
+                    triggerUIRefresh();
+                }
+            }).catch(error => {
+                console.log(`Firebase Error on ${node}, running offline mode.`);
+                isOnline = false; handleOnlineStatus();
+            });
         });
-    });
+    }
+    fetchStaticData();
 
+    // ⚠️ ማሻሻያ 3: የ Role-based መረጃ ማዳመጥ (Listen) - እያንዳንዱ ተጠቃሚ የራሱን ስራ ብቻ ያወርዳል
     window.setupSecureUserListeners = function() {
         
-        // ማስተካከያ 2:- አድሚን ሲገባ አዲስ ተመዝጋቢዎችን በስህተት እንዳያጠፋ (Real-time update)
+        // 1. አድሚን (Admin) - የሁሉንም ሰው ጽሁፍ ዳታ ያወርዳል (Limit ተደርጎ)
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin' && !window.adminListenerAttached) {
             window.adminListenerAttached = true;
-            const adminNodes = ['tenants', 'buyers', 'motors', 'taxReceipts'];
+            
+            // የሪፖርቶች/ደረሰኞች ብዛት እንዳይጭን 100 ብቻ እንዲያመጣ ተገድቧል
+            db.ref(`tirfe_system/taxReceipts`).orderByKey().limitToLast(100).on('value', (snapshot) => {
+                if(snapshot.exists()) {
+                    localDB.taxReceipts = Object.values(snapshot.val()); // Convert object to array if needed
+                    saveToLocalStorage();
+                    triggerUIRefresh();
+                }
+            });
+
+            const adminNodes = ['tenants', 'buyers', 'motors'];
             adminNodes.forEach(node => {
                 db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
-                    if(snapshot.exists()) {
-                        localDB[node] = snapshot.val();
-                        saveToLocalStorage();
-                        triggerUIRefresh();
-                    }
+                    if(snapshot.exists()) { localDB[node] = snapshot.val(); saveToLocalStorage(); triggerUIRefresh(); }
                 });
             });
         }
 
+        // 2. ሻጭ (Tenant) - የራሱን ፕሮፋይል እና አዲስ የገቡ ትዕዛዞችን ብቻ ይከታተላል
         if(typeof currentTenant !== 'undefined' && currentTenant && !window.tenantListenerAttached) {
             window.tenantListenerAttached = true;
             db.ref(`tirfe_system/tenants/${currentTenant.username}`).on('value', (snapshot) => {
@@ -230,47 +223,38 @@ if(typeof db !== 'undefined') {
                     triggerUIRefresh();
                 }
             });
+            // የራሱን ደረሰኞች ብቻ ማዳመጥ ከተፈለገ (አሁን ባለው UI መሰረት)
+            db.ref(`tirfe_system/taxReceipts`).orderByChild('tenantUsername').equalTo(currentTenant.username).on('value', (snapshot) => {
+                 if(snapshot.exists()){
+                     // UI logic handling specific tenant receipts
+                 }
+            });
         }
         
+        // (የገዥ ኮድ (Buyer) ለጊዜው አልተቀየረም - በቀጣይ እንደምናወራው)
         if(typeof currentBuyer !== 'undefined' && currentBuyer && !window.buyerListenerAttached) {
             window.buyerListenerAttached = true;
             db.ref(`tirfe_system/buyers/${currentBuyer.username}`).on('value', (snapshot) => {
-                if(snapshot.exists()) {
-                    localDB.buyers[currentBuyer.username] = snapshot.val();
-                    saveToLocalStorage();
-                    triggerUIRefresh();
-                }
+                if(snapshot.exists()) { localDB.buyers[currentBuyer.username] = snapshot.val(); saveToLocalStorage(); triggerUIRefresh(); }
             });
-
-            // የተስተካከለው:- ገዥዎች የሻጮችን ዳታ በቋሚነት (Real-time) እንዲያዳምጡ የተጨመረ
-            db.ref(`tirfe_system/tenants`).on('value', (snapshot) => {
-                if(snapshot.exists()) {
-                    let allT = snapshot.val();
-                    for(let k in allT) { 
-                        delete allT[k].password;
-                        delete allT[k].activationCode; 
-                        delete allT[k].staffAccounts; 
-                        delete allT[k].telegramToken; 
-                        delete allT[k].bankAccount; 
-                    }
-                    localDB.tenants = allT;
-                    saveToLocalStorage();
-                    if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-                }
+            db.ref(`tirfe_system/public_tenants`).on('value', (snapshot) => {
+                if(snapshot.exists()) { localDB.tenants = snapshot.val(); saveToLocalStorage(); if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog(); }
             });
         }
         
+        // 3. የገቢዎች ሰራተኛ (Revenue) - የግብር ዳታ እና የራሱን ፕሮፋይል ብቻ
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer && !window.revenueListenerAttached) {
             window.revenueListenerAttached = true;
             db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).on('value', (snapshot) => {
-                if(snapshot.exists()) {
-                    localDB.revenueAuthorities[currentRevenueOfficer.username] = snapshot.val();
-                    saveToLocalStorage();
-                    triggerUIRefresh();
-                }
+                if(snapshot.exists()) { localDB.revenueAuthorities[currentRevenueOfficer.username] = snapshot.val(); saveToLocalStorage(); triggerUIRefresh(); }
+            });
+            // የቫት ሪፖርቶችን ብቻ ያዳምጣል (ሌላ ትርፍ ፎቶ አያወርድም)
+            db.ref(`tirfe_system/motorQuotas`).on('value', (snapshot) => {
+                if(snapshot.exists()) { localDB.motorQuotas = snapshot.val(); saveToLocalStorage(); }
             });
         }
         
+        // 4. ሞተረኛ (Motor) - የራሱን ፕሮፋይል እና የትዕዛዝ ማሳወቂያ ብቻ ያወርዳል
         if(typeof currentMotor !== 'undefined' && currentMotor && !window.motorListenerAttached) {
             window.motorListenerAttached = true;
             db.ref(`tirfe_system/motors/${currentMotor.username}`).on('value', (snapshot) => {
@@ -280,6 +264,7 @@ if(typeof db !== 'undefined') {
                     triggerUIRefresh();
                 }
             });
+            // ማሳሰቢያ፡ ትዕዛዝ ሲገባ ብቻ listen የሚያደርገውን ኖድ UI ላይ እንደሰራኸው ታክለዋለህ
         }
     };
 
@@ -310,7 +295,6 @@ if(typeof db !== 'undefined') {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
 
-        // ማስተካከያ 3:- ሞተረኛው ኦንላይን ሆኖ ዳታቤዝ ላይ ሌላ ሰው ትዕዛዝ ሲወስድ ስክሪኑ ሪፍሬሽ እንዲያደርግ (Point 1)
         if(typeof currentMotor !== 'undefined' && currentMotor) {
             let checkMotor = localDB.motors[currentMotor.username];
             if(checkMotor) {
@@ -323,7 +307,6 @@ if(typeof db !== 'undefined') {
             if(typeof renderAdminPanel === 'function') renderAdminPanel();
             if(typeof renderAdminMotors === 'function') renderAdminMotors();
             if(typeof renderAdminBuyers === 'function') renderAdminBuyers();
-            
         }
     }
 }
