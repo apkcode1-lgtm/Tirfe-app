@@ -291,7 +291,6 @@ function deleteInventoryItem(idx) {
 }
 
 // አከፋፋዮች 
-<script>
 let selectedSupplierItem = "";
 
 // ሻጩ "ግዛ" የሚለውን በተን ሲነካ ፖፓፑን የሚከፍት ፋንክሽን
@@ -318,5 +317,4 @@ function submitOrderToSupplier() {
     // ፎርሙን መዝጋት
     document.getElementById('supplierBuyModal').classList.add('hidden');
 }
-</script>
 
