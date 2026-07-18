@@ -735,3 +735,36 @@ window.clearMotorData = function() {
     renderMotorPage();
    
 }
+// በ utils.js ወይም main_delivery.js ውስጥ የሚቀመጥ ፈንክሽን
+async function startMotoristPayment(motoristId, amountToCharge) {
+    try {
+        // አሁን የሰራነውን የቨርሴል API መጥራት
+        const response = await fetch('/api/chapa-initiate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                amount: amountToCharge,
+                motorist_id: motoristId,
+                email: "motorist@example.com", // የሞተረኛው እውነተኛ ኢሜይል ቢሆን ይመረጣል
+                first_name: "Abebe",
+                last_name: "Bekele"
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success' && result.checkout_url) {
+            // ሞተረኛውን በቀጥታ ወደ ቻፓ የባንክ መክፈያ ገጽ መውሰድ (Redirect)
+            window.location.href = result.checkout_url;
+        } else {
+            alert("ይቅርታ፣ የክፍያ ሂደቱን መጀመር አልተቻለም፦ " + result.message);
+        }
+
+    } catch (error) {
+        console.error("Payment Error:", error);
+        alert("የኔትወርክ ችግር አጋጥሟል! እባክዎ እንደገና ይሞክሩ።");
+    }
+}
+
