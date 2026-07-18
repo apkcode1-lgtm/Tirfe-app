@@ -35,10 +35,9 @@ function renderHistoryTable() {
         });
     }
 }
-
 window.acceptDelivery = function(idx) {
     let ord = currentTenant.data.deliveryOrders[idx];
-    // እንዳይደገም (Double-click protection) እና Overwrite እንዳይሆን
+    // እንዳይደገም (Double-click protection)
     if (ord.status !== "pending") {
         showCustomAlert("ማሳሰቢያ", "ይህ ትዕዛዝ አስቀድሞ ተቀባይነት አግኝቷል!");
         return;
@@ -50,62 +49,84 @@ window.acceptDelivery = function(idx) {
     
     ord.status = "accepted";
     if(ord.transport === 'motor') {
-        let matchedMotorsCount = 0;
         let poolId = "POOL_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
         ord.poolId = poolId;
         
-        if(localDB.motors) {
-            Object.keys(localDB.motors).forEach(mUser => {
-                let motor = localDB.motors[mUser];
-                if(motor.region === currentTenant.region && motor.zone === currentTenant.zone && motor.woreda === currentTenant.woreda) {
+        // 1. ሞተረኞችን ከ Local Storage ሳይሆን በቀጥታ ከ Firebase እንፈልጋለን
+        if(typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
+            db.ref('tirfe_system/motors').once('value').then(snap => {
+                let allMotors = snap.val() || {};
+                let matchedMotorsCount = 0;
+                
+                Object.keys(allMotors).forEach(mUser => {
+                    let motor = allMotors[mUser];
                     
-                    let newOrderObj = {
-                        poolId: poolId,
-                        shopUsername: currentTenant.username,
-                        shopName: currentTenant.shopName,
-                        shopPhone: currentTenant.phone,
-                        shopMap: currentTenant.googleMapsLink || "-",
-                        buyerName: ord.buyerUser,
-                        buyerPhone: ord.buyerPhone,
-                        buyerMap: ord.mapLink || "-",
-                        address: ord.address || "-",
-                        itemName: ord.itemName,
-                        qty: ord.qty,
-                        totalPrice: ord.total,
-                        deliveryFee: ord.deliveryFee || 0,
-                        status: 'pending_motor'
-                    };
+                    // 2. ክፍተት (Space) ካለ እንዳይሳሳት trim() እንጠቀማለን
+                    let mRegion = (motor.region || "").trim();
+                    let mZone = (motor.zone || "").trim();
+                    let mWoreda = (motor.woreda || "").trim();
                     
-                    matchedMotorsCount++;
+                    let tRegion = (currentTenant.region || "").trim();
+                    let tZone = (currentTenant.zone || "").trim();
+                    let tWoreda = (currentTenant.woreda || "").trim();
 
-                    if(typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
-                        // የተስተካከለ:- የሞተረኛውን አዲስ ትዕዛዞች (activeOrders) ብቻ ከፋየርቤዝ አውጥቶ ይጨምራል እንጂ የድሮውን መረጃ ደርቦ መላክ የለበትም
-                        db.ref(`tirfe_system/motors/${mUser}/activeOrders`).once('value').then(snap => {
-                            let liveOrders = snap.exists() ? (snap.val() || []) : [];
-                            if(!Array.isArray(liveOrders)) {
-                                liveOrders = Object.values(liveOrders);
-                            }
-                            liveOrders.push(newOrderObj);
-                            db.ref(`tirfe_system/motors/${mUser}/activeOrders`).set(liveOrders).catch(err => console.error(err));
-                        }).catch(err => console.error(err));
+                    // 3. አካባቢው አንድ መሆኑን እናረጋግጣለን
+                    if(mRegion === tRegion && mZone === tZone && mWoreda === tWoreda) {
+                        matchedMotorsCount++;
+                        
+                        let newOrderObj = {
+                            poolId: poolId,
+                            shopUsername: currentTenant.username,
+                            shopName: currentTenant.shopName,
+                            shopPhone: currentTenant.phone,
+                            shopMap: currentTenant.googleMapsLink || "-",
+                            buyerName: ord.buyerUser,
+                            buyerPhone: ord.buyerPhone,
+                            buyerMap: ord.mapLink || "-",
+                            address: ord.address || "-",
+                            itemName: ord.itemName,
+                            qty: ord.qty,
+                            totalPrice: ord.total,
+                            deliveryFee: ord.deliveryFee || 0,
+                            status: 'pending_motor'
+                        };
+
+                        // 4. አዲሱን ትዕዛዝ ወደ ተገኘው ሞተረኛ activeOrders እንልካለን
+                        let liveOrders = motor.activeOrders || [];
+                        if(!Array.isArray(liveOrders)) { liveOrders = Object.values(liveOrders); }
+                        liveOrders.push(newOrderObj);
+                        
+                        db.ref(`tirfe_system/motors/${mUser}/activeOrders`).set(liveOrders).catch(err => console.error(err));
+                        
+                        if (typeof sendMotorTelegramAlert === 'function') {
+                            sendMotorTelegramAlert(mUser, `🔔 አዲስ የዴሊቨሪ ትዕዛዝ!\n\nሱቅ: ${currentTenant.shopName}\nአድራሻ: ${currentTenant.region} / ${currentTenant.zone} / ${currentTenant.woreda}\nዕቃ: ${ord.itemName} (ብዛት: ${ord.qty})\n\nእባክዎ ሲስተም ውስጥ ገብተው ትዕዛዙን ይቀበሉ።`);
+                        }
                     }
-                    if (typeof sendMotorTelegramAlert === 'function') {
-                        sendMotorTelegramAlert(mUser, `🔔 አዲስ የዴሊቨሪ ትዕዛዝ!\n\nሱቅ: ${currentTenant.shopName}\nአድራሻ: ${currentTenant.region} / ${currentTenant.zone} / ${currentTenant.woreda}\nዕቃ: ${ord.itemName} (ብዛት: ${ord.qty})\n\nእባክዎ ሲስተም ውስጥ ገብተው ትዕዛዙን ይቀበሉ።`);
-                    }
+                });
+                
+                // 5. ከፍለጋው በኋላ መልዕክት እናሳያለን
+                if(matchedMotorsCount > 0) {
+                    showCustomAlert("ተቀብለዋል", `ትዕዛዙ ተቀባይነት አግኝቷል! በአካባቢዎ ለሚገኙ ${matchedMotorsCount} ሞተረኞች ጥሪ ተልኳል።`);
+                } else {
+                    showCustomAlert("ማሳሰቢያ", "ትዕዛዙ ተቀባይነት አግኝቷል ነገር ግን በአካባቢዎ የተመዘገበ ሞተረኛ አልተገኘም።");
                 }
+                
+                saveAndRefresh();
+                
+            }).catch(err => {
+                console.error(err);
+                showCustomAlert("ስህተት", "ከዳታቤዝ ጋር መገናኘት አልተቻለም!");
+                saveAndRefresh();
             });
-        }
-        
-        if(matchedMotorsCount > 0) {
-            showCustomAlert("ተቀብለዋል", `ትዕዛዙ ተቀባይነት አግኝቷል! በአካባቢዎ (ክልል/ዞን/ወረዳ) ለሚገኙ ${matchedMotorsCount} ሞተረኞች ጥሪ ተልኳል።`);
+            
         } else {
-            showCustomAlert("ማሳሰቢያ", "ትዕዛዙ ተቀባይነት አግኝቷል ነገር ግን በአካባቢዎ የተመዘገበ ሞተረኛ አልተገኘም።");
+            showCustomAlert("ስህተት", "ከኢንተርኔት ጋር አልተገናኙም! ሞተረኞችን መፈለግ አልተቻለም።");
+            saveAndRefresh();
         }
     } else {
         showCustomAlert("ተቀብለዋል", "ትዕዛዙ ተቀባይነት አግኝቷል! እቃው በመንገድ ላይ ነው ተብሎ ምልክት ተደርጎበታል።");
+        saveAndRefresh();
     }
-
-    saveAndRefresh();
 };
 
 window.completeDelivery = function(idx) {
