@@ -22,3 +22,4 @@
         // አድሚን ካልሆነ ወደ ተጠቃሚ (Firebase) እንዲያልፍ
         return res.status(401).json({ success: false, error: 'Not Admin', isAdminMatch: false }); 
     }
+}
