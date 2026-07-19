@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ትርፌ - የጅምላ እቃዎች ማዘዣ</title>
+    <style>
+        :root { --bg-color: #f8fafc; --card-bg: #ffffff; --text-color: #0f172a; --accent-color: #0ea5e9; --success-color: #10b981; --border-color: #e2e8f0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        /* Header */
+        header { text-align: center; background: var(--accent-color); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        header h1 { font-size: 1.8rem; margin-bottom: 5px; }
+
+        /* Product Grid */
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .product-card { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); text-align: center; }
+        .product-card h3 { color: var(--accent-color); font-size: 1.2rem; margin-bottom: 5px; }
+        .product-card .price { font-size: 1.4rem; font-weight: bold; color: var(--success-color); margin: 10px 0; }
+        .product-card .stock { font-size: 0.9rem; color: #64748b; margin-bottom: 15px; }
+        
+        button { padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; }
+        .btn-order { background: var(--accent-color); color: #fff; }
+        .btn-order:hover { background: #0284c7; }
+        
+        /* Modal Form */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 12px; max-width: 400px; width: 100%; }
+        .modal-content h2 { margin-bottom: 15px; color: var(--accent-color); }
+        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid var(--border-color); outline: none; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🛍️ ትርፌ የጅምላ ማከፋፈያ</h1>
+        <p>ጥራት ያላቸውን እቃዎች በጅምላ ዋጋ ያዙ!</p>
+    </header>
+
+    <!-- እቃዎች የሚደረደሩበት ቦታ -->
+    <div class="products-grid" id="productsContainer">
+        <!-- በጃቫስክሪፕት የሚሞላ -->
+    </div>
+</div>
+
+<!-- የትዕዛዝ ማረጋገጫ ፎርም -->
+<div id="orderModal" class="modal hidden">
+    <div class="modal-content">
+        <h2>📦 ትዕዛዝ ማረጋገጫ</h2>
+        <p id="orderItemName" style="font-weight: bold; margin-bottom: 10px;"></p>
+        
+        <input type="hidden" id="customerItem">
+        <input type="text" id="customerName" placeholder="ሙሉ ስምዎ">
+        <input type="tel" id="customerPhone" placeholder="ስልክ ቁጥር">
+        <input type="text" id="customerAddress" placeholder="አድራሻ (ከተማ እና ሰፈር)">
+        <input type="number" id="customerQty" placeholder="የሚፈልጉት ብዛት" min="1">
+        
+        <button class="btn-order" style="background: var(--success-color); margin-top: 15px;" onclick="submitOrder()">✅ አዝዝ</button>
+        <button class="btn-order" style="background: #e2e8f0; color: #0f172a; margin-top: 10px;" onclick="closeModal()">ዝጋ</button>
+    </div>
+</div>
+
+<script>
+    // ከአከፋፋዩ (Admin) ገፅ የተመዘገቡትን እቃዎች ማንበብ
+    let inventory = JSON.parse(localStorage.getItem('distInventory')) || [];
+    let orders = JSON.parse(localStorage.getItem('distOrders')) || [];
+
+    // እቃዎቹን በካርድ መልክ ማሳየት
+    function displayProducts() {
+        let container = document.getElementById('productsContainer');
+        container.innerHTML = '';
+
+        if(inventory.length === 0) {
+            container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #64748b;">እስካሁን ምንም አይነት እቃ አልቀረበም።</p>';
+            return;
+        }
+
+        inventory.forEach(item => {
+            if (item.qty > 0) { // ክምችት ላይ ያለውን ብቻ ለማሳየት
+                container.innerHTML += `
+                    <div class="product-card">
+                        <h3>${item.name}</h3>
+                        <p style="color: #64748b; font-size: 0.9rem;">ሞዴል: ${item.model || '-'}</p>
+                        <p class="price">${item.price.toLocaleString()} ብር</p>
+                        <p class="stock">በክምችት ያለው: ${item.qty}</p>
+                        <button class="btn-order" onclick="openOrderModal('${item.name}')">🛒 አሁን አዝዝ</button>
+                    </div>
+                `;
+            }
+        });
+    }
+
+    function openOrderModal(itemName) {
+        document.getElementById('orderItemName').innerText = `የመረጡት እቃ፦ ${itemName}`;
+        document.getElementById('customerItem').value = itemName;
+        document.getElementById('orderModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('orderModal').classList.add('hidden');
+    }
+
+    // ተረካቢው ሲያዝ መረጃውን ወደ Orders array መላክ
+    function submitOrder() {
+        let item = document.getElementById('customerItem').value;
+        let name = document.getElementById('customerName').value;
+        let phone = document.getElementById('customerPhone').value;
+        let address = document.getElementById('customerAddress').value;
+        let qty = parseInt(document.getElementById('customerQty').value);
+
+        if(!name || !phone || !address || !qty || qty <= 0) {
+            alert("እባክዎ መረጃዎን በትክክል ይሙሉ!");
+            return;
+        }
+
+        // ትዕዛዙን አዘጋጅቶ ወደ ማከማቻ (orders) መጨመር
+        let newOrder = {
+            id: Date.now(),
+            item: item,
+            qty: qty,
+            address: address + " (ስልክ: " + phone + ")",
+            payment: "ያልተከፈለ",
+            status: "pending"
+        };
+
+        orders.push(newOrder);
+        localStorage.setItem('distOrders', JSON.stringify(orders)); // ዳታውን ሴቭ ማድረግ
+
+        alert("ትዕዛዝዎ በተሳካ ሁኔታ ተልኳል! በቅርቡ እንደውልልዎታለን።");
+        
+        // ፎርሙን ማጽዳት
+        document.getElementById('customerName').value = '';
+        document.getElementById('customerPhone').value = '';
+        document.getElementById('customerAddress').value = '';
+        document.getElementById('customerQty').value = '';
+        closeModal();
+    }
+
+    // ገፁ ሲከፈት እቃዎቹን ያሳያል
+    window.onload = displayProducts;
+</script>
+</body>
+</html>
+
