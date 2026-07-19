@@ -108,41 +108,40 @@ async function handleUnifiedLogin() {
         loginBtn.disabled = true; loginBtn.innerText = "🔄 በማረጋገጥ ላይ...";
     }
     
-    // 1. Admin Login (Remains via Vercel API)
-    if(user === "admin" || email === "apkcode1@gmail.com") {
-        err.innerText = "🔄 የአድሚን መረጃ በማረጋገጥ ላይ...";
-        try {
-            const response = await fetch('/api/admin-login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email, password: pass })
-            });
-            const data = await response.json();
+        // 1. Admin Login API Check (No Hardcoded Username/Email)
+    err.innerText = "🔄 መረጃ በማረጋገጥ ላይ...";
+    try {
+        const response = await fetch('/api/admin-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            // አሁን username ጭምር ወደ API ይላካል
+            body: JSON.stringify({ username: user, email: email, password: pass })
+        });
+        const data = await response.json();
 
-            if(data.success) {
-                localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'admin', loginMode: 'admin', username: 'admin' }));
-                currentUserRole = 'admin'; 
-                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
-                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                window.location.href = "admin.html";
-                return;
-
-            } else {
-                err.innerText = "❌ የተሳሳተ የአድሚን የይለፍ ቃል ወይም ኢሜል!";
-                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                return;
-            }
-        } catch (error) {
-            console.error("Admin Login Error: ", error);
-            err.innerText = "❌ ከሰርቨር ጋር መገናኘት አልተቻለም!";
+        if(data.success) {
+            // ትክክለኛ አድሚን ሲሆን (በ APIው ከተረጋገጠ)
+            localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'admin', loginMode: 'admin', username: user }));
+            currentUserRole = 'admin'; 
+            if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
+            if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
+            window.location.href = "admin.html";
+            return;
+        } else if (data.isAdminMatch) {
+            // ዩዘርኔሙ እና ኢሜሉ የአድሚን ሆኖ ፓስዋርድ ብቻ ከተሳሳተ
+            err.innerText = "❌ የተሳሳተ የአድሚን የይለፍ ቃል!";
             if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
             return;
         }
+        // data.isAdminMatch false ከሆነ ተጠቃሚው አድሚን አይደለም ማለት ነው፤ 
+        // ስለዚህ ምንም Error ሳያወጣ ዝም ብሎ ወደ ታችኛው የ Firebase (ተጠቃሚዎች) ማረጋገጫ ኮድ ያልፋል።
+    } catch (error) {
+        console.error("Admin Login API Check Failed: ", error);
+        // የ API (Network) ስህተት ካጋጠመ ዝም ብሎ ወደ ታችኛው የ Firebase ማረጋገጫ እንዲያልፍ ይደረጋል
     }
 
-    // ማስተካከያ 1፡ እዚህ ጋር የነበረው ትርፍ "በማረጋገጥ ላይ" የሚል ጽሑፍ ተጠፍቶ ባዶ ተደርጓል
     err.innerText = "";
-    
+                  
     // ማስተካከያ 2፡ ሁሉም ቀሪ ኮድ ወደ አንድ ትልቅ Try...Catch ውስጥ ገብቷል ድምፅ አልባ ክራሽ እንዳይኖር
     try {
         // 2. Try Firebase Authentication First
