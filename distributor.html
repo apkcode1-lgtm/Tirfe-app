@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ትርፌ - የአከፋፋይ መቆጣጠሪያ ማዕከል</title>
     <style>
-        :root { --bg-color: #0b0f19; --card-bg: #151f32; --text-color: #f1f5f9; --accent-color: #38bdf8; --success-color: #4ade80; --danger-color: #f87171; --border-color: rgba(255, 255, 255, 0.08); }
+        :root { --bg-color: #0b0f19; --card-bg: #151f32; --text-color: #f1f5f9; --accent-color: #38bdf8; --success-color: #4ade80; --danger-color: #f87171; --warning-color: #fbbf24; --border-color: rgba(255, 255, 255, 0.08); }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
@@ -19,19 +19,25 @@
         .card p { font-size: 1.5rem; font-weight: bold; color: var(--success-color); }
 
         /* Forms & Boxes */
-        .section-box { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+        .section-box { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); overflow-x: auto; }
         .section-box h2 { font-size: 1.2rem; margin-bottom: 15px; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #3a506b; background: rgba(0,0,0,0.3); color: white; outline: none; }
-        button { padding: 12px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #3a506b; background: rgba(0,0,0,0.3); color: white; outline: none; }
+        button { padding: 10px 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-add { background: var(--accent-color); color: #000; width: 100%; margin-top: 10px; }
         .btn-settings { background: #64748b; color: #fff; }
+        .btn-action { background: var(--warning-color); color: #000; font-size: 0.8rem; padding: 6px 10px; }
         
         /* Table Styles */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 700px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
         th { background: rgba(0,0,0,0.4); color: var(--accent-color); }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .status-pending { background: rgba(251, 191, 36, 0.2); color: var(--warning-color); }
+        .status-shipped { background: rgba(56, 189, 248, 0.2); color: var(--accent-color); }
+        .status-delivered { background: rgba(74, 222, 128, 0.2); color: var(--success-color); }
 
-        /* Modal / Popup */
+        /* Modal */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: var(--card-bg); padding: 25px; border-radius: 12px; max-width: 400px; width: 100%; border: 1px solid var(--border-color); }
         .hidden { display: none !important; }
@@ -40,16 +46,14 @@
 <body>
 
 <div class="container">
-    <!-- ራስጌ -->
     <header>
         <div>
-            <h1>🏢 የአከፋፋይ (Supplier) ማዕከል</h1>
+            <h1>🏢 የአከፋፋይ ማዕከል</h1>
             <p style="color: #94a3b8; font-size: 0.85rem;">የእቃ ክምችት፣ ትዕዛዞች እና የትርፍ መከታተያ ዳሽቦርድ</p>
         </div>
-        <button class="btn-settings" onclick="toggleModal('settingsModal')">⚙️ ሲቲንግ</button>
+        <button class="btn-settings" onclick="toggleModal('settingsModal')">⚙️ መቼት</button>
     </header>
 
-    <!-- ዳሽቦርድ -->
     <section class="dashboard">
         <div class="card">
             <h3>ጠቅላላ ካፒታል (በእቃ ላይ ያለ)</h3>
@@ -58,75 +62,81 @@
         <div class="card" style="border-left-color: var(--success-color);">
             <h3>የዚህ ወር የተጣራ ትርፍ</h3>
             <p id="distProfit">0.00 ETB</p>
-            <span style="font-size:0.75rem; color:#94a3b8;">(በየወሩ ቀን 1 አውቶማቲክ 00 ይሆናል)</span>
         </div>
     </section>
 
-    <!-- እቃ መመዝገቢያ ፎርም -->
+    <!-- እቃ መመዝገቢያ -->
     <section class="section-box">
-        <h2>📦 አዲስ የጅምላ እቃ መመዝገቢያ ፎርም</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <h2>📦 አዲስ የጅምላ እቃ መመዝገቢያ</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
             <input type="text" id="pName" placeholder="የእቃ ስም">
-            <input type="text" id="pModel" placeholder="የእቃው ሞዴል (Model)">
-            <input type="number" id="pCost" placeholder="የተገዛበት ዋጋ (መነሻ ካፒታል)">
-            <input type="number" id="pPrice" placeholder="የሚሸጥበት የጅምላ ዋጋ">
-            <input type="number" id="pQty" placeholder="የእቃ ብዛት (Stock)">
+            <input type="text" id="pModel" placeholder="ሞዴል">
+            <input type="number" id="pCost" placeholder="የገዛንበት ዋጋ">
+            <input type="number" id="pPrice" placeholder="የመሸጫ ዋጋ">
+            <input type="number" id="pQty" placeholder="ብዛት (Stock)">
         </div>
-        <label style="font-size: 0.85rem; color: var(--accent-color); margin-top: 10px; display: block;">የእቃው ፎቶ (አማራጭ)፦</label>
-        <input type="file" id="pInputImg" accept="image/*">
-        <button class="btn-add" onclick="registerDistItem()">📥 እቃውን በጅምላ ዝርዝር ውስጥ አክል</button>
+        <button class="btn-add" onclick="registerDistItem()">📥 እቃውን መዝግብ</button>
     </section>
 
-    <!-- የመጡ ትዕዛዞች መከታተያ ዳሽቦርድ -->
+    <!-- የገቡ እቃዎች ዝርዝር (አዲስ የተጨመረ) -->
     <section class="section-box">
-        <h2>🚚 ከሻጮች የመጡ አዳዲስ የትዕዛዝ መከታተያ</h2>
+        <h2>📋 መጋዘን ውስጥ ያሉ እቃዎች</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>የእቃ ስም</th>
+                    <th>ሞዴል</th>
+                    <th>የገዛንበት</th>
+                    <th>የመሸጫ</th>
+                    <th>የቀረ ብዛት</th>
+                    <th>ድርጊት</th>
+                </tr>
+            </thead>
+            <tbody id="inventoryTableBody">
+            </tbody>
+        </table>
+    </section>
+
+    <!-- የትዕዛዝ መከታተያ -->
+    <section class="section-box">
+        <h2>🚚 የደንበኞች ትዕዛዝ መከታተያ</h2>
         <table>
             <thead>
                 <tr>
                     <th>የታዘዘው እቃ</th>
                     <th>ብዛት</th>
-                    <th>ስልክ ቁጥር</th>
-                    <th>አድራሻ (ሀገር/ሰፈር)</th>
+                    <th>አድራሻ</th>
+                    <th>ክፍያ</th>
                     <th>ሁኔታ</th>
+                    <th>ድርጊት</th>
                 </tr>
             </thead>
             <tbody id="ordersTableBody">
-                <!-- ከሻጩ ፖፓፕ የሚመጡት ትዕዛዞች እዚህ ይደረደራሉ -->
-                <tr><td colspan="5" style="text-align:center; color:#94a3b8;">እስካሁን የመጣ ምንም ትዕዛዝ የለም</td></tr>
             </tbody>
         </table>
     </section>
 </div>
 
-<!-- የሲቲንግ ፖፓፕ ሞዳል -->
+<!-- መቼት ሞዳል -->
 <div id="settingsModal" class="modal hidden">
     <div class="modal-content">
-        <h3 style="color: var(--accent-color); margin-bottom: 15px;">⚙️ የአከፋፋይ መቼቶች</h3>
-        <input type="email" id="newEmail" placeholder="አዲስ ኢሜል መቀየሪያ">
-        <input type="password" id="newPassword" placeholder="አዲስ ፓስወርድ ማስተካከያ">
-        <button class="btn-add" style="background:#10b981;" onclick="alert('መረጃው ተቀይሯል!')">💾 አስቀምጥ</button>
-        <hr style="border: 0.5px solid var(--border-color); margin: 15px 0;">
-        <button class="btn-add" style="background: var(--danger-color); color: #fff;" onclick="alert('ሁሉም ዳታ ጠፍቷል!')">🗑️ ዳታ ማጽጃ (Clear Data)</button>
+        <h3 style="color: var(--accent-color); margin-bottom: 15px;">⚙️ መቼቶች</h3>
+        <button class="btn-add" style="background: var(--danger-color); color: #fff;" onclick="clearData()">🗑️ ዳታ ማጽጃ (Clear Data)</button>
         <button class="btn-settings" style="width:100%; margin-top:10px;" onclick="toggleModal('settingsModal')">ዝጋ</button>
     </div>
 </div>
 
 <script>
-    let inventory = [];
-    let monthlyProfit = 5400; // ለሙከራ የተቀመጠ ትርፍ
+    // መረጃዎችን ከ LocalStorage ማንበብ
+    let inventory = JSON.parse(localStorage.getItem('distInventory')) || [];
+    let orders = JSON.parse(localStorage.getItem('distOrders')) || [
+        // ለሙከራ የተቀመጡ ትዕዛዞች
+        { id: 1, item: "Samsung TV 43'", qty: 5, address: "አዲስ አበባ, ቦሌ", payment: "በባንክ የተከፈለ", status: "pending" },
+        { id: 2, item: "HP Laptop", qty: 2, address: "ሀዋሳ, ፒያሳ", payment: "ያልተከፈለ", status: "shipped" }
+    ];
+    let monthlyProfit = 5400;
 
-    function toggleModal(id) {
-        document.getElementById(id).classList.toggle('hidden');
-    }
-
-    // በየወሩ ፈረንጆች ቀን 1 ሲሆን ትርፍን 00 የማድረጊያ አውቶማቲክ ሎጂክ
-    function checkMonthlyReset() {
-        let today = new Date();
-        if (today.getDate() === 1) { 
-            monthlyProfit = 0; // ቀን 1 ሲሆን ወደ 00 ይመለሳል
-        }
-        document.getElementById('distProfit').innerText = monthlyProfit.toFixed(2) + " ETB";
-    }
+    function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
 
     function registerDistItem() {
         let name = document.getElementById('pName').value;
@@ -137,22 +147,110 @@
 
         if(!name || cost <= 0 || qty <= 0) return alert("እባክዎ መረጃዎችን በትክክል ይሙሉ!");
 
-        inventory.push({ name, model, cost, price, qty });
-        calculateCapital();
-        alert("እቃው በተሳካ ሁኔታ ተመዝግቧል!");
+        inventory.push({ id: Date.now(), name, model, cost, price, qty });
+        saveData();
+        renderInventory();
+        document.getElementById('pName').value = '';
+        document.getElementById('pModel').value = '';
+        document.getElementById('pCost').value = '';
+        document.getElementById('pPrice').value = '';
+        document.getElementById('pQty').value = '';
     }
 
-    // ካፒታልን (የተገዛበት ዋጋ * ብዛት) የመደመር ሎጂክ
-    function calculateCapital() {
+    function renderInventory() {
+        let tbody = document.getElementById('inventoryTableBody');
+        tbody.innerHTML = '';
         let totalCapital = 0;
-        inventory.forEach(item => {
-            totalCapital += (item.cost * item.qty);
-        });
-        document.getElementById('distCapital').innerText = totalCapital.toFixed(2) + " ETB";
+
+        if(inventory.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">ምንም እቃ አልተመዘገበም</td></tr>';
+        } else {
+            inventory.forEach(item => {
+                totalCapital += (item.cost * item.qty);
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${item.model || '-'}</td>
+                        <td>${item.cost.toLocaleString()} ብር</td>
+                        <td>${item.price.toLocaleString()} ብር</td>
+                        <td><strong>${item.qty}</strong></td>
+                        <td><button onclick="deleteItem(${item.id})" style="background:var(--danger-color); color:#fff; padding:5px 10px;">ሰርዝ</button></td>
+                    </tr>
+                `;
+            });
+        }
+        document.getElementById('distCapital').innerText = totalCapital.toLocaleString() + " ETB";
     }
 
-    // ገጹ ሲከፈት የቀን ቼከሩን ስራ ማስጀመር
-    window.onload = checkMonthlyReset;
+    function renderOrders() {
+        let tbody = document.getElementById('ordersTableBody');
+        tbody.innerHTML = '';
+        if(orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">እስካሁን የመጣ ትዕዛዝ የለም</td></tr>';
+            return;
+        }
+
+        orders.forEach((order, index) => {
+            let statusBadge = '';
+            let actionBtn = '';
+
+            if(order.status === 'pending') {
+                statusBadge = '<span class="badge status-pending">ይጠብቃል (Pending)</span>';
+                actionBtn = `<button class="btn-action" onclick="updateOrderStatus(${index}, 'shipped')">ወደ ማድረሻ ላክ</button>`;
+            } else if (order.status === 'shipped') {
+                statusBadge = '<span class="badge status-shipped">በመንገድ ላይ (Shipped)</span>';
+                actionBtn = `<button class="btn-action" style="background:var(--success-color);" onclick="updateOrderStatus(${index}, 'delivered')">ደርሷል በል</button>`;
+            } else {
+                statusBadge = '<span class="badge status-delivered">ደርሷል (Delivered)</span>';
+                actionBtn = `<span style="color:#94a3b8; font-size:0.8rem;">ተጠናቋል</span>`;
+            }
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${order.item}</td>
+                    <td>${order.qty}</td>
+                    <td>${order.address}</td>
+                    <td>${order.payment}</td>
+                    <td>${statusBadge}</td>
+                    <td>${actionBtn}</td>
+                </tr>
+            `;
+        });
+    }
+
+    function updateOrderStatus(index, newStatus) {
+        orders[index].status = newStatus;
+        saveData();
+        renderOrders();
+    }
+
+    function deleteItem(id) {
+        inventory = inventory.filter(item => item.id !== id);
+        saveData();
+        renderInventory();
+    }
+
+    function saveData() {
+        localStorage.setItem('distInventory', JSON.stringify(inventory));
+        localStorage.setItem('distOrders', JSON.stringify(orders));
+    }
+
+    function clearData() {
+        if(confirm('እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ?')) {
+            localStorage.clear();
+            inventory = [];
+            orders = [];
+            renderInventory();
+            renderOrders();
+            toggleModal('settingsModal');
+        }
+    }
+
+    window.onload = () => {
+        document.getElementById('distProfit').innerText = monthlyProfit.toLocaleString() + " ETB";
+        renderInventory();
+        renderOrders();
+    };
 </script>
 </body>
 </html>
