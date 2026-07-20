@@ -168,7 +168,32 @@
             document.getElementById('pQty').value = '';
         }
     }
-    
+
+    // ገጹ ሲከፈት የነጋዴውን እቃዎች ከዳታቤዝ የሚያመጣ ፋንክሽን
+async function loadVendorItems() {
+    // 1. መጀመሪያ ሲስተሙ ውስጥ የገባውን የነጋዴ መታወቂያ (ID) እናገኛለን
+    // (ለጊዜው መታወቂያውን ከ LocalStorage እናመጣዋለን ብለን እናስብ)
+    let current_vendor_id = localStorage.getItem('logged_in_vendor_id');
+
+    // 2. ሱፓቤዝን የዚህን ነጋዴ እቃዎች ብቻ ስጠኝ ብለን እንጠይቃለን
+    const { data, error } = await supabase
+      .from('inventory')
+      .select('*')
+      .eq('vendor_id', current_vendor_id); // ማጣሪያ (Filter) - የዚህን ነጋዴ ብቻ
+
+    // 3. ውጤቱን ማረጋገጥ
+    if (error) {
+        console.error("መረጃ በማምጣት ላይ ስህተት ተፈጥሯል:", error.message);
+    } else {
+        console.log("የነጋዴው እቃዎች:", data);
+        // እዚህ ጋር 'data' ውስጥ የመጡትን እቃዎች 
+        // በ HTML ሰንጠረዥ (Table) ውስጥ በ loop እየዞርክ ታስገባቸዋለህ
+    }
+}
+
+// ዌብሳይቱ ሲከፈት ይሄ ፋንክሽን ራሱን ችሎ እንዲሰራ ማድረግ
+window.onload = loadVendorItems;
+
     function renderInventory() {
         let tbody = document.getElementById('inventoryTableBody');
         tbody.innerHTML = '';
