@@ -127,37 +127,51 @@
     </div>
 </div>
 
+<!-- የ Supabase ላይብረሪን መጥሪያ (ከ </body> በፊት አስገባው) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
-    // መረጃዎችን ከ LocalStorage ማንበብ
-    let inventory = JSON.parse(localStorage.getItem('distInventory')) || [];
-    let orders = JSON.parse(localStorage.getItem('distOrders')) || [
-        // ለሙከራ የተቀመጡ ትዕዛዞች
-        { id: 1, item: "Samsung TV 43'", qty: 5, address: "አዲስ አበባ, ቦሌ", payment: "በባንክ የተከፈለ", status: "pending" },
-        { id: 2, item: "HP Laptop", qty: 2, address: "ሀዋሳ, ፒያሳ", payment: "ያልተከፈለ", status: "shipped" }
-    ];
-    let monthlyProfit = 5400;
+    // 1. ከ Supabase ዳሽቦርድህ ያገኘኸውን URL እና KEY እዚህ አስገባ
+    const SUPABASE_URL = 'https://xyzcompany.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpX...የአንተን_ቁልፍ_አስገባ...';
+    
+    // 2. Supabase ን ማስጀመር
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
-
-    function registerDistItem() {
+    // 3. እቃውን ወደ ዳታቤዝ የመላኪያ ፈንክሽን
+    async function registerDistItem() {
         let name = document.getElementById('pName').value;
         let model = document.getElementById('pModel').value;
         let cost = parseFloat(document.getElementById('pCost').value) || 0;
         let price = parseFloat(document.getElementById('pPrice').value) || 0;
         let qty = parseInt(document.getElementById('pQty').value) || 0;
 
-        if(!name || cost <= 0 || qty <= 0) return alert("እባክዎ መረጃዎችን በትክክል ይሙሉ!");
+        if(!name || cost <= 0 || qty <= 0) {
+            alert("እባክዎ መረጃዎችን በትክክል ይሙሉ!");
+            return;
+        }
 
-        inventory.push({ id: Date.now(), name, model, cost, price, qty });
-        saveData();
-        renderInventory();
-        document.getElementById('pName').value = '';
-        document.getElementById('pModel').value = '';
-        document.getElementById('pCost').value = '';
-        document.getElementById('pPrice').value = '';
-        document.getElementById('pQty').value = '';
+        // ዳታውን ወደ 'inventory' ቴብል መላክ (Insert)
+        const { data, error } = await supabase
+            .from('inventory')
+            .insert([
+                { name: name, model: model, cost: cost, price: price, qty: qty }
+            ]);
+
+        if (error) {
+            console.error("ስህተት ተፈጥሯል:", error);
+            alert("እቃውን መመዝገብ አልተቻለም። ኢንተርኔትዎን ይፈትሹ!");
+        } else {
+            alert("እቃው በተሳካ ሁኔታ Supabase ዳታቤዝ ላይ ተመዝግቧል!");
+            // ፎርሙን ማጽዳት
+            document.getElementById('pName').value = '';
+            document.getElementById('pModel').value = '';
+            document.getElementById('pCost').value = '';
+            document.getElementById('pPrice').value = '';
+            document.getElementById('pQty').value = '';
+        }
     }
-
+    
     function renderInventory() {
         let tbody = document.getElementById('inventoryTableBody');
         tbody.innerHTML = '';
