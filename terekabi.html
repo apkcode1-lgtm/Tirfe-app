@@ -141,8 +141,55 @@
         closeModal();
     }
 
-    // ገፁ ሲከፈት እቃዎቹን ያሳያል
+<script>
+    // 1. ከላይ የተጠቀምከውን ተመሳሳይ URL እና KEY እዚህም አስገባ
+    const SUPABASE_URL = 'https://xyzcompany.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpX...የአንተን_ቁልፍ_አስገባ...';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // 2. እቃዎችን ከዳታቤዝ አምጥቶ የማሳየት ፈንክሽን
+    async function displayProducts() {
+        let container = document.getElementById('productsContainer');
+        container.innerHTML = '<p style="text-align: center;">እቃዎችን ከዳታቤዝ በማምጣት ላይ...</p>';
+
+        // ከ 'inventory' ቴብል መረጃዎችን ማምጣት (Fetch/Select)
+        // .gt('qty', 0) ማለት ክምችታቸው ከ 0 በላይ የሆኑትን ብቻ አምጣ ማለት ነው
+        const { data: inventory, error } = await supabase
+            .from('inventory')
+            .select('*')
+            .gt('qty', 0);
+
+        if (error) {
+            console.error("ስህተት:", error);
+            container.innerHTML = '<p style="color: red; text-align: center;">እቃዎችን ማምጣት አልተቻለም!</p>';
+            return;
+        }
+
+        container.innerHTML = ''; // ሎዲንግ ጽሁፉን ማጥፋት
+
+        if(inventory.length === 0) {
+            container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">እስካሁን ምንም አይነት እቃ አልቀረበም።</p>';
+            return;
+        }
+
+        // የመጡትን እቃዎች በካርድ መልክ መደርደር
+        inventory.forEach(item => {
+            container.innerHTML += `
+                <div class="product-card">
+                    <h3>${item.name}</h3>
+                    <p style="color: #64748b; font-size: 0.9rem;">ሞዴል: ${item.model || '-'}</p>
+                    <p class="price">${item.price.toLocaleString()} ብር</p>
+                    <p class="stock">በክምችት ያለው: ${item.qty}</p>
+                    <button class="btn-order" onclick="openOrderModal('${item.name}')">🛒 አሁን አዝዝ</button>
+                </div>
+            `;
+        });
+    }
+
+    // ገፁ ልክ ሲከፈት ዳታ ማምጣት እንዲጀምር
     window.onload = displayProducts;
+    
 </script>
 </body>
 </html>
