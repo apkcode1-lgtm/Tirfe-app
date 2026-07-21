@@ -311,13 +311,14 @@ function renderMotorOrders() {
             } else {
                 statusBadge = `<span class="badge-success">በእርስዎ የተያዘ</span><br>`;
                 
+                let cancelBtn = `<button class="btn-danger btn-sm" onclick="cancelMotorOrder(${index})" style="margin-top: 4px; background-color: #ef4444; color: white;">❌ ትዕዛዝ ሰርዝ</button>`;
+
                 if(feeReceived) {
                     actionBtn = `<button class="btn-sell btn-sm" onclick="completeMotorOrder(${index})">✅ አድርሻለሁ (Deliver)</button>`;
                 } else {
-                    actionBtn = `<button class="btn-sell btn-sm" style="background-color: #64748b; color: #cbd5e1; cursor: not-allowed; opacity: 0.7;" disabled>⏳ ክፍያ አልገባም</button>`;
+                    actionBtn = `<button class="btn-sell btn-sm" style="background-color: #64748b; color: #cbd5e1; cursor: not-allowed; opacity: 0.7;" disabled>⏳ ክፍያ አልገባም</button><br>${cancelBtn}`;
                 }
             }
-
             tr.innerHTML = `
                 <td>${order.shopName}<br><a href="${order.shopMap}" target="_blank" style="color:var(--accent-color);">📍 የሻጭ ማፕ</a> | 📞 ${order.shopPhone}</td>
                 <td>${order.buyerName}<br><a href="${order.buyerMap}" target="_blank" style="color:var(--accent-color);">📍 የገዥ ማፕ</a> | 📞 ${order.buyerPhone}</td>
