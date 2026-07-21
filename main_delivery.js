@@ -42,14 +42,26 @@ function renderMotorPage() {
     } else {
         if (overlay) overlay.classList.add('hidden');
         if (mainContent) mainContent.classList.remove('hidden');
-        if (statusToggle) statusToggle.disabled = false;
         
+        // በእጁ ላይ የተቀበለው ንቁ ትዕዛዝ (Active Accepted Order) ካለ ማረጋገጫ
+        let hasActiveAcceptedJob = (currentMotor.activeOrders || []).some(o => o.status === 'accepted');
+
+        if (statusToggle) {
+            // ንቁ ትዕዛዝ ካለ ኦንላይን/ኦፍላይን ማድረጊያው ይዘጋል (Disable ይሆናል)
+            statusToggle.disabled = hasActiveAcceptedJob;
+        }
+
         let isOnline = currentMotor.status === 'online';
         if (statusToggle) statusToggle.checked = isOnline;
+        
         if (statusText) {
-            statusText.innerText = isOnline ?
-            'ኦንላይን (Online)' : 'ኦፍላይን (Offline)';
-            statusText.style.color = isOnline ? 'var(--success-color)' : 'var(--danger-color)';
+            if (hasActiveAcceptedJob) {
+                statusText.innerText = 'በስራ ላይ (Active Job)';
+                statusText.style.color = 'var(--warning-color)';
+            } else {
+                statusText.innerText = isOnline ? 'ኦንላይን (Online)' : 'ኦፍላይን (Offline)';
+                statusText.style.color = isOnline ? 'var(--success-color)' : 'var(--danger-color)';
+            }
         }
     }
 
