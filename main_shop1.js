@@ -128,6 +128,39 @@ window.acceptDelivery = function(idx) {
         saveAndRefresh();
     }
 };
+// የተሰረዘን ትዕዛዝ ለሌላ ሞተረኛ ድጋሚ መላኪያ (Reassign)
+window.reassignDelivery = function(idx) {
+    let ord = currentTenant.data.deliveryOrders[idx];
+    
+    // ትዕዛዙ ካልተሰረዘ በስተቀር ይህ በተን አይሰራም
+    if (ord.status !== "cancelled") return;
+
+    // 1. ትዕዛዙን ወደ መጀመሪያው (Pending) ስታተስ እንመልሰዋለን
+    ord.status = "pending";
+    ord.motorUser = null; 
+    ord.poolId = null; 
+    
+    // 2. ዳታቤዝ ላይ አፕዴት እናደርጋለን
+    saveAndRefresh(); 
+    
+    // 3. እንደ አዲስ የሞተረኛ ፍለጋ እንዲጀምር ቀድሞ የነበረውን ፈንክሽን እንጠራዋለን
+    acceptDelivery(idx); 
+};
+window.resetDeliveryStatus = function(idx) {
+    showCustomConfirm("ማረጋገጫ", "ሹፌሩ መስመር ላይ ስለሌለ ትዕዛዙን ወደ 'በመጠባበቅ ላይ' መመለስ ይፈልጋሉ?", () => {
+        let d = currentTenant.data || {};
+        if(d.deliveryOrders && d.deliveryOrders[idx]) {
+            // ትዕዛዙን ወደ ፔንዲንግ እንመልሰዋለን
+            d.deliveryOrders[idx].status = "pending";
+            // ሹፌሩን ከትዕዛዙ ላይ እናነሳለን (የሹፌር መረጃ ካለህ)
+            if(d.deliveryOrders[idx].driverId) {
+                delete d.deliveryOrders[idx].driverId;
+            }
+            saveAndRefresh();
+            showCustomAlert("ተሳክቷል", "ትዕዛዙ ዳግም ክፍት ሆኗል! ሌላ ሹፌር ሊቀበለው ይችላል።");
+        }
+    });
+};
 
 window.completeDelivery = function(idx) {
     let ord = currentTenant.data.deliveryOrders[idx];
