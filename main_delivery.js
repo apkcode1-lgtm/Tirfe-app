@@ -405,6 +405,40 @@ window.acceptMotorOrder = function(index) {
     alert("ትዕዛዙን በተሳካ ሁኔታ ተቀብለዋል! ዝርዝር መረጃው በቴሌግራም ተልኮልዎታል።");
     renderMotorOrders(); // ቴብሉን ዳግም እንስላለን
 };
+// ሞተረኛው የተቀበለውን ትዕዛዝ መሰረዝ ሲፈልግ
+window.cancelMotorOrder = function(index) {
+    if (typeof currentMotor === 'undefined' || !currentMotor) return;
+    if (!confirm("እርግጠኛ ነዎት ይህንን ትዕዛዝ መሰረዝ ይፈልጋሉ? ትዕዛዙ ተመልሶ ወደ ሻጩ ይላካል።")) return;
+
+    let canceledOrder = currentMotor.activeOrders[index];
+    let poolId = canceledOrder.poolId;
+    let shopUser = canceledOrder.shopUsername;
+
+    // 1. የሻጩ ዳታቤዝ ላይ የትዕዛዙን ሁኔታ ወደ 'cancelled' ቀይሮ ወደ ሻጭ መመለስ
+    if (shopUser && typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
+        let shopPath = `tirfe_system/tenants/${shopUser}/data/deliveryOrders`;
+        db.ref(shopPath).once('value').then(snap => {
+            let shopOrders = snap.val() || [];
+            let sOrd = shopOrders.find(o => o.poolId === poolId || (o.buyerPhone == canceledOrder.buyerPhone && o.itemName == canceledOrder.itemName));
+            
+            if (sOrd) {
+                sOrd.motorUser = null; // ሞተረኛውን ማንሳት
+                sOrd.status = 'cancelled'; // ስታተሱን ተሰርዟል ማድረግ
+                db.ref(shopPath).set(shopOrders);
+            }
+        }).catch(err => console.error("Error updating shop order cancel status:", err));
+    }
+
+    // 2. ከሞተረኛው የትዕዛዝ ዝርዝር (activeOrders) ውስጥ ማጥፋት
+    currentMotor.activeOrders.splice(index, 1);
+
+    localDB.motors[currentMotor.username] = currentMotor;
+    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+    if (typeof pushToFirebase === 'function') pushToFirebase();
+
+    alert("ትዕዛዙ ተሰርዟል! መረጃው ወደ ሻጩ ተመልሷል።");
+    renderMotorPage(); // ገፁን ዳግም መሳል (ይህ በተኑን ተመልሶ እንዲበራ ያደርገዋል)
+};
 
 // ብሩን ሲቀበል (ኮሚሽን ቆርጦ 0.00 ያደርጋል፣ ከ 25 በታች ከሆነም ይዘጋል)
 window.clearIncomingFee = function() {
