@@ -161,10 +161,18 @@ function toggleMotorOnlineStatus() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
     if (currentMotor.status === 'blocked') return; // ታግዶ ከሆነ እንዳይቀይር
 
+    // በእጁ ላይ ያልተጠናቀቀ ትዕዛዝ ካለ ኦፍላይን እንዳያደርግ መከልከያ
+    let hasActiveAcceptedJob = (currentMotor.activeOrders || []).some(o => o.status === 'accepted');
+    if (hasActiveAcceptedJob) {
+        alert("⚠️ በእጅዎ ላይ ያልተጠናቀቀ ትዕዛዝ አለ! መጀመሪያ ትዕዛዙን ያድርሱ ወይም 'ትዕዛዝ ሰርዝ' የሚለውን በመንካት ይሰርዙ።");
+        const toggle = document.getElementById('motorStatusToggle');
+        if (toggle) toggle.checked = true; // በተኑን ወደ ነበረበት መመለስ
+        return;
+    }
+
     const isChecked = document.getElementById('motorStatusToggle').checked;
     
-    currentMotor.status = isChecked ?
-    'online' : 'offline';
+    currentMotor.status = isChecked ? 'online' : 'offline';
     localDB.motors[currentMotor.username] = currentMotor;
     
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -175,7 +183,6 @@ function toggleMotorOnlineStatus() {
 
     renderMotorPage();
 }
-
 // 5. ክሬዲት ሞዳል መክፈቻ
 function openMotorCreditModal() {
     const overlay = document.getElementById('modalOverlay');
