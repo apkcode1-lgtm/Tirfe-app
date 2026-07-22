@@ -35,26 +35,6 @@ function renderHistoryTable() {
         });
     }
 }
-// 1. የተሰረዘን ትዕዛዝ ለሌላ ሞተረኛ ድጋሚ መላኪያ (Reassign) - [የተስተካከለ]
-window.reassignDelivery = function(idx) {
-    let ord = currentTenant.data.deliveryOrders[idx];
-    
-    // ትዕዛዙ ካልተሰረዘ በስተቀር ይህ በተን አይሰራም
-    if (ord.status !== "cancelled") return;
-
-    // ትዕዛዙን ወደ መጀመሪያው (Pending) ስታተስ እንመልሰዋለን
-    ord.status = "pending";
-    ord.motorUser = null; 
-    ord.poolId = null; 
-    
-    // ማስተካከያ፡ እዚህ ጋር saveAndRefresh() አያስፈልግም! 
-    // ምክንያቱም ከስር ያለው acceptDelivery በራሱ ጊዜ ሴቭ ስለሚያደርግ መጋጨት (Race condition) እንዳይፈጠር ያደርጋል።
-    
-    // እንደ አዲስ የሞተረኛ ፍለጋ እንዲጀምር እንጠራዋለን
-    acceptDelivery(idx); 
-};
-
-// 2. ትዕዛዝ መቀበያ እና ሞተረኛ መፈለጊያ - [የተስተካከለ]
 window.acceptDelivery = function(idx) {
     let ord = currentTenant.data.deliveryOrders[idx];
     // እንዳይደገም (Double-click protection)
@@ -72,6 +52,7 @@ window.acceptDelivery = function(idx) {
         let poolId = "POOL_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
         ord.poolId = poolId;
         
+        // 1. ሞተረኞችን ከ Local Storage ሳይሆን በቀጥታ ከ Firebase እንፈልጋለን
         if(typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
             db.ref('tirfe_system/motors').once('value').then(snap => {
                 let allMotors = snap.val() || {};
@@ -79,6 +60,8 @@ window.acceptDelivery = function(idx) {
                 
                 Object.keys(allMotors).forEach(mUser => {
                     let motor = allMotors[mUser];
+                    
+                    // 2. ክፍተት (Space) ካለ እንዳይሳሳት trim() እንጠቀማለን
                     let mRegion = (motor.region || "").trim();
                     let mZone = (motor.zone || "").trim();
                     let mWoreda = (motor.woreda || "").trim();
@@ -87,27 +70,28 @@ window.acceptDelivery = function(idx) {
                     let tZone = (currentTenant.zone || "").trim();
                     let tWoreda = (currentTenant.woreda || "").trim();
 
+                    // 3. አካባቢው አንድ መሆኑን እናረጋግጣለን
                     if(mRegion === tRegion && mZone === tZone && mWoreda === tWoreda) {
                         matchedMotorsCount++;
                         
                         let newOrderObj = {
                             poolId: poolId,
-                            orderIdx: idx,  // <-- ማስተካከያ፡ ይህ ኢንዴክስ ስለሌለ ነበር ሞተረኛው ጋር የማይታየው
-                            shopUsername: currentTenant.username || "unknown",
-                            shopName: currentTenant.shopName || "-",
-                            shopPhone: currentTenant.phone || "-",
+                            shopUsername: currentTenant.username,
+                            shopName: currentTenant.shopName,
+                            shopPhone: currentTenant.phone,
                             shopMap: currentTenant.googleMapsLink || "-",
-                            buyerName: ord.buyerUser || "-",
-                            buyerPhone: ord.buyerPhone || "-",
+                            buyerName: ord.buyerUser,
+                            buyerPhone: ord.buyerPhone,
                             buyerMap: ord.mapLink || "-",
                             address: ord.address || "-",
-                            itemName: ord.itemName || "-",
-                            qty: ord.qty || 1,
-                            totalPrice: ord.total || 0,
+                            itemName: ord.itemName,
+                            qty: ord.qty,
+                            totalPrice: ord.total,
                             deliveryFee: ord.deliveryFee || 0,
                             status: 'pending_motor'
                         };
 
+                        // 4. አዲሱን ትዕዛዝ ወደ ተገኘው ሞተረኛ activeOrders እንልካለን
                         let liveOrders = motor.activeOrders || [];
                         if(!Array.isArray(liveOrders)) { liveOrders = Object.values(liveOrders); }
                         liveOrders.push(newOrderObj);
@@ -120,6 +104,7 @@ window.acceptDelivery = function(idx) {
                     }
                 });
                 
+                // 5. ከፍለጋው በኋላ መልዕክት እናሳያለን
                 if(matchedMotorsCount > 0) {
                     showCustomAlert("ተቀብለዋል", `ትዕዛዙ ተቀባይነት አግኝቷል! በአካባቢዎ ለሚገኙ ${matchedMotorsCount} ሞተረኞች ጥሪ ተልኳል።`);
                 } else {
@@ -142,21 +127,6 @@ window.acceptDelivery = function(idx) {
         showCustomAlert("ተቀብለዋል", "ትዕዛዙ ተቀባይነት አግኝቷል! እቃው በመንገድ ላይ ነው ተብሎ ምልክት ተደርጎበታል።");
         saveAndRefresh();
     }
-};
-window.resetDeliveryStatus = function(idx) {
-    showCustomConfirm("ማረጋገጫ", "ሹፌሩ መስመር ላይ ስለሌለ ትዕዛዙን ወደ 'በመጠባበቅ ላይ' መመለስ ይፈልጋሉ?", () => {
-        let d = currentTenant.data || {};
-        if(d.deliveryOrders && d.deliveryOrders[idx]) {
-            // ትዕዛዙን ወደ ፔንዲንግ እንመልሰዋለን
-            d.deliveryOrders[idx].status = "pending";
-            // ሹፌሩን ከትዕዛዙ ላይ እናነሳለን (የሹፌር መረጃ ካለህ)
-            if(d.deliveryOrders[idx].driverId) {
-                delete d.deliveryOrders[idx].driverId;
-            }
-            saveAndRefresh();
-            showCustomAlert("ተሳክቷል", "ትዕዛዙ ዳግም ክፍት ሆኗል! ሌላ ሹፌር ሊቀበለው ይችላል።");
-        }
-    });
 };
 
 window.completeDelivery = function(idx) {
@@ -286,4 +256,3 @@ window.viewTaxReceiptDetail = function(idx) {
     openModalContainer();
     document.getElementById('taxReceiptDetailModal').classList.remove('hidden');
 };
-
