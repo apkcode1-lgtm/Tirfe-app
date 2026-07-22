@@ -123,14 +123,12 @@ function renderApp() {
             hasDel = true;
             let statusBadge = ord.status === "pending" ? `<span class="badge-warning">በመጠባበቅ ላይ</span>` : `<span class="badge-success">በመንገድ ላይ</span>`;
             let actions = "";
-            if(ord.status === "pending") { 
-                actions = `<button class="btn-sell btn-sm" onclick="acceptDelivery(${idx})">ተቀበል (Accept)</button>`; 
-            } else if(ord.status === "accepted") {
+            if(ord.status === "pending") { actions = `<button class="btn-sell btn-sm" onclick="acceptDelivery(${idx})">ተቀበል (Accept)</button>`; } 
+            else if(ord.status === "accepted") {
                 actions = `<button class="btn-sell btn-sm" onclick="completeDelivery(${idx})">ተረክቦ ደረሰኝ ቆርጥ</button>
-                           <button class="btn-expense btn-sm" style="margin-top:4px;" onclick="returnDelivery(${idx})">እቃው ተመለሰ</button>
-                           <!-- ሹፌሩ ሲስተሙን ቢያጠፋው ሻጩ ትዕዛዙን ነፃ የሚያደርግበት አዲስ አማራጭ -->
-                           <button class="btn-config btn-sm" style="margin-top:4px; background:#f59e0b; color:#fff;" onclick="resetDeliveryStatus(${idx})">🔄 ሹፌሩ ጠፍቷል (Reset)</button>`;
+                           <button class="btn-expense btn-sm" style="margin-top:4px;" onclick="returnDelivery(${idx})">እቃው ተመለሰ</button>`;
             }
+            
             let invItem = d.inventory[ord.itemIdx];
             let modelTxt = (invItem && invItem.model && invItem.model !== "-") ? `(ሞዴል: ${invItem.model})` : "";
             let transportBadge = ord.transport === 'car' ? '<br><span style="color:var(--accent-color);">🚗 መኪና</span>' : (ord.transport === 'motor' ? '<br><span style="color:var(--accent-color);">🏍️ ሞተረኛ</span>' : '');
@@ -419,7 +417,6 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
 
     if (displayBuyerName) { rawTextForShare += `ገዥ: ${displayBuyerName} | ስልክ: ${displayBuyerPhone || ''}\n`; }
     rawTextForShare += `እናመሰግናለን!`;
-
     if (saveToHistory && currentTenant) {
         if(!currentTenant.data.receipts) currentTenant.data.receipts = [];
         let mainName = itemsArray.length === 1 ? itemsArray[0].name : "የተለያዩ ዕቃዎች (" + itemsArray.length + ")";
