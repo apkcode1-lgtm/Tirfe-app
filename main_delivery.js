@@ -42,26 +42,14 @@ function renderMotorPage() {
     } else {
         if (overlay) overlay.classList.add('hidden');
         if (mainContent) mainContent.classList.remove('hidden');
+        if (statusToggle) statusToggle.disabled = false;
         
-        // በእጁ ላይ የተቀበለው ንቁ ትዕዛዝ (Active Accepted Order) ካለ ማረጋገጫ
-        let hasActiveAcceptedJob = (currentMotor.activeOrders || []).some(o => o.status === 'accepted');
-
-        if (statusToggle) {
-            // ንቁ ትዕዛዝ ካለ ኦንላይን/ኦፍላይን ማድረጊያው ይዘጋል (Disable ይሆናል)
-            statusToggle.disabled = hasActiveAcceptedJob;
-        }
-
         let isOnline = currentMotor.status === 'online';
         if (statusToggle) statusToggle.checked = isOnline;
-        
         if (statusText) {
-            if (hasActiveAcceptedJob) {
-                statusText.innerText = 'በስራ ላይ (Active Job)';
-                statusText.style.color = 'var(--warning-color)';
-            } else {
-                statusText.innerText = isOnline ? 'ኦንላይን (Online)' : 'ኦፍላይን (Offline)';
-                statusText.style.color = isOnline ? 'var(--success-color)' : 'var(--danger-color)';
-            }
+            statusText.innerText = isOnline ?
+            'ኦንላይን (Online)' : 'ኦፍላይን (Offline)';
+            statusText.style.color = isOnline ? 'var(--success-color)' : 'var(--danger-color)';
         }
     }
 
@@ -161,18 +149,10 @@ function toggleMotorOnlineStatus() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
     if (currentMotor.status === 'blocked') return; // ታግዶ ከሆነ እንዳይቀይር
 
-    // በእጁ ላይ ያልተጠናቀቀ ትዕዛዝ ካለ ኦፍላይን እንዳያደርግ መከልከያ
-    let hasActiveAcceptedJob = (currentMotor.activeOrders || []).some(o => o.status === 'accepted');
-    if (hasActiveAcceptedJob) {
-        alert("⚠️ በእጅዎ ላይ ያልተጠናቀቀ ትዕዛዝ አለ! መጀመሪያ ትዕዛዙን ያድርሱ ወይም 'ትዕዛዝ ሰርዝ' የሚለውን በመንካት ይሰርዙ።");
-        const toggle = document.getElementById('motorStatusToggle');
-        if (toggle) toggle.checked = true; // በተኑን ወደ ነበረበት መመለስ
-        return;
-    }
-
     const isChecked = document.getElementById('motorStatusToggle').checked;
     
-    currentMotor.status = isChecked ? 'online' : 'offline';
+    currentMotor.status = isChecked ?
+    'online' : 'offline';
     localDB.motors[currentMotor.username] = currentMotor;
     
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -183,6 +163,7 @@ function toggleMotorOnlineStatus() {
 
     renderMotorPage();
 }
+
 // 5. ክሬዲት ሞዳል መክፈቻ
 function openMotorCreditModal() {
     const overlay = document.getElementById('modalOverlay');
@@ -205,7 +186,6 @@ function submitMotorCredit() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
     const amountInput = document.getElementById('motorCreditAmount').value;
     const amount = parseFloat(amountInput);
-
     if (isNaN(amount) || amount <= 0) {
         alert("እባክዎ ትክክለኛ የብር መጠን ያስገቡ!");
         return;
@@ -311,14 +291,13 @@ function renderMotorOrders() {
             } else {
                 statusBadge = `<span class="badge-success">በእርስዎ የተያዘ</span><br>`;
                 
-                let cancelBtn = `<button class="btn-danger btn-sm" onclick="cancelMotorOrder(${index})" style="margin-top: 4px; background-color: #ef4444; color: white;">❌ ትዕዛዝ ሰርዝ</button>`;
-
                 if(feeReceived) {
                     actionBtn = `<button class="btn-sell btn-sm" onclick="completeMotorOrder(${index})">✅ አድርሻለሁ (Deliver)</button>`;
                 } else {
-                    actionBtn = `<button class="btn-sell btn-sm" style="background-color: #64748b; color: #cbd5e1; cursor: not-allowed; opacity: 0.7;" disabled>⏳ ክፍያ አልገባም</button><br>${cancelBtn}`;
+                    actionBtn = `<button class="btn-sell btn-sm" style="background-color: #64748b; color: #cbd5e1; cursor: not-allowed; opacity: 0.7;" disabled>⏳ ክፍያ አልገባም</button>`;
                 }
             }
+
             tr.innerHTML = `
                 <td>${order.shopName}<br><a href="${order.shopMap}" target="_blank" style="color:var(--accent-color);">📍 የሻጭ ማፕ</a> | 📞 ${order.shopPhone}</td>
                 <td>${order.buyerName}<br><a href="${order.buyerMap}" target="_blank" style="color:var(--accent-color);">📍 የገዥ ማፕ</a> | 📞 ${order.buyerPhone}</td>
@@ -405,40 +384,6 @@ window.acceptMotorOrder = function(index) {
     
     alert("ትዕዛዙን በተሳካ ሁኔታ ተቀብለዋል! ዝርዝር መረጃው በቴሌግራም ተልኮልዎታል።");
     renderMotorOrders(); // ቴብሉን ዳግም እንስላለን
-};
-// ሞተረኛው የተቀበለውን ትዕዛዝ መሰረዝ ሲፈልግ
-window.cancelMotorOrder = function(index) {
-    if (typeof currentMotor === 'undefined' || !currentMotor) return;
-    if (!confirm("እርግጠኛ ነዎት ይህንን ትዕዛዝ መሰረዝ ይፈልጋሉ? ትዕዛዙ ተመልሶ ወደ ሻጩ ይላካል።")) return;
-
-    let canceledOrder = currentMotor.activeOrders[index];
-    let poolId = canceledOrder.poolId;
-    let shopUser = canceledOrder.shopUsername;
-
-    // 1. የሻጩ ዳታቤዝ ላይ የትዕዛዙን ሁኔታ ወደ 'cancelled' ቀይሮ ወደ ሻጭ መመለስ
-    if (shopUser && typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
-        let shopPath = `tirfe_system/tenants/${shopUser}/data/deliveryOrders`;
-        db.ref(shopPath).once('value').then(snap => {
-            let shopOrders = snap.val() || [];
-            let sOrd = shopOrders.find(o => o.poolId === poolId || (o.buyerPhone == canceledOrder.buyerPhone && o.itemName == canceledOrder.itemName));
-            
-            if (sOrd) {
-                sOrd.motorUser = null; // ሞተረኛውን ማንሳት
-                sOrd.status = 'cancelled'; // ስታተሱን ተሰርዟል ማድረግ
-                db.ref(shopPath).set(shopOrders);
-            }
-        }).catch(err => console.error("Error updating shop order cancel status:", err));
-    }
-
-    // 2. ከሞተረኛው የትዕዛዝ ዝርዝር (activeOrders) ውስጥ ማጥፋት
-    currentMotor.activeOrders.splice(index, 1);
-
-    localDB.motors[currentMotor.username] = currentMotor;
-    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushToFirebase();
-
-    alert("ትዕዛዙ ተሰርዟል! መረጃው ወደ ሻጩ ተመልሷል።");
-    renderMotorPage(); // ገፁን ዳግም መሳል (ይህ በተኑን ተመልሶ እንዲበራ ያደርገዋል)
 };
 
 // ብሩን ሲቀበል (ኮሚሽን ቆርጦ 0.00 ያደርጋል፣ ከ 25 በታች ከሆነም ይዘጋል)
@@ -618,7 +563,6 @@ async function processMotorRegistration() {
     const region = document.getElementById('mot_region').value;
     const zone = document.getElementById('mot_zone').value;
     const woreda = document.getElementById('mot_woreda').value;
-
     const idFile = document.getElementById('mot_idCardFile').files[0];
     const licFile = document.getElementById('mot_licenseFile').files[0];
 
@@ -744,7 +688,6 @@ async function processMotorRegistration() {
             
             if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
             if (typeof pushToFirebase === 'function') pushToFirebase();
-
             // ማስተካከያ:- አዲስ ሞተረኛ ሲመዘገብ የተስማማንባቸውን መረጃዎች አካተን ወደ አድሚን እንልካለን
             let nowForReg2 = new Date();
             let timeStampReg2 = nowForReg2.toLocaleDateString('am-ET') + " " + nowForReg2.toLocaleTimeString('am-ET');
@@ -786,7 +729,6 @@ window.clearMotorData = function() {
     if(!confirm("እርግጠኛ ነዎት የሞተረኛ ዳታዎን (የስራ ታሪክ፣ የተቀበሏቸው ትዕዛዞች፣ ያደረሱት ብዛት ወዘተ) ሙሉ በሙሉ ማጥፋት ይፈልጋሉ?\n\nማሳሰቢያ፦ ይህ እርምጃ ክሬዲትዎን አያጠፋም! ነገር ግን ሌላ እርምጃ አይቀለበስም።")) {
         return;
     }
-
     // ዳታዎችን ወደ ዜሮ (ባዶ) መመለስ (ክሬዲት እና አካውንት አይጠፋም)
     currentMotor.history = [];
     currentMotor.activeOrders = [];
@@ -802,4 +744,3 @@ window.clearMotorData = function() {
     renderMotorPage();
    
 }
-
