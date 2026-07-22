@@ -436,6 +436,21 @@ img.goog-te-gadget-icon {
     </div>
 </div>
 </main>
+    <script>
+    // ብራውዘሩ Service Worker ሚባለውን ቴክኖሎጂ የሚደግፍ ከሆነ
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            // sw.js ፋይልን ተጠቅመህ አፑን አሰራው (Register አድርገው) ብለን ትዕዛዝ እንሰጣለን
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('በትክክል ተገናኝቷል (Registered)');
+                })
+                .catch(error => {
+                    console.log('አልተገናኘም ስህተት አለ:', error);
+                });
+        });
+    }
+</script>
 
 <script defer src="firebase-config.js"></script>
 <script defer src="database.js"></script>
