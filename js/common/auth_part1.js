@@ -107,7 +107,7 @@ async function handleUnifiedLogin() {
         loginBtn.disabled = true; loginBtn.innerText = "🔄 በማረጋገጥ ላይ...";
     }
     
-        // 1. Admin Login API Check (No Hardcoded Username/Email)
+    // 1. Admin Login API Check (No Hardcoded Username/Email)
     err.innerText = "🔄 መረጃ በማረጋገጥ ላይ...";
     try {
         const response = await fetch('/api/admin-login', {
@@ -124,8 +124,12 @@ async function handleUnifiedLogin() {
             currentUserRole = 'admin'; 
             if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
             if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-            window.location.href = "admin.html";
+            
+            // 💡 አዲሱ ማስተካከያ: ኩኪ ማስቀመጥ እና ወደ አዲሱ ራውተር መላክ
+            document.cookie = "userRole=admin; path=/; max-age=86400;";
+            window.location.href = "/api/router";
             return;
+            
         } else if (data.isAdminMatch) {
             // ዩዘርኔሙ እና ኢሜሉ የአድሚን ሆኖ ፓስዋርድ ብቻ ከተሳሳተ
             err.innerText = "❌ የተሳሳተ የአድሚን የይለፍ ቃል!";
@@ -160,7 +164,7 @@ async function handleUnifiedLogin() {
 
         let hashedInputPass = await hashPassword(pass);
         
-        // --- TENANT CHECK ---
+        // --- TENANT (SHOP) CHECK ---
         let t = null;
         if(isOnline && typeof db !== 'undefined') {
             try {
@@ -174,7 +178,6 @@ async function handleUnifiedLogin() {
             let tPassMatch = (String(t.password) === hashedInputPass || String(t.password).trim() === pass);
             
             if((isFirebaseAuthSuccess && tEmailMatch) || (tEmailMatch && tPassMatch)) {
-                
                 if(String(t.password).trim() === pass && String(t.password) !== hashedInputPass) {
                     t.password = hashedInputPass;
                     if(isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/tenants/${user}/password`).set(hashedInputPass);
@@ -188,8 +191,9 @@ async function handleUnifiedLogin() {
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                 
-                // ማስተካከያ 3፡ ፋይሎቹ ስለተከፋፈሉ በቀጥታ ወደ ሱቁ ገጽ (shop.html) እንዲወስድ ተደርጓል
-                window.location.href = "shop.html"; 
+                // አዲሱ አሰራር: ኩኪ ማስቀመጥ እና ወደ ራውተር መላክ
+                document.cookie = "userRole=shop; path=/; max-age=86400;";
+                window.location.href = "/api/router";
                 return;
             }
         }
@@ -223,7 +227,10 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                window.location.href = "buyer.html";
+                
+                // አዲሱ አሰራር
+                document.cookie = "userRole=buyer; path=/; max-age=86400;";
+                window.location.href = "/api/router";
                 return;
             }
         }
@@ -258,12 +265,15 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                window.location.href = "revenue.html";
-               return;
+                
+                // አዲሱ አሰራር
+                document.cookie = "userRole=revenue; path=/; max-age=86400;";
+                window.location.href = "/api/router";
+                return;
             }
         }
 
-        // --- MOTOR CHECK ---
+        // --- MOTOR (DELIVERY) CHECK ---
         let m = null;
         if(isOnline && typeof db !== 'undefined') {
             try {
@@ -297,7 +307,10 @@ async function handleUnifiedLogin() {
                 pushToFirebase();
                 err.innerText = "";
                 if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                window.location.href = "delivery.html";
+                
+                // አዲሱ አሰራር
+                document.cookie = "userRole=delivery; path=/; max-age=86400;";
+                window.location.href = "/api/router";
                 return;
             }
         }
@@ -341,7 +354,10 @@ async function handleUnifiedLogin() {
                     pushToFirebase();
                     err.innerText = "";
                     if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
-                    window.location.href = "staff.html";
+                    
+                    // አዲሱ አሰራር
+                    document.cookie = "userRole=staff; path=/; max-age=86400;";
+                    window.location.href = "/api/router";
                     return;
                 } else {
                     err.innerText = "❌ የሱቁ ባለቤት መረጃ ሲስተም ውስጥ አልተገኘም!";
@@ -374,8 +390,9 @@ async function handleUnifiedLogin() {
                             err.innerText = "";
                             if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
                             
-                            // ማስተካከያ፡ ወደ ሱቅ ገጽ ቀጥታ መላክ
-                            window.location.href = "staff.html";
+                            // አዲሱ አሰራር
+                            document.cookie = "userRole=staff; path=/; max-age=86400;";
+                            window.location.href = "/api/router";
                             return;
                         }
                     }
@@ -383,7 +400,6 @@ async function handleUnifiedLogin() {
             }
         }
 
-        // ከላይ ያሉት ማረጋገጫዎች ካልሰሩ ይሄን ያወጣል
         err.innerText = "❌ መረጃው ስህተት ነው! አካውንት አልተገኘም። እባክዎ ዩዘርኔምዎን ያረጋግጡ።";
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
         
@@ -393,5 +409,6 @@ async function handleUnifiedLogin() {
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
     }
 }
+
 
 
