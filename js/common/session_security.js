@@ -14,80 +14,87 @@ async function hashPassword(password) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
-
+// ---------------------------------------------------------------------
+// AUTOMATIC LOGIN LOGIC - FIXED FOR ROUTER
+// ---------------------------------------------------------------------
 function checkAutomaticLogin() {
-    let savedSession = localStorage.getItem('tirfe_active_session');
-    // ተጠቃሚው አሁን ያለበትን ገጽ ማወቅ (ለምሳሌ፡ index.html ወይም revenue.html)
-    let currentPage = window.location.pathname.toLowerCase();
-    let isLoginPage = currentPage.endsWith('index.html') || currentPage === '/' || currentPage.endsWith('login.html');
+    let savedSession = localStorage.getItem('tirfe_active_session'); //[span_4](start_span)[span_4](end_span)
+    // ተጠቃሚው አሁን ያለበትን ገጽ ማወቅ[span_5](start_span)[span_5](end_span)
+    let currentPage = window.location.pathname.toLowerCase(); //[span_6](start_span)[span_6](end_span)
+    let isLoginPage = currentPage.endsWith('index.html') || currentPage === '/' || currentPage.endsWith('login.html'); //[span_7](start_span)[span_7](end_span)
 
     if (savedSession) {
-        let session = JSON.parse(savedSession);
-        currentUserRole = session.role;
-        currentLoginMode = session.loginMode || 'unified';
+        let session = JSON.parse(savedSession); //[span_8](start_span)[span_8](end_span)
+        currentUserRole = session.role; //[span_9](start_span)[span_9](end_span)
+        currentLoginMode = session.loginMode || 'unified'; //[span_10](start_span)[span_10](end_span)
         
         if (session.role === 'admin') {
-            currentUserRole = 'admin';
-            if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
-            if(isLoginPage) window.location.href = "admin.html"; // ሎጊን ገጽ ላይ ከሆነ ብቻ ቀይረው
+            currentUserRole = 'admin'; //[span_11](start_span)[span_11](end_span)
+            if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners(); //[span_12](start_span)[span_12](end_span)
+            if(isLoginPage) {
+                // አዲሱ ማስተካከያ
+                document.cookie = "userRole=admin; path=/; max-age=86400;";
+                window.location.href = "/api/router";
+            }
         } 
         else if (session.role === 'revenue' && localDB.revenueAuthorities && localDB.revenueAuthorities[session.username]) {
-            currentRevenueOfficer = localDB.revenueAuthorities[session.username];
-            currentUserRole = 'revenue';
+            currentRevenueOfficer = localDB.revenueAuthorities[session.username]; //[span_13](start_span)[span_13](end_span)
+            currentUserRole = 'revenue'; //[span_14](start_span)[span_14](end_span)
             
             if(isLoginPage) {
-                window.location.href = "revenue.html";
+                document.cookie = "userRole=revenue; path=/; max-age=86400;";
+                window.location.href = "/api/router";
             } else {
-                // ገቢዎች ገጽ ላይ ከሆነ ዳታውን ያምጣ
-                if(typeof renderRevenuePanel === "function") renderRevenuePanel();
+                if(typeof renderRevenuePanel === "function") renderRevenuePanel(); //[span_15](start_span)[span_15](end_span)
             }
         } 
         else if (session.role === 'motor' && localDB.motors && localDB.motors[session.username]) {
             if(localDB.motors[session.username].status === "blocked") {
-                localStorage.removeItem('tirfe_active_session');
-                if(!isLoginPage) window.location.href = "index.html";
+                localStorage.removeItem('tirfe_active_session'); //[span_16](start_span)[span_16](end_span)
+                if(!isLoginPage) window.location.href = "/index.html"; //[span_17](start_span)[span_17](end_span)
             } else {
-                currentMotor = localDB.motors[session.username];
-                currentUserRole = 'motor';
+                currentMotor = localDB.motors[session.username]; //[span_18](start_span)[span_18](end_span)
+                currentUserRole = 'motor'; //[span_19](start_span)[span_19](end_span)
                 if(isLoginPage) {
-                    window.location.href = "delivery.html";
+                    document.cookie = "userRole=delivery; path=/; max-age=86400;";
+                    window.location.href = "/api/router";
                 }
             }
         } 
         else if (session.role === 'buyer' && localDB.buyers && localDB.buyers[session.username]) {
             if(localDB.buyers[session.username].status === "blocked") {
-                localStorage.removeItem('tirfe_active_session');
-                if(!isLoginPage) window.location.href = "index.html";
+                localStorage.removeItem('tirfe_active_session'); //[span_20](start_span)[span_20](end_span)
+                if(!isLoginPage) window.location.href = "/index.html"; //[span_21](start_span)[span_21](end_span)
             } else {
-                currentBuyer = localDB.buyers[session.username];
-                currentUserRole = 'buyer';
+                currentBuyer = localDB.buyers[session.username]; //[span_22](start_span)[span_22](end_span)
+                currentUserRole = 'buyer'; //[span_23](start_span)[span_23](end_span)
                 if(isLoginPage) {
-                    window.location.href = "buyer.html";
+                    document.cookie = "userRole=buyer; path=/; max-age=86400;";
+                    window.location.href = "/api/router";
                 }
             }
         } 
         else if ((session.role === 'owner' || session.role === 'staff') && localDB.tenants && localDB.tenants[session.username]) {
-            let t = localDB.tenants[session.username];
-            currentTenant = t;
-            currentUserRole = session.role; // ሮሉን ማረጋገጥ
+            let t = localDB.tenants[session.username]; //[span_24](start_span)[span_24](end_span)
+            currentTenant = t; //[span_25](start_span)[span_25](end_span)
+            currentUserRole = session.role; //[span_26](start_span)[span_26](end_span)
             
             if(isLoginPage) {
-                window.location.href = "shop.html";
+                let roleStr = session.role === 'owner' ? 'shop' : 'staff';
+                document.cookie = `userRole=${roleStr}; path=/; max-age=86400;`;
+                window.location.href = "/api/router";
             } else {
-                // መፍትሄ፡ አሁን ሱቁ ገፅ ላይ (shop.html) ከሆነ አፑን እና በተኖቹን ማስነሳት (Launch) አለበት!
                 if(typeof launchApp === "function") {
-                    launchApp(currentTenant);
+                    launchApp(currentTenant); //[span_27](start_span)[span_27](end_span)
                 }
             }
         }
     } else {
-        // ሴሽን (Session) ከሌለ እና ሎጊን ገጽ ላይ ካልሆነ ወደ ሎጊን ይመለስ
         if(!isLoginPage) {
-            window.location.href = "index.html";
+            window.location.href = "/index.html"; //[span_28](start_span)[span_28](end_span)
         }
     }
 }
-
 
 // ገጹ ልክ ሲከፈት ሴሽኑን በራሱ ጊዜ እንዲያጣራ ይህን ከታች ይጨምሩ
 window.addEventListener('DOMContentLoaded', checkAutomaticLogin);
@@ -130,27 +137,32 @@ function enableAllActions() {
 
 setInterval(() => { checkTimeLock(); }, 60000);
 
-//  (Logout) ፈንክሽን
+// ---------------------------------------------------------------------
+// SECURE LOGOUT LOGIC - FIXED FOR ROUTER
+// ---------------------------------------------------------------------
 window.forceLogout = function() {
-    // 1. የነበረውን ሴሽን ከማህደረ-ትውስታ (localStorage) ሰርዝ
-    localStorage.removeItem('tirfe_active_session');
-    sessionStorage.clear(); // ተጨማሪ የሴሽን ማጽጃ
+    // 1. የነበረውን ሴሽን ከማህደረ-ትውስታ (localStorage) ሰርዝ[span_29](start_span)[span_29](end_span)
+    localStorage.removeItem('tirfe_active_session'); //[span_30](start_span)[span_30](end_span)
+    sessionStorage.clear(); //[span_31](start_span)[span_31](end_span)
     
-    // 2. የ Firebase ሴሽንን መዝጋት (ዋናው የተደበቀው ችግር ይሄ ነበር!)
+    // 2. 💡 አዲሱ ማስተካከያ፡ ራውተሩ እንዳያውቀን የፈጠርነውን ኩኪ (Cookie) ማጥፋት!
+    document.cookie = "userRole=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+    
+    // 3. የ Firebase ሴሽንን መዝጋት[span_32](start_span)[span_32](end_span)
     if (typeof auth !== 'undefined') {
         auth.signOut().catch(function(error) {
-            console.log("Firebase SignOut Error:", error);
+            console.log("Firebase SignOut Error:", error); //[span_33](start_span)[span_33](end_span)
         });
     }
     
-    // 3. ግሎባል ተለዋዋጮቹን ወደ መጀመሪያው ባዶ ይዘት መልስ
-    currentUserRole = null;
-    currentRevenueOfficer = null;
-    currentMotor = null;
-    currentBuyer = null;
-    currentTenant = null;
+    // 4. ግሎባል ተለዋዋጮቹን ወደ መጀመሪያው ባዶ ይዘት መልስ[span_34](start_span)[span_34](end_span)
+    currentUserRole = null; //[span_35](start_span)[span_35](end_span)
+    currentRevenueOfficer = null; //[span_36](start_span)[span_36](end_span)
+    currentMotor = null; //[span_37](start_span)[span_37](end_span)
+    currentBuyer = null; //[span_38](start_span)[span_38](end_span)
+    currentTenant = null; //[span_39](start_span)[span_39](end_span)
     
-    // 4. ተጠቃሚውን ወደ መነሻው (የሎጊን ገጽ) በ replace መልሰው (ከ History ላይ ለማጥፋት)
-    window.location.replace("index.html");
+    // 5. ተጠቃሚውን ወደ መነሻው በ replace መልሰው[span_40](start_span)[span_40](end_span)
+    window.location.replace("/index.html"); //[span_41](start_span)[span_41](end_span)
 };
 
