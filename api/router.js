@@ -16,19 +16,25 @@ const parseCookies = (cookieHeader) => {
 };
 
 module.exports = async (req, res) => {
-    // ከኩኪው ላይ የተጠቃሚውን ሚና (Role) እናገኛለን
-    const cookies = parseCookies(req.headers.cookie);
-    const userRole = cookies.userRole; 
-
-    if (!userRole) {
-        // መግቢያ ገጽ ላይ ካልሆኑ ወደ መግቢያ ይመለሱ
-        return res.redirect('/index.html');
-    }
-
-    // ከ HTML ውስጥ ጃቫስክሪፕት ፋይል ከተጠየቀ (ለምሳሌ: ?file=admin.js)
-    const requestedFile = req.query.file;
-
     try {
+        // ከኩኪው ላይ የተጠቃሚውን ሚና (Role) እናገኛለን
+        const cookies = parseCookies(req.headers.cookie);
+        const userRole = cookies.userRole; 
+
+        if (!userRole) {
+            // መግቢያ ገጽ ላይ ካልሆኑ ወደ መግቢያ ይመለሱ
+            return res.redirect('/index.html');
+        }
+
+        // 💡 በጣም ደህንነቱ የተጠበቀ የፋይል ጥያቄ ማረጋገጫ (Safe query parsing)
+        let requestedFile = null;
+        if (req.query && req.query.file) {
+            requestedFile = req.query.file;
+        } else if (req.url && req.url.includes('?file=')) {
+            const urlParams = new URLSearchParams(req.url.split('?')[1]);
+            requestedFile = urlParams.get('file');
+        }
+
         // ሀ) የጃቫስክሪፕት (ወይም ሌላ) ፋይል ከሆነ በቀጥታ ከ secure-html ውስጥ ማውጣት
         if (requestedFile) {
             const filePath = path.join(process.cwd(), 'secure-html', requestedFile);
@@ -55,6 +61,11 @@ module.exports = async (req, res) => {
         }
 
         const htmlPath = path.join(process.cwd(), 'secure-html', fileName);
+        
+        if (!fs.existsSync(htmlPath)) {
+            return res.status(404).send("የኤችቲኤምኤል (HTML) ገጹ አልተገኘም!");
+        }
+
         let htmlContent = fs.readFileSync(htmlPath, 'utf8');
         
         // የጋራ የሆኑ ፋይሎች አድራሻ እንዳይጠፋ <base href="/"> መጨመር
@@ -71,6 +82,7 @@ module.exports = async (req, res) => {
 
     } catch (error) {
         console.error("Router Error:", error);
-        return res.status(500).send("ይቅርታ፣ ገጹን መጫን አልተቻለም!");
+        // እውነተኛውን ኤረር በስክሪን ላይ እንዲያሳየን error.message ተጨምሯል
+        return res.status(500).send("ይቅርታ፣ ገጹን መጫን አልተቻለም! ምክንያት: " + error.message);
     }
 };
