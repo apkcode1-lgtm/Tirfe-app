@@ -454,6 +454,43 @@ img.goog-te-gadget-icon {
         });
     }
 </script>
+<script>
+    let deferredPrompt;
+    const installBtn = document.getElementById('installAppBtn');
+
+    // ብሮውዘሩ ዌብሳይቱ PWA መሆኑን ሲያውቅ ይህንን ኢቨንት ይፈጥራል
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // የብሮውዘሩን ዲፎልት (default) አቀራረብ አቁም
+        e.preventDefault();
+        // ኢቨንቱን ቆይተን እንድንጠቀምበት እናስቀምጠዋለን
+        deferredPrompt = e;
+        // የ Install በተናችንን እንዲታይ እናደርጋለን (hidden ክላስን በማጥፋት)
+        installBtn.classList.remove('hidden');
+    });
+
+    // ተጠቃሚው የ Install በተኑን ሲጫን
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            // የ ብሮውዘሩን Install ማድረጊያ ፖፕ-አፕ (Prompt) አሳይ
+            deferredPrompt.prompt();
+            // ተጠቃሚው Install አደረገው ወይስ አልፈለገም የሚለውን እንጠብቃለን
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                console.log('ተጠቃሚው አፑን ጭኗል');
+                // ከተጫነ በኋላ በተኑን መልሰን እንደብቀዋለን
+                installBtn.classList.add('hidden');
+            }
+            deferredPrompt = null;
+        }
+    });
+
+    // አፕሊኬሽኑ በተሳካ ሁኔታ Install ከተደረገ በኋላ
+    window.addEventListener('appinstalled', () => {
+        installBtn.classList.add('hidden');
+        deferredPrompt = null;
+        console.log('PWA አፕሊኬሽኑ በተሳካ ሁኔታ ተጭኗል');
+    });
+</script>
 
 <script defer src="js/common/firebase-config.js"></script>
 <script defer src="js/common/database.js"></script>
