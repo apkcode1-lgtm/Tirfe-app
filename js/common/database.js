@@ -8,6 +8,7 @@ let localDB = {
     adminSettings: { bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 }, 
     tariffs: { low: 500, medium: 1000, high: 2000 }, 
     businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"] 
+    actionQueue: []
 };
 
 let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
