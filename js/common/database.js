@@ -192,102 +192,169 @@ if(typeof db !== 'undefined') {
     }
     fetchStaticData();
 
-        // ⚠️ ማሻሻያ 3: የ Role-based መረጃ ማዳመጥ (Listen) - እያንዳንዱ ተጠቃሚ የራሱን ስራ ብቻ ያወርዳል
-    window.setupSecureUserListeners = function() {
+        // ⚠️ ማሻሻያ 3: የ Role-based መረጃ ማዳመጥ ከ "Timestamp Filtering (Conflict Resolution)" ጋር
+window.setupSecureUserListeners = function() {
+    
+    // 🛠️ ማጣሪያ ሄልፐር ፋንክሽን፡ ከፋየርቤዝ የሚመጣው ዳታ ሎካል ካለው ማነሱን ወይም መብለጡን ያረጋግጣል
+    function shouldUpdateLocal(incomingData, localData) {
+        if (!localData) return true; // ሎካል ላይ ዳታ ከሌለ (አዲስ ከሆነ) እንቀበለዋለን
+        let incomingTime = incomingData.lastUpdated || 0;
+        let localTime = localData.lastUpdated || 0;
+        return incomingTime >= localTime; // የመጣው ዳታ እኩል ወይም አዲስ ከሆነ ብቻ true ይመልሳል
+    }
+
+    // 1. አድሚን (Admin) - አጭር የሻጭ መረጃዎችን ብቻ ያወርዳል
+    if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin' && !window.adminListenerAttached) {
+        window.adminListenerAttached = true;
         
-        // 1. አድሚን (Admin) - አጭር የሻጭ መረጃዎችን ብቻ ያወርዳል (ደረሰኝ እና የዕቃ ዝርዝር የለም)
-        if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin' && !window.adminListenerAttached) {
-            window.adminListenerAttached = true;
+        const adminNodes = [
+            { fbNode: 'admin_tenant_summary', localKey: 'tenants' }, 
+            { fbNode: 'buyers', localKey: 'buyers' }, 
+            { fbNode: 'motors', localKey: 'motors' }
+        ];
+
+        adminNodes.forEach(nodeObj => {
+            let fbPath = nodeObj.fbNode;
+            let localDbPath = nodeObj.localKey;
+
+            if (!localDB[localDbPath]) localDB[localDbPath] = {}; 
             
-            // fbNode: ከፋየርቤዝ የሚመጣበት ማውጫ፣ localKey: ሎካል ስቶሬጅ ላይ የሚቀመጥበት ስም
-            const adminNodes = [
-                { fbNode: 'admin_tenant_summary', localKey: 'tenants' }, 
-                { fbNode: 'buyers', localKey: 'buyers' }, 
-                { fbNode: 'motors', localKey: 'motors' }
-            ];
-
-            adminNodes.forEach(nodeObj => {
-                let fbPath = nodeObj.fbNode;
-                let localDbPath = nodeObj.localKey;
-
-                if (!localDB[localDbPath]) localDB[localDbPath] = {}; 
+            let ref = db.ref(`tirfe_system/${fbPath}`);
+            
+            ref.on('child_added', (snapshot) => {
+                let incomingData = snapshot.val();
+                let childKey = snapshot.key;
                 
-                let ref = db.ref(`tirfe_system/${fbPath}`);
-                
-                ref.on('child_added', (snapshot) => {
-                    localDB[localDbPath][snapshot.key] = snapshot.val();
-                    saveToLocalStorage();
-                    triggerUIRefresh();
-                });
-
-                ref.on('child_changed', (snapshot) => {
-                    localDB[localDbPath][snapshot.key] = snapshot.val();
-                    saveToLocalStorage();
-                    triggerUIRefresh();
-                });
-
-                ref.on('child_removed', (snapshot) => {
-                    delete localDB[localDbPath][snapshot.key];
-                    saveToLocalStorage();
-                    triggerUIRefresh();
-                });
-            });
-        }
-
-        // 2. ሻጭ (Tenant) - የራሱን ፕሮፋይል እና አዲስ የገቡ ትዕዛዞችን ብቻ ይከታተላል
-        if(typeof currentTenant !== 'undefined' && currentTenant && !window.tenantListenerAttached) {
-            window.tenantListenerAttached = true;
-            db.ref(`tirfe_system/tenants/${currentTenant.username}`).on('value', (snapshot) => {
-                if(snapshot.exists()) {
-                    localDB.tenants[currentTenant.username] = snapshot.val();
+                if(shouldUpdateLocal(incomingData, localDB[localDbPath][childKey])) {
+                    localDB[localDbPath][childKey] = incomingData;
                     saveToLocalStorage();
                     triggerUIRefresh();
                 }
             });
-            // የራሱን ደረሰኞች ብቻ ማዳመጥ ከተፈለገ (አሁን ባለው UI መሰረት)
-            db.ref(`tirfe_system/taxReceipts`).orderByChild('tenantUsername').equalTo(currentTenant.username).on('value', (snapshot) => {
-                 if(snapshot.exists()){
-                     // UI logic handling specific tenant receipts
-                 }
-            });
-        }
-        
-        // የገዥ ኮድ (Buyer)
-        if(typeof currentBuyer !== 'undefined' && currentBuyer && !window.buyerListenerAttached) {
-            window.buyerListenerAttached = true;
-            db.ref(`tirfe_system/buyers/${currentBuyer.username}`).on('value', (snapshot) => {
-                if(snapshot.exists()) { localDB.buyers[currentBuyer.username] = snapshot.val(); saveToLocalStorage(); triggerUIRefresh(); }
-            });
-            db.ref(`tirfe_system/public_tenants`).on('value', (snapshot) => {
-                if(snapshot.exists()) { localDB.tenants = snapshot.val(); saveToLocalStorage(); if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog(); }
-            });
-        }
-        
-        // 3. የገቢዎች ሰራተኛ (Revenue) - የግብር ዳታ እና የራሱን ፕሮፋይል ብቻ
-        if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer && !window.revenueListenerAttached) {
-            window.revenueListenerAttached = true;
-            db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).on('value', (snapshot) => {
-                if(snapshot.exists()) { localDB.revenueAuthorities[currentRevenueOfficer.username] = snapshot.val(); saveToLocalStorage(); triggerUIRefresh(); }
-            });
-            // የቫት ሪፖርቶችን ብቻ ያዳምጣል (ሌላ ትርፍ ፎቶ አያወርድም)
-            db.ref(`tirfe_system/motorQuotas`).on('value', (snapshot) => {
-                if(snapshot.exists()) { localDB.motorQuotas = snapshot.val(); saveToLocalStorage(); }
-            });
-        }
-        
-        // 4. ሞተረኛ (Motor) - የራሱን ፕሮፋይል እና የትዕዛዝ ማሳወቂያ ብቻ ያወርዳል
-        if(typeof currentMotor !== 'undefined' && currentMotor && !window.motorListenerAttached) {
-            window.motorListenerAttached = true;
-            db.ref(`tirfe_system/motors/${currentMotor.username}`).on('value', (snapshot) => {
-                if(snapshot.exists()) {
-                    localDB.motors[currentMotor.username] = snapshot.val();
+
+            ref.on('child_changed', (snapshot) => {
+                let incomingData = snapshot.val();
+                let childKey = snapshot.key;
+                
+                if(shouldUpdateLocal(incomingData, localDB[localDbPath][childKey])) {
+                    localDB[localDbPath][childKey] = incomingData;
                     saveToLocalStorage();
                     triggerUIRefresh();
                 }
             });
-        }
-    };
 
+            ref.on('child_removed', (snapshot) => {
+                delete localDB[localDbPath][snapshot.key];
+                saveToLocalStorage();
+                triggerUIRefresh();
+            });
+        });
+    }
+
+    // 2. ሻጭ (Tenant) - የራሱን ፕሮፋይል እና አዲስ የገቡ ትዕዛዞችን ብቻ ይከታተላል
+    if(typeof currentTenant !== 'undefined' && currentTenant && !window.tenantListenerAttached) {
+        window.tenantListenerAttached = true;
+        db.ref(`tirfe_system/tenants/${currentTenant.username}`).on('value', (snapshot) => {
+            if(snapshot.exists()) {
+                let incomingData = snapshot.val();
+                if(shouldUpdateLocal(incomingData, localDB.tenants[currentTenant.username])) {
+                    localDB.tenants[currentTenant.username] = incomingData;
+                    saveToLocalStorage();
+                    triggerUIRefresh();
+                }
+            }
+        });
+        
+        // የራሱን ደረሰኞች ብቻ ማዳመጥ ከተፈለገ (አሁን ባለው UI መሰረት)
+        db.ref(`tirfe_system/taxReceipts`).orderByChild('tenantUsername').equalTo(currentTenant.username).on('value', (snapshot) => {
+             if(snapshot.exists()){
+                 // UI logic handling specific tenant receipts
+             }
+        });
+    }
+    
+    // የገዥ ኮድ (Buyer)
+    if(typeof currentBuyer !== 'undefined' && currentBuyer && !window.buyerListenerAttached) {
+        window.buyerListenerAttached = true;
+        
+        // የራሱን ዳታ ማዳመጫ
+        db.ref(`tirfe_system/buyers/${currentBuyer.username}`).on('value', (snapshot) => {
+            if(snapshot.exists()) { 
+                let incomingData = snapshot.val();
+                if(shouldUpdateLocal(incomingData, localDB.buyers[currentBuyer.username])) {
+                    localDB.buyers[currentBuyer.username] = incomingData; 
+                    saveToLocalStorage(); 
+                    triggerUIRefresh(); 
+                }
+            }
+        });
+        
+        // የሻጮችን (Public Catalog) ማዳመጫ
+        db.ref(`tirfe_system/public_tenants`).on('value', (snapshot) => {
+            if(snapshot.exists()) { 
+                let incomingTenants = snapshot.val();
+                let hasUpdates = false;
+                
+                // የሁሉንም ሻጭ ዳታ ስለሚያመጣ በእያንዳንዳቸው ላይ ሉፕ (Loop) አድርገን እናጣራለን
+                for (let tUser in incomingTenants) {
+                    let inData = incomingTenants[tUser];
+                    if(shouldUpdateLocal(inData, localDB.tenants[tUser])) {
+                        // የነበረውን ሎካል ዳታ ከፋየርቤዝ ከመጣው ጋር ማዋሃድ (Merge) እንጂ ሙሉ በሙሉ Overwrite እንዳያደርገው
+                        localDB.tenants[tUser] = Object.assign({}, localDB.tenants[tUser] || {}, inData);
+                        hasUpdates = true;
+                    }
+                }
+                
+                if(hasUpdates) {
+                    saveToLocalStorage(); 
+                    if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog(); 
+                }
+            }
+        });
+    }
+    
+    // 3. የገቢዎች ሰራተኛ (Revenue) - የግብር ዳታ እና የራሱን ፕሮፋይል ብቻ
+    if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer && !window.revenueListenerAttached) {
+        window.revenueListenerAttached = true;
+        
+        db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).on('value', (snapshot) => {
+            if(snapshot.exists()) { 
+                let incomingData = snapshot.val();
+                if(shouldUpdateLocal(incomingData, localDB.revenueAuthorities[currentRevenueOfficer.username])) {
+                    localDB.revenueAuthorities[currentRevenueOfficer.username] = incomingData; 
+                    saveToLocalStorage(); 
+                    triggerUIRefresh(); 
+                }
+            }
+        });
+        
+        // የቫት ሪፖርቶችን ብቻ ያዳምጣል
+        db.ref(`tirfe_system/motorQuotas`).on('value', (snapshot) => {
+            if(snapshot.exists()) { 
+                let incomingData = snapshot.val();
+                if(shouldUpdateLocal(incomingData, localDB.motorQuotas)) {
+                    localDB.motorQuotas = incomingData; 
+                    saveToLocalStorage(); 
+                }
+            }
+        });
+    }
+    
+    // 4. ሞተረኛ (Motor) - የራሱን ፕሮፋይል እና የትዕዛዝ ማሳወቂያ ብቻ ያወርዳል
+    if(typeof currentMotor !== 'undefined' && currentMotor && !window.motorListenerAttached) {
+        window.motorListenerAttached = true;
+        db.ref(`tirfe_system/motors/${currentMotor.username}`).on('value', (snapshot) => {
+            if(snapshot.exists()) {
+                let incomingData = snapshot.val();
+                if(shouldUpdateLocal(incomingData, localDB.motors[currentMotor.username])) {
+                    localDB.motors[currentMotor.username] = incomingData;
+                    saveToLocalStorage();
+                    triggerUIRefresh();
+                }
+            }
+        });
+    }
+};
     setupSecureUserListeners();
 
     function triggerUIRefresh() {
