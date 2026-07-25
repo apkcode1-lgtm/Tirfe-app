@@ -35,7 +35,7 @@ function handleOnlineStatus() {
         // ኢንተርኔት ሲመጣ መጀመሪያ የተጠራቀሙ ትዕዛዞችን ይልካል
         processActionQueue();
         
-        // በመቀጠል አሁን ያለውን የሎካል ዳታ ወደ Queue ያስገባል
+        // በመቀጠል አሁን ያለውን የሎካል ዳታ ወደ Queue ያስገባ
         pushToFirebase();
     }
 }
