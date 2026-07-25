@@ -189,45 +189,42 @@ if(typeof db !== 'undefined') {
     }
     fetchStaticData();
 
-    // ⚠️ ማሻሻያ 3: የ Role-based መረጃ ማዳመጥ (Listen) - እያንዳንዱ ተጠቃሚ የራሱን ስራ ብቻ ያወርዳል
+        // ⚠️ ማሻሻያ 3: የ Role-based መረጃ ማዳመጥ (Listen) - እያንዳንዱ ተጠቃሚ የራሱን ስራ ብቻ ያወርዳል
     window.setupSecureUserListeners = function() {
         
-        // 1. አድሚን (Admin) - የሁሉንም ሰው ጽሁፍ ዳታ ያወርዳል (Limit ተደርጎ)
+        // 1. አድሚን (Admin) - አጭር የሻጭ መረጃዎችን ብቻ ያወርዳል (ደረሰኝ እና የዕቃ ዝርዝር የለም)
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin' && !window.adminListenerAttached) {
             window.adminListenerAttached = true;
             
-            // የሪፖርቶች/ደረሰኞች ብዛት እንዳይጭን 100 ብቻ እንዲያመጣ ተገድቧል
-            db.ref(`tirfe_system/taxReceipts`).orderByKey().limitToLast(100).on('value', (snapshot) => {
-                if(snapshot.exists()) {
-                    localDB.taxReceipts = Object.values(snapshot.val()); // Convert object to array if needed
-                    saveToLocalStorage();
-                    triggerUIRefresh();
-                }
-            });
+            // fbNode: ከፋየርቤዝ የሚመጣበት ማውጫ፣ localKey: ሎካል ስቶሬጅ ላይ የሚቀመጥበት ስም
+            const adminNodes = [
+                { fbNode: 'admin_tenant_summary', localKey: 'tenants' }, 
+                { fbNode: 'buyers', localKey: 'buyers' }, 
+                { fbNode: 'motors', localKey: 'motors' }
+            ];
 
-                        const adminNodes = ['tenants', 'buyers', 'motors'];
-            adminNodes.forEach(node => {
-                if (!localDB[node]) localDB[node] = {}; // ሎካል ላይ ዳታው ከሌለ ባዶ ኦብጀክት እንፈጥራለን
+            adminNodes.forEach(nodeObj => {
+                let fbPath = nodeObj.fbNode;
+                let localDbPath = nodeObj.localKey;
+
+                if (!localDB[localDbPath]) localDB[localDbPath] = {}; 
                 
-                let ref = db.ref(`tirfe_system/${node}`);
+                let ref = db.ref(`tirfe_system/${fbPath}`);
                 
-                // 1. አዲስ ዳታ ወደ ሲስተሙ ሲገባ
                 ref.on('child_added', (snapshot) => {
-                    localDB[node][snapshot.key] = snapshot.val();
+                    localDB[localDbPath][snapshot.key] = snapshot.val();
                     saveToLocalStorage();
                     triggerUIRefresh();
                 });
 
-                // 2. የነበረ ዳታ ሲቀየር
                 ref.on('child_changed', (snapshot) => {
-                    localDB[node][snapshot.key] = snapshot.val();
+                    localDB[localDbPath][snapshot.key] = snapshot.val();
                     saveToLocalStorage();
                     triggerUIRefresh();
                 });
 
-                // 3. ዳታ ሲጠፋ
                 ref.on('child_removed', (snapshot) => {
-                    delete localDB[node][snapshot.key];
+                    delete localDB[localDbPath][snapshot.key];
                     saveToLocalStorage();
                     triggerUIRefresh();
                 });
@@ -252,7 +249,7 @@ if(typeof db !== 'undefined') {
             });
         }
         
-        // (የገዥ ኮድ (Buyer) ለጊዜው አልተቀየረም - በቀጣይ እንደምናወራው)
+        // የገዥ ኮድ (Buyer)
         if(typeof currentBuyer !== 'undefined' && currentBuyer && !window.buyerListenerAttached) {
             window.buyerListenerAttached = true;
             db.ref(`tirfe_system/buyers/${currentBuyer.username}`).on('value', (snapshot) => {
@@ -285,7 +282,6 @@ if(typeof db !== 'undefined') {
                     triggerUIRefresh();
                 }
             });
-            // ማሳሰቢያ፡ ትዕዛዝ ሲገባ ብቻ listen የሚያደርገውን ኖድ UI ላይ እንደሰራኸው ታክለዋለህ
         }
     };
 
