@@ -132,7 +132,7 @@ function pushTenantFirebase(username, specificDataUpdates) {
     queueAction(`tirfe_system/tenants/${username}`, specificDataUpdates);
     
     // ለ. ፐብሊክ ማውጫ ማጣሪያ
-    let publicUpdates = Object.assign({}, specificDataUpdates);
+    let publicUpdates = cleanData({}, specificDataUpdates);
     delete publicUpdates.password;
     delete publicUpdates.activationCode; 
     delete publicUpdates.staffAccounts; 
