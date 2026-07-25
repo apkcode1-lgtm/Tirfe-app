@@ -80,7 +80,7 @@ function getPublicTenantsData(tenantsData) {
 }
 
 // ⚠️ ማሻሻያ 1: ፋየርቤዝ ላይ ዳታ ሲላክ የሌላውን ሰው ዳታ
-// ያልተገለጹ (undefined) ዳታዎችን የሚያጠራው የነበረው ኮድህ
+// ያልተገለጹ (undefined) ዳታዎችን የሚያጠራው ኮድ
 const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
 
 // 1. የተቀየሩ ዳታዎችን ከነሙሉ ማውጫቸው (Full Path) እና ሰዓታቸው ወደ ሰልፍ ማስገቢያ
@@ -91,7 +91,7 @@ function queueAction(fullFirebasePath, specificUpdates) {
     let timestamp = new Date().getTime();
     cleanedUpdates['lastUpdated'] = timestamp; 
     
-    // fullFirebasePath አሁን "tirfe_system/..." የሚለውን ሙሉ ቃል ይይዛል
+    if(!localDB.actionQueue) localDB.actionQueue = []; // እርግጠኛ ለመሆን
     localDB.actionQueue.push({ path: fullFirebasePath, data: cleanedUpdates, time: timestamp });
     saveToLocalStorage();
     
@@ -102,18 +102,17 @@ function queueAction(fullFirebasePath, specificUpdates) {
 
 // 2. በሰልፍ የተያዙትን ኦፍላይን ዳታዎች ወደ ፋየርቤዝ መላኪያ
 function processOfflineQueue() {
-    if (!isOnline || localDB.actionQueue.length === 0 || typeof db === 'undefined') return;
+    // ⚠️ የድሮው isOnline እና db ማጣሪያ እዚህ ገብቷል
+    if (!isOnline || !localDB.actionQueue || localDB.actionQueue.length === 0 || typeof db === 'undefined') return;
 
     let firebaseUpdates = {};
     
     localDB.actionQueue.forEach(item => {
-        // item.path ራሱ "tirfe_system/..." ስለሚል በቀጥታ እንጠቀመዋለን
         for (let key in item.data) {
             firebaseUpdates[`${item.path}/${key}`] = item.data[key];
         }
     });
 
-    // ⚠️ ዋናውን ሩት (Root) ተጠቅመን በውስጡ ያሉትን ማውጫዎች እናዘምናልን
     db.ref().update(firebaseUpdates)
         .then(() => {
             localDB.actionQueue = []; 
@@ -123,68 +122,91 @@ function processOfflineQueue() {
 }
 
 // ---------------------------------------------------------
-// 3. የተከፋፈሉ የፑሽ ፈንክሽኖች (ልክ በነበረው ፋየርቤዝ Path መሰረት)
+// 3. የተከፋፈሉ የፑሽ ፈንክሽኖች 
 // ---------------------------------------------------------
 
-// ለሻጭ (Tenant) 
 function pushTenantFirebase(username, specificDataUpdates) {
-    // ሀ. ዋናው ፕራይቬት ማውጫ
     queueAction(`tirfe_system/tenants/${username}`, specificDataUpdates);
     
-    // ለ. ፐብሊክ ማውጫ ማጣሪያ
-    let publicUpdates = cleanData({}, specificDataUpdates);
-    delete publicUpdates.password;
-    delete publicUpdates.activationCode; 
-    delete publicUpdates.staffAccounts; 
-    delete publicUpdates.telegramToken; 
-    delete publicUpdates.bankAccount; 
-    
-    if(Object.keys(publicUpdates).length > 0) {
+    // ⚠️ ማስተካከያ: cleanData({}, ...) የነበረው ተስተካክሏል
+    let publicUpdates = cleanData(specificDataUpdates);
+    if(publicUpdates) {
+        delete publicUpdates.password;
+        delete publicUpdates.activationCode; 
+        delete publicUpdates.staffAccounts; 
+        delete publicUpdates.telegramToken; 
+        delete publicUpdates.bankAccount; 
         queueAction(`tirfe_system/public_tenants/${username}`, publicUpdates);
     }
 
-    // ሐ. የአድሚን ማጠቃለያ (Admin Summary)
-    let adminSummary = Object.assign({}, specificDataUpdates);
-    delete adminSummary.items; 
-    delete adminSummary.products;
-    delete adminSummary.catalog;
-    delete adminSummary.taxReceipts;
-    
-    if(Object.keys(adminSummary).length > 0) {
+    // ⚠️ ማስተካከያ: Object.assign የነበረው በ cleanData ተተክቷል
+    let adminSummary = cleanData(specificDataUpdates);
+    if(adminSummary) {
+        delete adminSummary.items; 
+        delete adminSummary.products;
+        delete adminSummary.catalog;
+        delete adminSummary.taxReceipts;
         queueAction(`tirfe_system/admin_tenant_summary/${username}`, adminSummary);
     }
 }
 
-// ለሰራተኛ (Staff)
 function pushStaffFirebase(tenantUsername, staffUsername, specificDataUpdates) {
     queueAction(`tirfe_system/tenants/${tenantUsername}/staffAccounts/${staffUsername}`, specificDataUpdates);
 }
-
-// ለአድሚን (Admin) 
 function pushAdminFirebase(settingNodeName, specificDataUpdates) {
     queueAction(`tirfe_system/${settingNodeName}`, specificDataUpdates);
 }
-
-// ለገዥ (Buyer) 
 function pushBuyerFirebase(username, specificDataUpdates) {
     queueAction(`tirfe_system/buyers/${username}`, specificDataUpdates);
 }
-
-// ለሞተረኛ (Motor) 
 function pushMotorFirebase(username, specificDataUpdates) {
     queueAction(`tirfe_system/motors/${username}`, specificDataUpdates);
 }
-
-// ለገቢዎች ሰራተኛ (Revenue) 
 function pushRevenueFirebase(username, specificDataUpdates) {
     queueAction(`tirfe_system/revenueAuthorities/${username}`, specificDataUpdates);
 }
-
-// የሞተር ኮታ (Quota) 
 function pushMotorQuotaFirebase(specificQuotaUpdates) {
     queueAction(`tirfe_system/motorQuotas`, specificQuotaUpdates);
 }
 
+// ---------------------------------------------------------
+// 4. የተዋሃደው ዋና የ Push ፈንክሽን (Auto-detect)
+// ---------------------------------------------------------
+function pushToFirebase() { 
+    saveToLocalStorage(); // ⚠️ ሁልጊዜ መጀመሪያ ዳታው ሎካል ላይ ሴቭ መደረግ አለበት
+
+    // የድሮው አውቶማቲክ ማጣሪያ ወደ አዲሱ ሰልፍ (Queue) ማስገቢያነት ተቀይሯል
+    if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
+        pushAdminFirebase('motorQuotas', localDB.motorQuotas || {});
+        pushAdminFirebase('tariffs', localDB.tariffs || {});
+        pushAdminFirebase('businessTypes', localDB.businessTypes || []);
+        pushAdminFirebase('adminSettings', localDB.adminSettings || {});
+    } else {
+        if(typeof currentTenant !== 'undefined' && currentTenant) {
+            let tenantData = localDB.tenants[currentTenant.username];
+            if(tenantData) pushTenantFirebase(currentTenant.username, tenantData);
+        }
+        if(typeof currentBuyer !== 'undefined' && currentBuyer) {
+            let buyerData = localDB.buyers[currentBuyer.username];
+            if(buyerData) pushBuyerFirebase(currentBuyer.username, buyerData);
+        }
+        if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
+            let revData = localDB.revenueAuthorities[currentRevenueOfficer.username];
+            if(revData) pushRevenueFirebase(currentRevenueOfficer.username, revData);
+            
+            if(localDB.motorQuotas) {
+                pushMotorQuotaFirebase(localDB.motorQuotas);
+            }
+        }
+        if(typeof currentMotor !== 'undefined' && currentMotor) {
+            let motorData = localDB.motors[currentMotor.username];
+            if(motorData) pushMotorFirebase(currentMotor.username, motorData);
+        }
+    }
+
+    // ከላይ ወደ ሰልፍ የገቡትን እና ከበፊቱ የቆዩትን ሁሉ ይልካል (isOnline እና db እዚህ ውስጥ ይረጋገጣሉ)
+    processOfflineQueue();
+}
 // 4. ኦንላይን ሲገባ (ወይም handleOnlineStatus ሲጠራ)
 function pushToFirebase() { 
     processOfflineQueue();
