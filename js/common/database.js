@@ -86,16 +86,10 @@ function pushToFirebase() {
         const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
 
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
-            // አድሚን ብቻ ነው ጀነራል ሴቲንግ እና ሌሎች የጋራ ዳታዎችን መላክ የሚችለው
+            // አድሚን ጀነራል ሴቲንግ እና የጋራ ዳታዎችን ብቻ ይልካል (የሻጭን ዳታ እንዳያጠፋ ተከልክሏል)
             let adminUpdates = {};
             
-            // የ public ዳታ ማዘመኛ
-            if (localDB.tenants) {
-                let cTenants = cleanData(localDB.tenants);
-                let pTenants = getPublicTenantsData(cTenants);
-                for(let t in pTenants) { adminUpdates[`public_tenants/${t}`] = pTenants[t]; }
-                for(let t in cTenants) { adminUpdates[`tenants/${t}`] = cTenants[t]; }
-            }
+            // የ public ዳታ ማዘመኛ ኮድ ሙሉ በሙሉ ጠፍቷል (ምክንያቱም አድሚን የሻጭን እቃ ስለማያወርድ መልሶ ሴቭ ካደረገው ያጠፋዋል)
             
             adminUpdates['motorQuotas'] = cleanData(localDB.motorQuotas) || {};
             adminUpdates['tariffs'] = cleanData(localDB.tariffs) || {};
@@ -107,7 +101,6 @@ function pushToFirebase() {
 
         } else {
             // ተራ ተጠቃሚዎች የየራሳቸውን መረጃ ብቻ (Deep Path) ወደ ፋየርቤዝ ይልካሉ።
-            // የ `fallbackUpdates` አደገኛ ኮድ ሙሉ በሙሉ ጠፍቷል!
 
             if(typeof currentTenant !== 'undefined' && currentTenant) {
                 let tenantData = cleanData(localDB.tenants[currentTenant.username]);
@@ -117,6 +110,16 @@ function pushToFirebase() {
                     
                     let publicT = getPublicTenantsData({ [currentTenant.username]: tenantData });
                     updates[`public_tenants/${currentTenant.username}`] = publicT[currentTenant.username];
+
+                    // --- አዲስ የተጨመረው ኮድ ለአድሚን ማጠቃለያ (Summary) ---
+                    let adminSummary = Object.assign({}, tenantData);
+                    // ከባድ የሆኑ የዳታ አይነቶችን ከአድሚኑ ማጠቃለያ ላይ እናጠፋለን 
+                    delete adminSummary.items; 
+                    delete adminSummary.products;
+                    delete adminSummary.catalog;
+                    delete adminSummary.taxReceipts;
+                    updates[`admin_tenant_summary/${currentTenant.username}`] = adminSummary;
+                    // ------------------------------------
 
                     db.ref('tirfe_system').update(updates)
                     .catch(err => console.error("Firebase Tenant Sync Error:", err));
