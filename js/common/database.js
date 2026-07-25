@@ -79,82 +79,116 @@ function getPublicTenantsData(tenantsData) {
     return publicData;
 }
 
-// ⚠️ ማሻሻያ 1: ፋየርቤዝ ላይ ዳታ ሲላክ የሌላውን ሰው ዳታ እንዳያጠፋ (Least Privilege Push)
-function pushToFirebase() { 
+// ⚠️ ማሻሻያ 1: ፋየርቤዝ ላይ ዳታ ሲላክ የሌላውን ሰው ዳታ
+// ያልተገለጹ (undefined) ዳታዎችን የሚያጠራው የነበረው ኮድህ
+const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
+
+// 1. የተቀየሩ ዳታዎችን ከነሙሉ ማውጫቸው (Full Path) እና ሰዓታቸው ወደ ሰልፍ ማስገቢያ
+function queueAction(fullFirebasePath, specificUpdates) {
+    let cleanedUpdates = cleanData(specificUpdates);
+    if (!cleanedUpdates) return;
+
+    let timestamp = new Date().getTime();
+    cleanedUpdates['lastUpdated'] = timestamp; 
+    
+    // fullFirebasePath አሁን "tirfe_system/..." የሚለውን ሙሉ ቃል ይይዛል
+    localDB.actionQueue.push({ path: fullFirebasePath, data: cleanedUpdates, time: timestamp });
     saveToLocalStorage();
-    if(isOnline && typeof db !== 'undefined') { 
-        
-        const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
-
-        if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
-            // አድሚን ጀነራል ሴቲንግ እና የጋራ ዳታዎችን ብቻ ይልካል (የሻጭን ዳታ እንዳያጠፋ ተከልክሏል)
-            let adminUpdates = {};
-            
-            // የ public ዳታ ማዘመኛ ኮድ ሙሉ በሙሉ ጠፍቷል (ምክንያቱም አድሚን የሻጭን እቃ ስለማያወርድ መልሶ ሴቭ ካደረገው ያጠፋዋል)
-            
-            adminUpdates['motorQuotas'] = cleanData(localDB.motorQuotas) || {};
-            adminUpdates['tariffs'] = cleanData(localDB.tariffs) || {};
-            adminUpdates['businessTypes'] = cleanData(localDB.businessTypes) || [];
-            adminUpdates['adminSettings'] = cleanData(localDB.adminSettings) || {};
-
-            db.ref('tirfe_system').update(adminUpdates)
-              .catch(err => console.error("Firebase Admin Sync Error:", err));
-
-        } else {
-            // ተራ ተጠቃሚዎች የየራሳቸውን መረጃ ብቻ (Deep Path) ወደ ፋየርቤዝ ይልካሉ።
-
-            if(typeof currentTenant !== 'undefined' && currentTenant) {
-                let tenantData = cleanData(localDB.tenants[currentTenant.username]);
-                if(tenantData) {
-                    let updates = {};
-                    updates[`tenants/${currentTenant.username}`] = tenantData;
-                    
-                    let publicT = getPublicTenantsData({ [currentTenant.username]: tenantData });
-                    updates[`public_tenants/${currentTenant.username}`] = publicT[currentTenant.username];
-
-                    // --- አዲስ የተጨመረው ኮድ ለአድሚን ማጠቃለያ (Summary) ---
-                    let adminSummary = Object.assign({}, tenantData);
-                    // ከባድ የሆኑ የዳታ አይነቶችን ከአድሚኑ ማጠቃለያ ላይ እናጠፋለን 
-                    delete adminSummary.items; 
-                    delete adminSummary.products;
-                    delete adminSummary.catalog;
-                    delete adminSummary.taxReceipts;
-                    updates[`admin_tenant_summary/${currentTenant.username}`] = adminSummary;
-                    // ------------------------------------
-
-                    db.ref('tirfe_system').update(updates)
-                    .catch(err => console.error("Firebase Tenant Sync Error:", err));
-                }
-            }
-            if(typeof currentBuyer !== 'undefined' && currentBuyer) {
-                let buyerData = cleanData(localDB.buyers[currentBuyer.username]);
-                if(buyerData) {
-                    db.ref(`tirfe_system/buyers/${currentBuyer.username}`).set(buyerData)
-                    .catch(err => console.error("Firebase Buyer Sync Error:", err));
-                }
-            }
-            if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
-                let revData = cleanData(localDB.revenueAuthorities[currentRevenueOfficer.username]);
-                if(revData) {
-                    db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).set(revData)
-                    .catch(err => console.error("Firebase Revenue Sync Error:", err));
-                }
-                if(localDB.motorQuotas) {
-                    db.ref(`tirfe_system/motorQuotas`).set(cleanData(localDB.motorQuotas))
-                    .catch(err => console.error("Firebase Quota Sync Error:", err));
-                }
-            }
-            if(typeof currentMotor !== 'undefined' && currentMotor) {
-                let motorData = cleanData(localDB.motors[currentMotor.username]);
-                if(motorData) {
-                    db.ref(`tirfe_system/motors/${currentMotor.username}`).set(motorData)
-                    .catch(err => console.error("Firebase Motor Sync Error:", err));
-                }
-            }
-        }
-    } 
+    
+    if (isOnline) {
+        processOfflineQueue();
+    }
 }
 
+// 2. በሰልፍ የተያዙትን ኦፍላይን ዳታዎች ወደ ፋየርቤዝ መላኪያ
+function processOfflineQueue() {
+    if (!isOnline || localDB.actionQueue.length === 0 || typeof db === 'undefined') return;
+
+    let firebaseUpdates = {};
+    
+    localDB.actionQueue.forEach(item => {
+        // item.path ራሱ "tirfe_system/..." ስለሚል በቀጥታ እንጠቀመዋለን
+        for (let key in item.data) {
+            firebaseUpdates[`${item.path}/${key}`] = item.data[key];
+        }
+    });
+
+    // ⚠️ ዋናውን ሩት (Root) ተጠቅመን በውስጡ ያሉትን ማውጫዎች እናዘምናልን
+    db.ref().update(firebaseUpdates)
+        .then(() => {
+            localDB.actionQueue = []; 
+            saveToLocalStorage();
+        })
+        .catch(err => console.error("Queue Sync Error:", err));
+}
+
+// ---------------------------------------------------------
+// 3. የተከፋፈሉ የፑሽ ፈንክሽኖች (ልክ በነበረው ፋየርቤዝ Path መሰረት)
+// ---------------------------------------------------------
+
+// ለሻጭ (Tenant) 
+function pushTenantFirebase(username, specificDataUpdates) {
+    // ሀ. ዋናው ፕራይቬት ማውጫ
+    queueAction(`tirfe_system/tenants/${username}`, specificDataUpdates);
+    
+    // ለ. ፐብሊክ ማውጫ ማጣሪያ
+    let publicUpdates = Object.assign({}, specificDataUpdates);
+    delete publicUpdates.password;
+    delete publicUpdates.activationCode; 
+    delete publicUpdates.staffAccounts; 
+    delete publicUpdates.telegramToken; 
+    delete publicUpdates.bankAccount; 
+    
+    if(Object.keys(publicUpdates).length > 0) {
+        queueAction(`tirfe_system/public_tenants/${username}`, publicUpdates);
+    }
+
+    // ሐ. የአድሚን ማጠቃለያ (Admin Summary)
+    let adminSummary = Object.assign({}, specificDataUpdates);
+    delete adminSummary.items; 
+    delete adminSummary.products;
+    delete adminSummary.catalog;
+    delete adminSummary.taxReceipts;
+    
+    if(Object.keys(adminSummary).length > 0) {
+        queueAction(`tirfe_system/admin_tenant_summary/${username}`, adminSummary);
+    }
+}
+
+// ለሰራተኛ (Staff)
+function pushStaffFirebase(tenantUsername, staffUsername, specificDataUpdates) {
+    queueAction(`tirfe_system/tenants/${tenantUsername}/staffAccounts/${staffUsername}`, specificDataUpdates);
+}
+
+// ለአድሚን (Admin) 
+function pushAdminFirebase(settingNodeName, specificDataUpdates) {
+    queueAction(`tirfe_system/${settingNodeName}`, specificDataUpdates);
+}
+
+// ለገዥ (Buyer) 
+function pushBuyerFirebase(username, specificDataUpdates) {
+    queueAction(`tirfe_system/buyers/${username}`, specificDataUpdates);
+}
+
+// ለሞተረኛ (Motor) 
+function pushMotorFirebase(username, specificDataUpdates) {
+    queueAction(`tirfe_system/motors/${username}`, specificDataUpdates);
+}
+
+// ለገቢዎች ሰራተኛ (Revenue) 
+function pushRevenueFirebase(username, specificDataUpdates) {
+    queueAction(`tirfe_system/revenueAuthorities/${username}`, specificDataUpdates);
+}
+
+// የሞተር ኮታ (Quota) 
+function pushMotorQuotaFirebase(specificQuotaUpdates) {
+    queueAction(`tirfe_system/motorQuotas`, specificQuotaUpdates);
+}
+
+// 4. ኦንላይን ሲገባ (ወይም handleOnlineStatus ሲጠራ)
+function pushToFirebase() { 
+    processOfflineQueue();
+}
 // Telegram Functions
 function sendAdminTelegramAlert(message) {
     const backendAPIUrl = "/api/sendAdminTelegram";
