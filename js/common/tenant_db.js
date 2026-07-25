@@ -1,44 +1,106 @@
-// tenant_db.js
+// ፋይል: js/shop/tenant_db.js
+// ይህ ፋይል ለሻጭ (Tenant) ብቻ የሚያገለግል የዳታቤዝ ሎጂክ ይዟል
 
-function getPublicTenantsData(tenantsData) {
-    let publicData = {}; //[span_44](start_span)[span_44](end_span)
-    for (let k in tenantsData) {
-        publicData[k] = Object.assign({}, tenantsData[k]); //[span_45](start_span)[span_45](end_span)
-        delete publicData[k].password; delete publicData[k].activationCode; //[span_46](start_span)[span_46](end_span)
-        // ... (ሌሎችም ሚስጥራዊ ዳታዎች ይጠፋሉ) ... //[span_47](start_span)[span_47](end_span)
-    }
-    return publicData; //[span_48](start_span)[span_48](end_span)
+let tenantState = {
+    profile: null,
+    orders: [],
+    taxReceipts: []
+};
+
+let isTenantListenerAttached = false;
+
+// 1. የሻጩን መረጃ ከፋየርቤዝ ማምጣት (Read/Listen)
+function initTenantDB(username) {
+    if (!username || typeof db === 'undefined' || isTenantListenerAttached) return;
+    
+    isTenantListenerAttached = true;
+    console.log(`Initializing Database for Tenant: ${username}`);
+
+    // ሀ. የሻጩን ዋና ፕሮፋይል እና ዕቃዎች (Inventory) ማዳመጥ
+    db.ref(`tirfe_system/tenants/${username}`).on('value', (snapshot) => {
+        if (snapshot.exists()) {
+            tenantState.profile = snapshot.val();
+            // መረጃውን ወደ LocalStorage ማስቀመጥ (ለ Offline አገልግሎት)
+            localStorage.setItem('tirfe_tenant_profile', JSON.stringify(tenantState.profile));
+            
+            // የ UI ማደሻ ፈንክሽን ካለ መጥራት
+            if (typeof renderApp === 'function') renderApp();
+        }
+    });
+
+    // ለ. ወደዚህ ሻጭ የመጡ አዳዲስ ትዕዛዞችን ማዳመጥ (ከማዕከላዊው Order Manager)
+    db.ref('tirfe_system/orders')
+      .orderByChild('tenantUsername')
+      .equalTo(username)
+      .on('value', (snapshot) => {
+          if (snapshot.exists()) {
+              let ordersData = snapshot.val();
+              // ፋየርቤዝ ኦብጀክት ስለሚመልስ ወደ አሬይ (Array) እንቀይረዋለን
+              tenantState.orders = Object.keys(ordersData).map(key => ({
+                  id: key,
+                  ...ordersData[key]
+              }));
+              // የትዕዛዝ ማሳያ UI ማደስ 
+              if (typeof renderOrderTable === 'function') renderOrderTable();
+          } else {
+              tenantState.orders = [];
+          }
+      });
+
+    // ሐ. የሻጩን የግብር ደረሰኞች ማዳመጥ
+    db.ref('tirfe_system/taxReceipts')
+      .orderByChild('tenantUsername')
+      .equalTo(username)
+      .on('value', (snapshot) => {
+          if (snapshot.exists()) {
+              tenantState.taxReceipts = Object.values(snapshot.val());
+              if (typeof renderTenantTaxReceipts === 'function') renderTenantTaxReceipts();
+          }
+      });
 }
 
-function pushTenantDataToFirebase() {
-    if(!isOnline || typeof db === 'undefined' || !currentTenant) return; //[span_49](start_span)[span_49](end_span)
+// 2. የሻጭ መረጃን ወደ ፋየርቤዝ መላክ (Write/Update)
+function saveTenantProfileToFirebase() {
+    if (!tenantState.profile || !tenantState.profile.username) return;
 
-    let tenantData = cleanData(localDB.tenants[currentTenant.username]); //[span_50](start_span)[span_50](end_span)
-    if(tenantData) {
-        let updates = {}; //[span_51](start_span)[span_51](end_span)
-        updates[`tenants/${currentTenant.username}`] = tenantData; //[span_52](start_span)[span_52](end_span)
-        
-        let publicT = getPublicTenantsData({ [currentTenant.username]: tenantData }); //[span_53](start_span)[span_53](end_span)
-        updates[`public_tenants/${currentTenant.username}`] = publicT[currentTenant.username]; //[span_54](start_span)[span_54](end_span)
+    let username = tenantState.profile.username;
+    
+    // undefined የሆኑ ዳታዎችን ለማፅዳት
+    let cleanData = JSON.parse(JSON.stringify(tenantState.profile));
 
-        let adminSummary = Object.assign({}, tenantData); //[span_55](start_span)[span_55](end_span)
-        delete adminSummary.items; delete adminSummary.products; //[span_56](start_span)[span_56](end_span)
-        updates[`admin_tenant_summary/${currentTenant.username}`] = adminSummary; //[span_57](start_span)[span_57](end_span)
+    // አዲሱን መረጃ ለማስቀመጥ Object እናዘጋጃለን
+    let updates = {};
 
-        db.ref('tirfe_system').update(updates); //[span_58](start_span)[span_58](end_span)
-    }
+    // ሀ. የሻጩ ዋና ዳታ (Private Data)
+    updates[`tirfe_system/tenants/${username}`] = cleanData;
+
+    // ለ. የህዝብ (Public) መረጃ ለገዢዎች እንዲታይ
+    let publicProfile = { ...cleanData };
+    delete publicProfile.password;
+    delete publicProfile.activationCode;
+    delete publicProfile.staffAccounts;
+    delete publicProfile.telegramToken;
+    delete publicProfile.bankAccount;
+    updates[`tirfe_system/public_tenants/${username}`] = publicProfile;
+
+    // ሐ. ለአድሚን ማጠቃለያ የሚሆን (ከባድ የሆኑ የዕቃ ዝርዝሮችን በመቀነስ)
+    let adminSummary = { ...cleanData };
+    delete adminSummary.items;
+    delete adminSummary.products;
+    delete adminSummary.catalog;
+    delete adminSummary.taxReceipts;
+    updates[`tirfe_system/admin_tenant_summary/${username}`] = adminSummary;
+
+    // .update() በመጠቀም ፋየርቤዝ ላይ መፃፍ (Overwrite አያደርግም)
+    db.ref().update(updates)
+      .then(() => console.log("Tenant data successfully synced to Firebase!"))
+      .catch(err => console.error("Firebase Tenant Sync Error:", err));
 }
 
-function setupTenantListeners() {
-    if(typeof currentTenant !== 'undefined' && currentTenant && !window.tenantListenerAttached) { //[span_59](start_span)[span_59](end_span)
-        window.tenantListenerAttached = true; //[span_60](start_span)[span_60](end_span)
-        db.ref(`tirfe_system/tenants/${currentTenant.username}`).on('value', (snapshot) => { //[span_61](start_span)[span_61](end_span)
-            if(snapshot.exists()) {
-                localDB.tenants[currentTenant.username] = snapshot.val(); //[span_62](start_span)[span_62](end_span)
-                saveToLocalStorage(); //[span_63](start_span)[span_63](end_span)
-                // trigger UI refresh[span_64](start_span)[span_64](end_span)
-            }
-        });
+// 3. አዲስ እቃ ሲጨመር ወይም ሲቀየር የምንጠቀመው ፈንክሽን
+function updateTenantInventory(newItems) {
+    if(tenantState.profile) {
+        tenantState.profile.items = newItems;
+        saveTenantProfileToFirebase();
     }
 }
-
