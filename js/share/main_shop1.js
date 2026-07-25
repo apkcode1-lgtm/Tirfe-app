@@ -1,5 +1,5 @@
 function logout() { currentTenant = null; currentRevenueOfficer = null; localStorage.removeItem('tirfe_active_session'); switchView('welcomeGateway'); }
-function saveAndRefresh() { localDB.tenants[currentTenant.username] = currentTenant; saveToLocalStorage(); pushToFirebase(); renderApp(); checkTimeLock(); }
+function saveAndRefresh() { localDB.tenants[currentTenant.username] = currentTenant; saveToLocalStorage(); pushTenantDataToFirebase(); renderApp(); checkTimeLock(); }
 
 function collectDebt(idx) {
     let debt = currentTenant.data.debts[idx]; let remaining = debt.amount - debt.paid;
