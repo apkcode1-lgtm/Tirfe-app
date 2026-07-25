@@ -122,7 +122,7 @@ async function handleUnifiedLogin() {
             // ትክክለኛ አድሚን ሲሆን (በ APIው ከተረጋገጠ)
             localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'admin', loginMode: 'admin', username: user }));
             currentUserRole = 'admin'; 
-            if(typeof setupAdminListeners === 'function') setupAdminListeners();
+            if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners(); //[span_1](start_span)[span_1](end_span)
             if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
             
             // 💡 አዲሱ ማስተካከያ: ኩኪ ማስቀመጥ እና ወደ አዲሱ ራውተር መላክ
