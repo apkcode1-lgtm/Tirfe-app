@@ -1,0 +1,45 @@
+{
+  "redirects": [
+    {
+      "source": "/secure-html/:path*",
+      "destination": "/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/secure-html/admin/:path*",
+      "destination": "/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/secure-html/shop/:path*",
+      "destination": "/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/secure-html/buyer/:path*",
+      "destination": "/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/secure-html/delivery/:path*",
+      "destination": "/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/secure-html/revenue/:path*",
+      "destination": "/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/secure-html/staff/:path*",
+      "destination": "/index.html",
+      "permanent": false
+    }
+  ],
+  "functions": {
+    "api/router.js": {
+      "includeFiles": "secure-html/**/*.html"
+    }
+  }
+}
+
