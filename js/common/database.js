@@ -205,10 +205,31 @@ if(typeof db !== 'undefined') {
                 }
             });
 
-            const adminNodes = ['tenants', 'buyers', 'motors'];
+                        const adminNodes = ['tenants', 'buyers', 'motors'];
             adminNodes.forEach(node => {
-                db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
-                    if(snapshot.exists()) { localDB[node] = snapshot.val(); saveToLocalStorage(); triggerUIRefresh(); }
+                if (!localDB[node]) localDB[node] = {}; // ሎካል ላይ ዳታው ከሌለ ባዶ ኦብጀክት እንፈጥራለን
+                
+                let ref = db.ref(`tirfe_system/${node}`);
+                
+                // 1. አዲስ ዳታ ወደ ሲስተሙ ሲገባ
+                ref.on('child_added', (snapshot) => {
+                    localDB[node][snapshot.key] = snapshot.val();
+                    saveToLocalStorage();
+                    triggerUIRefresh();
+                });
+
+                // 2. የነበረ ዳታ ሲቀየር
+                ref.on('child_changed', (snapshot) => {
+                    localDB[node][snapshot.key] = snapshot.val();
+                    saveToLocalStorage();
+                    triggerUIRefresh();
+                });
+
+                // 3. ዳታ ሲጠፋ
+                ref.on('child_removed', (snapshot) => {
+                    delete localDB[node][snapshot.key];
+                    saveToLocalStorage();
+                    triggerUIRefresh();
                 });
             });
         }
