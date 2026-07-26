@@ -1,3 +1,18 @@
+// --------------------------------------------------------
+// 🛠️ 1. የ Dexie (IndexedDB) ዳታቤዝ ማዋቀሪያ
+// --------------------------------------------------------
+const dbLocal = new Dexie("TirfeOfflineDB");
+
+// ዳታው ምንም አይነት ቅርፅ ቢኖረውም ችግር እንዳይፈጥር በ id እና data እንከፍለዋለን
+dbLocal.version(1).stores({
+    tenants: 'id', 
+    buyers: 'id', 
+    revenueAuthorities: 'id', 
+    motors: 'id', 
+    globalData: 'id', // ለ adminSettings, tariffs, businessTypes, ወዘተ...
+    actionQueue: 'id'
+});
+
 let localDB = { 
     tenants: {}, 
     buyers: {}, 
@@ -11,14 +26,13 @@ let localDB = {
 };
 
 let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
-
-// 1. የ Action Queue ማከማቻ
-let actionQueue = JSON.parse(localStorage.getItem('tirfe_action_queue')) || [];
+let actionQueue = []; // በ Memory ውስጥ ላሉ ፈጣን ስራዎች
 
 window.addEventListener('online', handleOnlineStatus);
 window.addEventListener('offline', handleOnlineStatus);
 
-loadLocalStorageBackup();
+// የድሮው loadLocalStorageBackup በ አዲሱ loadDatabaseBackup ተቀይሯል
+loadDatabaseBackup();
 
 function handleOnlineStatus() {
     isOnline = navigator.onLine;
@@ -34,38 +48,81 @@ function handleOnlineStatus() {
         
         // ኢንተርኔት ሲመጣ መጀመሪያ የተጠራቀሙ ትዕዛዞችን ይልካል
         processActionQueue();
-        
         // በመቀጠል አሁን ያለውን የሎካል ዳታ ወደ Queue ያስገባ
         pushToFirebase();
     }
 }
 
-function loadLocalStorageBackup() {
-    let backup = localStorage.getItem('tirfe_local_db');
-    if(backup) {
-        let parsedBackup = JSON.parse(backup);
-        if(parsedBackup.tenants) localDB.tenants = parsedBackup.tenants;
-        if(parsedBackup.buyers) localDB.buyers = parsedBackup.buyers;
-        if(parsedBackup.revenueAuthorities) localDB.revenueAuthorities = parsedBackup.revenueAuthorities;
-        if(parsedBackup.motors) localDB.motors = parsedBackup.motors;
-        if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas; 
-        if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
-        if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
-        if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
-        
-        if(parsedBackup.adminSettings) {
-            localDB.adminSettings = parsedBackup.adminSettings;
-            if (localDB.adminSettings.deliveryCommissionRate === undefined) {
-                localDB.adminSettings.deliveryCommissionRate = 10;
-            }
+// --------------------------------------------------------
+// 💾 ዳታን ከ IndexedDB የማምጣት እና የማስቀመጥ ፋንክሽኖች
+// --------------------------------------------------------
+
+async function loadDatabaseBackup() {
+    try {
+        const tenants = await dbLocal.tenants.toArray();
+        tenants.forEach(t => localDB.tenants[t.id] = t.data);
+
+        const buyers = await dbLocal.buyers.toArray();
+        buyers.forEach(b => localDB.buyers[b.id] = b.data);
+
+        const revAuths = await dbLocal.revenueAuthorities.toArray();
+        revAuths.forEach(r => localDB.revenueAuthorities[r.id] = r.data);
+
+        const motors = await dbLocal.motors.toArray();
+        motors.forEach(m => localDB.motors[m.id] = m.data);
+
+        const adminSettings = await dbLocal.globalData.get('adminSettings');
+        if (adminSettings) localDB.adminSettings = adminSettings.data;
+
+        const tariffs = await dbLocal.globalData.get('tariffs');
+        if (tariffs) localDB.tariffs = tariffs.data;
+
+        const businessTypes = await dbLocal.globalData.get('businessTypes');
+        if (businessTypes) localDB.businessTypes = businessTypes.data;
+
+        const motorQuotas = await dbLocal.globalData.get('motorQuotas');
+        if (motorQuotas) localDB.motorQuotas = motorQuotas.data;
+
+        const taxReceipts = await dbLocal.globalData.get('taxReceipts');
+        if (taxReceipts) localDB.taxReceipts = taxReceipts.data;
+
+        // ወረፋዎችን ከ Dexie ማምጣት
+        const aq = await dbLocal.actionQueue.orderBy('id').toArray();
+        actionQueue = aq;
+
+        if (localDB.adminSettings && localDB.adminSettings.deliveryCommissionRate === undefined) {
+            localDB.adminSettings.deliveryCommissionRate = 10;
         }
+
+        // ሁሉም ዳታ ከወጣ በኋላ UIን እናዘምናል (የሌሎች ፋይሎች አሰራር እንዳይቋረጥ)
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
         if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
+        triggerUIRefresh();
+
+    } catch (err) {
+        console.error("Database Load Error:", err);
     }
 }
 
-function saveToLocalStorage() {
-    localStorage.setItem('tirfe_local_db', JSON.stringify(localDB));
+async function saveToDatabase() {
+    try {
+        const formatForDexie = (obj) => Object.keys(obj).map(key => ({ id: key, data: obj[key] }));
+
+        if (Object.keys(localDB.tenants).length) await dbLocal.tenants.bulkPut(formatForDexie(localDB.tenants));
+        if (Object.keys(localDB.buyers).length) await dbLocal.buyers.bulkPut(formatForDexie(localDB.buyers));
+        if (Object.keys(localDB.revenueAuthorities).length) await dbLocal.revenueAuthorities.bulkPut(formatForDexie(localDB.revenueAuthorities));
+        if (Object.keys(localDB.motors).length) await dbLocal.motors.bulkPut(formatForDexie(localDB.motors));
+
+        await dbLocal.globalData.bulkPut([
+            { id: 'adminSettings', data: localDB.adminSettings },
+            { id: 'tariffs', data: localDB.tariffs },
+            { id: 'businessTypes', data: localDB.businessTypes },
+            { id: 'motorQuotas', data: localDB.motorQuotas },
+            { id: 'taxReceipts', data: localDB.taxReceipts }
+        ]);
+    } catch (err) {
+        console.error("Database Save Error:", err);
+    }
 }
 
 function getPublicTenantsData(tenantsData) {
@@ -82,10 +139,10 @@ function getPublicTenantsData(tenantsData) {
 }
 
 // --------------------------------------------------------
-// 🛠️ 2. የ Action Queue አስተዳዳሪ ኮድ
+// 🚀 2. የ Action Queue አስተዳዳሪ ኮድ (በ Dexie የተደገፈ)
 // --------------------------------------------------------
 
-function queueAction(actionType, collection, docId, data) {
+async function queueAction(actionType, collection, docId, data) {
     const newAction = {
         id: Date.now().toString(),
         actionType: actionType, 
@@ -95,7 +152,13 @@ function queueAction(actionType, collection, docId, data) {
         timestamp: Date.now()
     };
     actionQueue.push(newAction);
-    localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
+    
+    // ከ LocalStorage ይልቅ ወደ Dexie እናስገባዋለን
+    try {
+        await dbLocal.actionQueue.put(newAction);
+    } catch (err) {
+        console.error("Queue Database save error:", err);
+    }
 }
 
 function processActionQueue() {
@@ -116,9 +179,10 @@ function processActionQueue() {
     }
 
     if (fbRequest) {
-        fbRequest.then(() => {
+        fbRequest.then(async () => {
             actionQueue.shift(); 
-            localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
+            // ወደ ፋየርቤዝ ከገባ በኋላ ከ Dexie እናጠፋዋለን
+            await dbLocal.actionQueue.delete(currentAction.id);
             if (actionQueue.length > 0) processActionQueue(); 
         }).catch(err => console.error("Firebase Sync Error, will retry:", err));
     }
@@ -127,7 +191,7 @@ function processActionQueue() {
 const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
 
 // --------------------------------------------------------
-// 🚀 3. ሚናን መሰረት ያደረጉ የማመሳሰያ ፋንክሽኖች
+// 🔧 3. ሚናን መሰረት ያደረጉ የማመሳሰያ ፋንክሽኖች
 // --------------------------------------------------------
 
 function pushAdminFirebase() {
@@ -180,7 +244,6 @@ function pushRevenueFirebase() {
             revData.lastUpdated = Date.now();
             queueAction('UPDATE', 'revenueAuthorities', currentRevenueOfficer.username, revData);
         }
-        // የገቢዎች ሰራተኛ የሞተረኛ ኮታውን በ UPDATE እንዲያዘምን ተደርጓል (ዳታ እንዳያጠፋ)
         if(localDB.motorQuotas) {
             queueAction('UPDATE', 'motorQuotas', null, cleanData(localDB.motorQuotas));
         }
@@ -197,9 +260,9 @@ function pushMotorFirebase() {
     }
 }
 
-// ዋናው መቆጣጠሪያ - ሌሎች ፋይሎች እንዳይበላሹ 
+// ዋናው መቆጣጠሪያ 
 function pushToFirebase() { 
-    saveToLocalStorage();
+    saveToDatabase(); // ከ LocalStorage ይልቅ በ Dexie አደረግነው
     
     if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
         pushAdminFirebase();
@@ -241,7 +304,7 @@ if(typeof db !== 'undefined') {
             db.ref(`tirfe_system/${node}`).once('value').then((snapshot) => {
                 if(snapshot.exists()) {
                     localDB[node] = snapshot.val();
-                    saveToLocalStorage();
+                    saveToDatabase();
                     triggerUIRefresh();
                 }
             }).catch(error => {
@@ -281,7 +344,7 @@ window.setupSecureUserListeners = function() {
                 let childKey = snapshot.key;
                 if(shouldUpdateLocal(incomingData, localDB[localDbPath][childKey])) {
                     localDB[localDbPath][childKey] = incomingData;
-                    saveToLocalStorage(); triggerUIRefresh();
+                    saveToDatabase(); triggerUIRefresh();
                 }
             });
 
@@ -290,13 +353,13 @@ window.setupSecureUserListeners = function() {
                 let childKey = snapshot.key;
                 if(shouldUpdateLocal(incomingData, localDB[localDbPath][childKey])) {
                     localDB[localDbPath][childKey] = incomingData;
-                    saveToLocalStorage(); triggerUIRefresh();
+                    saveToDatabase(); triggerUIRefresh();
                 }
             });
 
             ref.on('child_removed', (snapshot) => {
                 delete localDB[localDbPath][snapshot.key];
-                saveToLocalStorage(); triggerUIRefresh();
+                saveToDatabase(); triggerUIRefresh();
             });
         });
     }
@@ -308,7 +371,7 @@ window.setupSecureUserListeners = function() {
                 let incomingData = snapshot.val();
                 if(shouldUpdateLocal(incomingData, localDB.tenants[currentTenant.username])) {
                     localDB.tenants[currentTenant.username] = incomingData;
-                    saveToLocalStorage(); triggerUIRefresh();
+                    saveToDatabase(); triggerUIRefresh();
                 }
             }
         });
@@ -321,7 +384,7 @@ window.setupSecureUserListeners = function() {
                 let incomingData = snapshot.val();
                 if(shouldUpdateLocal(incomingData, localDB.buyers[currentBuyer.username])) {
                     localDB.buyers[currentBuyer.username] = incomingData; 
-                    saveToLocalStorage(); triggerUIRefresh(); 
+                    saveToDatabase(); triggerUIRefresh(); 
                 }
             }
         });
@@ -339,7 +402,7 @@ window.setupSecureUserListeners = function() {
                     }
                 }
                 if(hasUpdates) {
-                    saveToLocalStorage(); 
+                    saveToDatabase(); 
                     if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog(); 
                 }
             }
@@ -353,7 +416,7 @@ window.setupSecureUserListeners = function() {
                 let incomingData = snapshot.val();
                 if(shouldUpdateLocal(incomingData, localDB.revenueAuthorities[currentRevenueOfficer.username])) {
                     localDB.revenueAuthorities[currentRevenueOfficer.username] = incomingData; 
-                    saveToLocalStorage(); triggerUIRefresh(); 
+                    saveToDatabase(); triggerUIRefresh(); 
                 }
             }
         });
@@ -366,7 +429,7 @@ window.setupSecureUserListeners = function() {
                 let incomingData = snapshot.val();
                 if(shouldUpdateLocal(incomingData, localDB.motors[currentMotor.username])) {
                     localDB.motors[currentMotor.username] = incomingData;
-                    saveToLocalStorage(); triggerUIRefresh();
+                    saveToDatabase(); triggerUIRefresh();
                 }
             }
         });
@@ -414,4 +477,3 @@ window.setupSecureUserListeners = function() {
         }
     }
 }
-
