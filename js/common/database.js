@@ -144,12 +144,8 @@ function pushTenantFirebase() {
     if(typeof currentTenant !== 'undefined' && currentTenant) {
         let tenantData = cleanData(localDB.tenants[currentTenant.username]);
         if(tenantData) {
-            // ❌ ሚስጥራዊ ኮድ (Password) ወደ ዳታቤዝ እንዳይሄድ ማጥፋት
-            delete tenantData.password; 
-            delete tenantData.activationCode; 
-            delete tenantData.pass;
-
             tenantData.lastUpdated = Date.now(); 
+            
             queueAction('UPDATE', 'tenants', currentTenant.username, tenantData);
             
             let publicT = getPublicTenantsData({ [currentTenant.username]: tenantData });
@@ -169,10 +165,6 @@ function pushBuyerFirebase() {
     if(typeof currentBuyer !== 'undefined' && currentBuyer) {
         let buyerData = cleanData(localDB.buyers[currentBuyer.username]);
         if(buyerData) {
-            // ❌ ሚስጥራዊ ኮድ ወደ ዳታቤዝ እንዳይሄድ ማጥፋት
-            delete buyerData.password;
-            delete buyerData.pass;
-
             buyerData.lastUpdated = Date.now();
             queueAction('UPDATE', 'buyers', currentBuyer.username, buyerData);
         }
@@ -183,28 +175,19 @@ function pushRevenueFirebase() {
     if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
         let revData = cleanData(localDB.revenueAuthorities[currentRevenueOfficer.username]);
         if(revData) {
-            // ❌ ሚስጥራዊ ኮድ ወደ ዳታቤዝ እንዳይሄድ ማጥፋት
-            delete revData.password; 
-            delete revData.authPass; 
-            delete revData.pass;     
-
             revData.lastUpdated = Date.now();
             queueAction('UPDATE', 'revenueAuthorities', currentRevenueOfficer.username, revData);
         }
+        // የገቢዎች ሰራተኛ የሞተረኛ ኮታውን በ UPDATE እንዲያዘምን ተደርጓል (ዳታ እንዳያጠፋ)
         if(localDB.motorQuotas) {
             queueAction('UPDATE', 'motorQuotas', null, cleanData(localDB.motorQuotas));
         }
     }
 }
-
 function pushMotorFirebase() {
     if(typeof currentMotor !== 'undefined' && currentMotor) {
         let motorData = cleanData(localDB.motors[currentMotor.username]);
         if(motorData) {
-            // ❌ ሚስጥራዊ ኮድ ወደ ዳታቤዝ እንዳይሄድ ማጥፋት
-            delete motorData.password; 
-            delete motorData.pass;
-
             motorData.lastUpdated = Date.now();
             queueAction('UPDATE', 'motors', currentMotor.username, motorData);
         }
@@ -228,6 +211,43 @@ function pushToFirebase() {
 }
 
 // --------------------------------------------------------
+// 💬 Telegram እና Firebase Listeners
+// --------------------------------------------------------
+
+function sendAdminTelegramAlert(message) {
+    const backendAPIUrl = "/api/sendAdminTelegram";
+    let tgToken = (localDB.adminSettings && localDB.adminSettings.tgToken) ? localDB.adminSettings.tgToken : null;
+    let tgChatId = (localDB.adminSettings && localDB.adminSettings.tgChatId) ? localDB.adminSettings.tgChatId : null;
+    fetch(backendAPIUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: message, token: tgToken, chatId: tgChatId }) }).catch(err => console.log(err));
+}
+
+function sendTelegramAlert(message) {
+    if (typeof currentTenant === 'undefined' || !currentTenant) return;
+    fetch("/api/sendTenantTelegram", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentTenant.username, text: message }) }).catch(err => console.log(err));
+}
+function sendMotorTelegramAlert(username, message) {
+    fetch("/api/sendMotorTelegram", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username, text: message }) }).catch(err => console.log(err));
+}
+
+if(typeof db !== 'undefined') {
+    
+    const fetchStaticData = function() {
+        const staticNodes = ['tariffs', 'businessTypes', 'adminSettings'];
+        staticNodes.forEach(node => {
+            db.ref(`tirfe_system/${node}`).once('value').then((snapshot) => {
+                if(snapshot.exists()) {
+                    localDB[node] = snapshot.val();
+                    saveToLocalStorage();
+                    triggerUIRefresh();
+                }
+            }).catch(error => {
+                console.log(`Firebase Error on ${node}, running offline mode.`);
+                isOnline = false; handleOnlineStatus();
+            });
+        });
+    }
+    fetchStaticData();
+
 window.setupSecureUserListeners = function() {
     
     function shouldUpdateLocal(incomingData, localData) {
