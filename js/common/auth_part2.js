@@ -181,80 +181,71 @@ async function triggerUnifiedRegistration() {
             return; 
         }
 
-        if(regSubmitBtn) { regSubmitBtn.disabled = true; regSubmitBtn.innerText = "ፎቶ በማዘጋጀት ላይ..."; }
-        
-        let checkUser = await isSystemDataTaken(user, phone, "", "");
-        if (checkUser) { 
-            showCustomAlert("⚠️ ምዝገባው አልተሳካም", checkUser);
-            if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
-            return;
-        }
+// ... (የመጀመሪያዎቹ የፎርም መረጃዎች እንዳሉ ይቀጥላሉ)
 
-        const processImg = (file) => new Promise(res => {
-            if(typeof processImageUpload === 'function') {
-                processImageUpload(file, res);
-            } else {
-                let r = new FileReader(); 
-                r.onload = e => res(e.target.result); 
-                r.readAsDataURL(file);
+if(regSubmitBtn) { regSubmitBtn.disabled = true; regSubmitBtn.innerText = "ፎቶዎችን ወደ ሰርቨር በመጫን ላይ..."; }
+
+let checkUser = await isSystemDataTaken(user, phone, "", "");
+if (checkUser) { 
+    showCustomAlert("⚠️ ምዝገባው አልተሳካም", checkUser);
+    if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
+    return;
+}
+
+try {
+    // 1. ፎቶዎቹን በቀጥታ ወደ Firebase Storage መጫን
+    let idCardUrl = await uploadImageToStorage(idCardInput.files[0], "idCard", user);
+    let licenseUrl = await uploadImageToStorage(licenseInput.files[0], "license", user);
+
+    if(regSubmitBtn) { regSubmitBtn.innerText = "OTP በመላክ ላይ..."; }
+
+    pendingRegType = 'motor';
+    triggerOTPFlow(email);
+    
+    onVerifySuccess = () => {
+        showFormModal("🔒 የይለፍ ቃል ይፍጠሩ", [
+            { id: "newPass", label: "ለሞተረኛ አካውንትዎ አዲስ የይለፍ ቃል ይፍጠሩ፦", type: "password", placeholder: "ሚስጥራዊ ፓስዎርድ" }
+        ], async (res) => {
+            if(!res.newPass) { showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); return; }
+
+            try {
+                await auth.createUserWithEmailAndPassword(email, res.newPass);
+
+                if(!localDB.motors) localDB.motors = {};
+                localDB.motors[user] = {
+                    firstName: firstName, lastName: lastName, phone: phone, email: email,
+                    username: user, telegramToken: tgToken, plateNumber: plateNumber,
+                    region: region, zone: zone, woreda: woreda,
+                    // ❌ Base64 ተሰርዟል፣ ✅ አሁን ከ Storage የተገኘው የፎቶ ሊንክ (URL) ብቻ ዳታቤዝ ላይ ይቀመጣል
+                    idCardImage: idCardUrl, 
+                    licenseImage: licenseUrl,
+                    joinDate: new Date().getTime(),
+                    status: "pending" 
+                };
+                
+                if(isOnline && typeof db !== 'undefined') {
+                    db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
+                }
+                pushToFirebase();
+                
+                let nowForReg = new Date();
+                let timeStampReg = nowForReg.toLocaleDateString('am-ET') + " " + nowForReg.toLocaleTimeString('am-ET');
+                let tgMsg = `🏍️ አዲስ ሞተረኛ ተመዝግቧል!\n👤 ሙሉ ስም: ${firstName} ${lastName}\n🔑 ዩዘርኔም: @${user}\n📞 ስልክ: ${phone}\n🏍️ ታርጋ: ${plateNumber}`;
+                            
+                if(typeof sendAdminTelegramAlert === 'function') sendAdminTelegramAlert(tgMsg);
+
+                showCustomAlert("✅ ተሳክቷል", "በተሳካ ሁኔታ ተመዝግበዋል! መረጃዎ ሲረጋገጥ ሲስተሙን መጠቀም ይችላሉ።");
+                if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
+                switchView('welcomeGateway');
+            } catch(error) {
+                showCustomAlert("ስህተት", "ምዝገባ አልተሳካም (Firebase): " + error.message);
             }
         });
-        
-        let idCardBase64 = await processImg(idCardInput.files[0]);
-        let licenseBase64 = await processImg(licenseInput.files[0]);
-
-        if(regSubmitBtn) { regSubmitBtn.innerText = "OTP በመላክ ላይ..."; }
-
-        pendingRegType = 'motor';
-        triggerOTPFlow(email);
-        
-        onVerifySuccess = () => {
-            showFormModal("🔒 የይለፍ ቃል ይፍጠሩ", [
-                { id: "newPass", label: "ለሞተረኛ አካውንትዎ አዲስ የይለፍ ቃል ይፍጠሩ፦", type: "password", placeholder: "ሚስጥራዊ ፓስዎርድ" }
-            ], async (res) => {
-                if(!res.newPass) { showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); return; }
-
-                try {
-                    await auth.createUserWithEmailAndPassword(email, res.newPass);
-
-                    if(!localDB.motors) localDB.motors = {};
-                    localDB.motors[user] = {
-                        firstName: firstName, lastName: lastName, phone: phone, email: email,
-                        username: user, telegramToken: tgToken, plateNumber: plateNumber, // ❌ Password ተሰርዟል
-                        region: region, zone: zone, woreda: woreda,
-                        idCardImage: idCardBase64, licenseImage: licenseBase64,
-                        joinDate: new Date().getTime(),
-                        status: "pending" 
-                    };
-                    
-                    if(isOnline && typeof db !== 'undefined') {
-                        db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
-                    }
-                    pushToFirebase();
-                    
-                    let nowForReg = new Date();
-                    let timeStampReg = nowForReg.toLocaleDateString('am-ET') + " " + nowForReg.toLocaleTimeString('am-ET');
-                    let tgMsg = `🏍️ አዲስ ሞተረኛ ተመዝግቧል!\n\n` +
-                                `👤 ሙሉ ስም: ${firstName} ${lastName}\n` +
-                                `🔑 ዩዘርኔም: @${user}\n` +
-                                `📞 ስልክ: ${phone}\n` +
-                                `🏍️ የታርጋ ቁጥር / ሞተር: ${plateNumber}\n` +
-                                `📍 አድራሻ: ${region} / ${zone} / ${woreda}\n` +
-                                `📅 የተመዘገበበት ጊዜ: ${timeStampReg}\n\n` +
-                                `አስተዳዳሪ (Admin) ገፅ ላይ በመግባት ማረጋገጥ ይችላሉ።`;
-                                
-                    if(typeof sendAdminTelegramAlert === 'function') sendAdminTelegramAlert(tgMsg);
+    };
     
-                    showCustomAlert("✅ ተሳክቷል", "በተሳካ ሁኔታ ተመዝግበዋል! መረጃዎ በአስተዳዳሪ (Admin) ሲረጋገጥ ወደ ሲስተሙ ሙሉ በሙሉ መግባት ይችላሉ። አሁን ሎጊን በማድረግ መሞከር ይችላሉ።");
-                    if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
-                    switchView('welcomeGateway');
-                } catch(error) {
-                    showCustomAlert("ስህተት", "ምዝገባ አልተሳካም (Firebase): " + error.message);
-                }
-            });
-        };
-        if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
-    }
+} catch (uploadError) {
+    showCustomAlert("ስህተት", "መታወቂያ ወይም መንጃ ፈቃድ ምስሎችን ወደ ሰርቨር መጫን አልተቻለም! " + uploadError.message);
+    if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
 }
 
 // 1. የፎርጌት ማረጋገጫ (Firebase sendPasswordResetEmail በመጠቀም የተስተካከለ)
