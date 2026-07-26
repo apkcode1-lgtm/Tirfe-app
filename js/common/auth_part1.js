@@ -150,7 +150,7 @@ async function handleUnifiedLogin() {
         }
 
         // Firebase Auth በትክክል ካሳለፈው፣ ዳታቤዝ (Realtime DB) ላይ የዩዘሩን ፕሮፋይል ብቻ ፈልገን እናስገባዋለን
-            if(isOnline && typeof db !== 'undefined') {
+            if(navigator.onLine && typeof db !== 'undefined') {
         
             // --- TENANT (SHOP) CHECK ---
             let tSnap = await db.ref(`tirfe_system/tenants/${user}`).once('value');
