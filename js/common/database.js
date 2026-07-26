@@ -10,7 +10,7 @@ let localDB = {
     businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"] 
 };
 
-window.isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
+let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
 
 // 1. የ Action Queue ማከማቻ
 let actionQueue = JSON.parse(localStorage.getItem('tirfe_action_queue')) || [];
