@@ -228,6 +228,7 @@ try {
                 
                 if(isOnline && typeof db !== 'undefined') {
                     db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
+                    db.ref(`tirfe_system/usernames/${user}`).set({ role: 'motor' });
                 }
                 pushToFirebase();
                 
