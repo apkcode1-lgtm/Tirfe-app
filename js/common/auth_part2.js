@@ -127,6 +127,8 @@ async function triggerUnifiedRegistration() {
                         
                         if(isOnline && typeof db !== 'undefined') {
                             db.ref(`tirfe_system/tenants/${user}`).set(localDB.tenants[user]).catch(err => console.log(err));
+                            db.ref(`tirfe_system/usernames/${user}`).set({ role: 'tenant' });
+
                         }
                         pushToFirebase();
                         
