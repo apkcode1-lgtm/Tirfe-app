@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------
-// REGISTRATION LOGIC WITH FIREBASE AUTH & HASHING
+// REGISTRATION LOGIC WITH FIREBASE AUTH (NO PASSWORD IN REALTIME DB)
 // ---------------------------------------------------------------------
 async function triggerUnifiedRegistration() {
     let role = document.getElementById('unifiedRegRole').value;
@@ -38,15 +38,14 @@ async function triggerUnifiedRegistration() {
     
                 try {
                     await auth.createUserWithEmailAndPassword(pendingRegistrationData.email, res.newPass);
-                    let hashedPass = await hashPassword(res.newPass);
                     
                     if(!localDB.buyers) localDB.buyers = {};
                     localDB.buyers[pendingRegistrationData.user] = { 
                         username: pendingRegistrationData.user, phone: pendingRegistrationData.phone, 
                         name: pendingRegistrationData.name, email: pendingRegistrationData.email,
-                        password: hashedPass, joinDate: new Date().getTime(), receipts: [], 
+                        joinDate: new Date().getTime(), receipts: [], 
                         status: "active" 
-                    };
+                    }; // ❌ Password ዳታቤዝ ላይ እንዳይቀመጥ ተሰርዟል
                     
                     if(isOnline && typeof db !== 'undefined') {
                         db.ref(`tirfe_system/buyers/${pendingRegistrationData.user}`).set(localDB.buyers[pendingRegistrationData.user]).catch(err => console.log(err));
@@ -113,7 +112,6 @@ async function triggerUnifiedRegistration() {
        
                 try {
                     await auth.createUserWithEmailAndPassword(newEmail, res.newPass);
-                    let hashedPass = await hashPassword(res.newPass);
 
                     let proceedReg = function(shopLogoBase64) {
                         let timestampNow = new Date().getTime();
@@ -121,7 +119,7 @@ async function triggerUnifiedRegistration() {
                             shopName: shop, fullName: fullName, phone: phone, telegram: telegram || "-", address: address || "-",
                             businessType: businessType, googleMapsLink: mapsLink || "", shopLogo: shopLogoBase64 || "", gmail: newEmail,
                             region: region, zone: zone, woreda: woreda, kebele: kebele, houseNo: houseNo, tinNumber: tinNum, tradeRegistration: tradeReg,
-                            username: user, password: hashedPass, activationCode: hashedPass, codeCreatedAt: timestampNow,
+                            username: user, codeCreatedAt: timestampNow, // ❌ Password እና activationCode ተሰርዟል
                             isActivated: true, contractType: contractType, expiryDate: expiryDate, registrationFee: registrationFee,
                             status: "active", theme: "theme-deepblue", staffAccounts: [],
                             data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, accumulatedVat: 0, lastMonthlyResetDate: timestampNow } 
@@ -218,12 +216,11 @@ async function triggerUnifiedRegistration() {
 
                 try {
                     await auth.createUserWithEmailAndPassword(email, res.newPass);
-                    let hashedPass = await hashPassword(res.newPass);
 
                     if(!localDB.motors) localDB.motors = {};
                     localDB.motors[user] = {
                         firstName: firstName, lastName: lastName, phone: phone, email: email,
-                        username: user, password: hashedPass, telegramToken: tgToken, plateNumber: plateNumber,
+                        username: user, telegramToken: tgToken, plateNumber: plateNumber, // ❌ Password ተሰርዟል
                         region: region, zone: zone, woreda: woreda,
                         idCardImage: idCardBase64, licenseImage: licenseBase64,
                         joinDate: new Date().getTime(),
@@ -260,101 +257,47 @@ async function triggerUnifiedRegistration() {
     }
 }
 
-// 1. የፎርጌት ማረጋገጫ (Loading አብሮት የተጨመረበት)
+// 1. የፎርጌት ማረጋገጫ (Firebase sendPasswordResetEmail በመጠቀም የተስተካከለ)
 async function triggerForgotPassword() {
-    showFormModal("የይለፍ ቃል ማደሻ (Forgot Password)", [
-        { id: "f_user", label: "የተጠቃሚ ስምዎን (Username) ያስገቡ፦", type: "text" },
+    showFormModal("🔑 የይለፍ ቃል ማደሻ", [
+        // አሁን ዩዘርኔም አያስፈልግም፣ ኢሜል ብቻ በቂ ነው
         { id: "f_email", label: "የተመዘገቡበትን ኢሜል (Gmail) ያስገቡ፦", type: "email" }
     ], async (res) => {
-        let u = res.f_user.trim().toLowerCase();
         let e = res.f_email.trim();
-        if(!u || !e) { showCustomAlert("ስህተት", "መረጃ አልሞሉም!"); return; }
+        if(!e) { showCustomAlert("ስህተት", "እባክዎ ኢሜል ያስገቡ!"); return; }
 
         // ሎዲንግ እያደረገ መሆኑን ለተጠቃሚው ማሳወቂያ
         let submitBtn = document.querySelector('#formModalFooter button.btn-add');
-        if(submitBtn) { submitBtn.innerText = "በማረጋገጥ ላይ (Loading)..."; submitBtn.disabled = true; }
+        if(submitBtn) { submitBtn.innerText = "በመላክ ላይ (Loading)..."; submitBtn.disabled = true; }
 
-        let foundAccount = null;
-        let accType = '';
-        
         try {
-            // Firebase ላይ መፈለግ
-            if (isOnline && typeof db !== 'undefined') {
-                let tSnap = await db.ref(`tirfe_system/tenants/${u}`).once('value');
-                if(tSnap.exists() && String(tSnap.val().gmail || "").toLowerCase() === e.toLowerCase()) {
-                    foundAccount = tSnap.val(); accType = 'tenant';
-                } else {
-                    let bSnap = await db.ref(`tirfe_system/buyers/${u}`).once('value');
-                    if(bSnap.exists() && String(bSnap.val().email || "").toLowerCase() === e.toLowerCase()) {
-                        foundAccount = bSnap.val(); accType = 'buyer';
-                    } else {
-                        let mSnap = await db.ref(`tirfe_system/motors/${u}`).once('value');
-                        if(mSnap.exists() && String(mSnap.val().email || "").toLowerCase() === e.toLowerCase()) {
-                            foundAccount = mSnap.val(); accType = 'motor';
-                        } else {
-                            // የሰራተኞችንም ዩዘርኔም እንዲፈልግ የተጨመረ
-                            let sSnap = await db.ref(`tirfe_system/staffAccounts/${u}`).once('value');
-                            if(sSnap.exists() && String(sSnap.val().gmail || "").toLowerCase() === e.toLowerCase()) {
-                                foundAccount = sSnap.val(); accType = 'staff';
-                            }
-                        }
-                    }
-                }
-            }
-        } catch(err) { console.log(err); }
-
-        // በተኑን ወደ ነበረበት መመለስ
-        if(submitBtn) { submitBtn.innerText = "እሺ (OK)"; submitBtn.disabled = false; }
-
-        if(!foundAccount) { 
-            showCustomAlert("ስህተት", "በዚህ ዩዘርኔም እና ኢሜል የተመዘገበ አካውንት የለም!"); return;
+            // ፓስዋርድ ሪሴት ሊንክ በቀጥታ በ Firebase Auth ይላካል
+            await auth.sendPasswordResetEmail(e);
+            
+            if(submitBtn) { submitBtn.innerText = "እሺ (OK)"; submitBtn.disabled = false; }
+            closeActiveModal(); 
+            
+            showCustomAlert("✅ ተሳክቷል", `የይለፍ ቃል መቀየሪያ ሊንክ ወደ ${e} ተልኳል።\n\nእባክዎ ኢሜልዎን ከፍተው በሚላክልዎት ሊንክ አዲሱን የይለፍ ቃልዎን ይፍጠሩ።`);
+        } catch(error) {
+            if(submitBtn) { submitBtn.innerText = "እሺ (OK)"; submitBtn.disabled = false; }
+            console.error("Forgot Password Error: ", error);
+            
+            let errMsg = "የይለፍ ቃል መቀየሪያ መላክ አልተቻለም! እባክዎ እንደገና ይሞክሩ።";
+            if(error.code === 'auth/user-not-found') errMsg = "በዚህ ኢሜል የተመዘገበ አካውንት የለም!";
+            if(error.code === 'auth/invalid-email') errMsg = "የኢሜል አድራሻው ቅርፅ ትክክል አይደለም!";
+            
+            showCustomAlert("❌ ስህተት", errMsg);
         }
-
-        // ፎርሙን ዘግቶ ወደ OTP ኮድ መላኪያ ማለፍ
-        closeActiveModal(); 
-        pendingRegType = 'forgot_pass';
-        triggerOTPFlow(e);
-        
-        onVerifySuccess = () => {
-            showFormModal("🔑 አዲስ የይለፍ ቃል ማስተካከያ", [
-                { id: "newPass", label: "አዲሱን የይለፍ ቃልዎን ያስገቡ፦", type: "password" }
-            ], async (resPass) => {
-                let np = resPass.newPass.trim();
-                if(!np) { showCustomAlert("ስህተት", "ባዶ መሆን አይችልም!"); return; }
-                
-                let npHash = await hashPassword(np);
-
-                if(accType === 'tenant') { 
-                    if(localDB.tenants[u]) localDB.tenants[u].password = npHash; 
-                    if (isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/tenants/${u}/password`).set(npHash);
-                } 
-                else if(accType === 'buyer') { 
-                    if(localDB.buyers[u]) localDB.buyers[u].password = npHash; 
-                    if (isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/buyers/${u}/password`).set(npHash);
-                }
-                else if(accType === 'motor') { 
-                    if(localDB.motors[u]) localDB.motors[u].password = npHash;
-                    if (isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/motors/${u}/password`).set(npHash);
-                }
-                else if(accType === 'staff') { 
-                    if (isOnline && typeof db !== 'undefined') db.ref(`tirfe_system/staffAccounts/${u}/pass`).set(npHash);
-                }
-
-                pushToFirebase();
-                showCustomAlert("✅ ተሳክቷል", "የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል! አሁን አዲሱን ተጠቅመው መግባት ይችላሉ።");
-            });
-        };
     });
 }
 
-// 2. የ OTP ማሳያ (Error እንዳይፈጥር የተስተካከለ)
+// 2. የ OTP ማሳያ (ለምዝገባ ብቻ ስለሚያገለግል እንዳለ ይቀጥላል)
 function triggerOTPFlow(emailAddress) {
     emailVerificationCode = Math.floor(10000 + Math.random() * 90000).toString();
     
     let emailDisp = document.getElementById('verifyEmailDisplay');
     if(emailDisp) emailDisp.innerText = emailAddress;
     
-    // openModalContainer() ባይኖር እንኳን ሲስተሙ እንዳይቆም ያደርገዋል
     try { if (typeof openModalContainer === 'function') openModalContainer(); } catch(e){}
     
     let modalOverlay = document.getElementById('modalOverlay');
@@ -393,12 +336,3 @@ function verifyEmailCodeSubmit() {
         showCustomAlert("❌ ስህተት", "ያስገቡት ማረጋገጫ ኮድ የተሳሳተ ነው!");
     }
 }
-// Password Hashing Helper
-async function hashPassword(password) {
-    if (!password) return "";
-    const msgUint8 = new TextEncoder().encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
