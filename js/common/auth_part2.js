@@ -250,7 +250,9 @@ try {
 } catch (uploadError) {
     showCustomAlert("ስህተት", "መታወቂያ ወይም መንጃ ፈቃድ ምስሎችን ወደ ሰርቨር መጫን አልተቻለም! " + uploadError.message);
     if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
-}
+      }
+    }
+ }
 
 // 1. የፎርጌት ማረጋገጫ (Firebase sendPasswordResetEmail በመጠቀም የተስተካከለ)
 async function triggerForgotPassword() {
