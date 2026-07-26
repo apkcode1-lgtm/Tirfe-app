@@ -152,6 +152,31 @@ function getServerTimestamp() {
     return Date.now();
 }
 
+// ፋይሉን ወደ Firebase Storage ጭኖ ዳውንሎድ ሊንኩን የሚመልስ ረዳት ፋንክሽን
+async function uploadImageToStorage(file, folderName, username) {
+    if (!file) return null;
+    
+    try {
+        // የፋይሉን ስም ለየት ለማድረግ ሰዓት እንጠቀማለን (ለምሳሌ: idCard_168435234.jpg)
+        let fileExtension = file.name.split('.').pop();
+        let uniqueFileName = `${folderName}_${Date.now()}.${fileExtension}`;
+        let fullPath = `kyc_documents/${username}/${uniqueFileName}`;
+        
+        let storageRef = firebase.storage().ref(fullPath);
+        
+        // ፋይሉን መጫን
+        let snapshot = await storageRef.put(file);
+        
+        // ከተጫነ በኋላ ሊንኩን ማግኘት
+        let downloadURL = await snapshot.ref.getDownloadURL();
+        return downloadURL;
+        
+    } catch (error) {
+        console.error("Storage Upload Error:", error);
+        throw error;
+    }
+}
+
 // --------------------------------------------------------
 // 🚀 3. ሚናን መሰረት ያደረጉ የማመሳሰያ ፋንክሽኖች
 // --------------------------------------------------------
