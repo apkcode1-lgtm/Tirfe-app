@@ -184,16 +184,18 @@ async function handleUnifiedLogin() {
                     return;
                 }
             }
-            
+  
             // --- REVENUE OFFICER CHECK ---
             let rSnap = await db.ref(`tirfe_system/revenueAuthorities/${user}`).once('value');
             if(rSnap.exists()) {
                 let r = rSnap.val();
                 let rEmail = String(r.authEmail || r.email || r.gmail || "");
                 if(rEmail.toLowerCase() === email.toLowerCase()) {
-                    currentRevenueOfficer = r;
-                    currentUserRole = "revenue";
-                    if(localDB.revenueAuthorities) localDB.revenueAuthorities[user] = r;
+                    window.currentRevenueOfficer = r;
+                    window.currentUserRole = "revenue";
+                    if(!localDB.revenueAuthorities) localDB.revenueAuthorities = {};
+                    localDB.revenueAuthorities[user] = r;
+                    if(typeof saveToLocalStorage === 'function') saveToLocalStorage(); // 🔹 ገፁ ሳይቀየር ዳታው በሎካል እንዲቀመጥ ያደርጋል
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'revenue', loginMode: 'revenue', username: user }));
                     document.cookie = "userRole=revenue; path=/; max-age=86400;";
                     window.location.href = "/api/router";
