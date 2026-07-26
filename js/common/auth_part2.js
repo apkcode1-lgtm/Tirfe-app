@@ -49,6 +49,7 @@ async function triggerUnifiedRegistration() {
                     
                     if(isOnline && typeof db !== 'undefined') {
                         db.ref(`tirfe_system/buyers/${pendingRegistrationData.user}`).set(localDB.buyers[pendingRegistrationData.user]).catch(err => console.log(err));
+                        db.ref(`tirfe_system/usernames/${pendingRegistrationData.user}`).set({ role: 'buyer' });
                     }
                     pushToFirebase();
                     
