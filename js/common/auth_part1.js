@@ -19,43 +19,43 @@ async function sendSecureVerificationEmail(userEmail, verificationCode) {
         showCustomAlert("ስህተት", "ከሰርቨር (API) ጋር መገናኘት አልተቻለም። እባክዎ አፑን በ Live Server ወይም Vercel ላይ መክፈትዎን ያረጋግጡ።");
     }
 }
-
 async function isSystemDataTaken(u, p, skipTenantUser, skipBuyerUser) {
     u = u ? u.toLowerCase() : "";
-    if (u === "admin") return "ይህ ዩዘርኔም በዋና አስተዳዳሪ (Admin) ተይዟል (ትይዟል)!";
+    if (u === "admin") return "ይህ ዩዘርኔም በዋና አስተዳዳሪ (Admin) ተይዟል!";
     
+    // 1. ኦንላይን ከሆነ ከ Firebase ማረጋገጥ (አዲሱ ደህንነቱ የተጠበቀ መንገድ)
     if(isOnline && typeof db !== 'undefined') {
         try {
-            let tSnap = await db.ref(`tirfe_system/tenants/${u}`).once('value');
-            if (tSnap.exists() && u !== skipTenantUser) return "ዩዘርኔም (Username) በሌላ የሱቅ ባለቤት ተይዟል (ትይዟል)!";
-
-            let bSnap = await db.ref(`tirfe_system/buyers/${u}`).once('value');
-            if (bSnap.exists() && u !== skipBuyerUser) return "ዩዘርኔም በሌላ ደንበኛ (ገዥ) ተይዟል (ትይዟል)!";
-
-            let rSnap = await db.ref(`tirfe_system/revenueAuthorities/${u}`).once('value');
-            if (rSnap.exists() && u !== skipTenantUser) return "ይህ ዩዘርኔም በገቢዎች ባለስልጣን ተይዟል!";
+            // ሙሉ የዩዘር ዳታን ከማንበብ ይልቅ የዩዘርኔም ማውጫውን ብቻ ማንበብ
+            let userSnap = await db.ref(`tirfe_system/usernames/${u}`).once('value');
             
-            let mSnap = await db.ref(`tirfe_system/motors/${u}`).once('value');
-            if (mSnap.exists()) return "ይህ ዩዘርኔም በሌላ ሞተረኛ ተይዟል!";
-
-            let stSnap = await db.ref(`tirfe_system/staffAccounts/${u}`).once('value');
-            if (stSnap.exists() && u !== skipTenantUser) return "ዩዘርኔም በሌላ ሰራተኛ ተይዟል (ትይዟል)!";
+            if (userSnap.exists()) {
+                let role = userSnap.val().role;
+                
+                // የድሮውን ዩዘርኔም እያደስን ከሆነ ማሳለፍ (Skip)
+                if (u !== skipTenantUser && u !== skipBuyerUser) {
+                    if (role === 'tenant') return "ዩዘርኔም (Username) በሌላ የሱቅ ባለቤት ተይዟል!";
+                    if (role === 'buyer') return "ዩዘርኔም በሌላ ደንበኛ (ገዥ) ተይዟል!";
+                    if (role === 'revenue') return "ይህ ዩዘርኔም በገቢዎች ባለስልጣን ተይዟል!";
+                    if (role === 'motor') return "ይህ ዩዘርኔም በሌላ ሞተረኛ ተይዟል!";
+                    if (role === 'staff') return "ዩዘርኔም በሌላ ሰራተኛ ተይዟል!";
+                    return "ይህ ዩዘርኔም ቀድሞ ተይዟል!";
+                }
+            }
         } catch(e) {
-            console.warn("Firebase Read Error:", e);
+            console.warn("Firebase Username Read Error:", e);
         }
     }
 
+    // 2. የስልክ ቁጥር እና የሎካል ዳታቤዝ (Offline) ፍተሻ (ይህ በብራውዘር ውስጥ ብቻ ስለሚሰራ ደህንነቱ የተጠበቀ ነው)
     if (localDB.tenants) {
         for(let k in localDB.tenants) {
             let t = localDB.tenants[k];
             if (t && t.username !== skipTenantUser) {
-                if (t.username === u) return "ዩዘርኔም (Username) በሌላ የሱቅ ባለቤት ተይዟል (ትይዟል)!";
-                if (t.phone === p) return "ስልክ ቁጥር በሌላ የሱቅ ባለቤት ተይዟል (ትይዟል)!";
-                if (t.staffUser === u) return "ዩዘርኔም በሌላ ሰራተኛ ተይዟል (ትይዟል)!";
+                if (t.phone === p) return "ስልክ ቁጥር በሌላ የሱቅ ባለቤት ተይዟል!";
                 if (t.staffAccounts) {
                     for(let s of t.staffAccounts) {
-                        if (s.user === u) return "ዩዘርኔም በሌላ ሰራተኛ ተይዟል (ትይዟል)!";
-                        if (s.phone === p) return "ስልክ ቁጥር በሌላ ሰራተኛ ተይዟል (ትይዟል)!";
+                        if (s.phone === p) return "ስልክ ቁጥር በሌላ ሰራተኛ ተይዟል!";
                     }
                 }
             }
@@ -64,25 +64,22 @@ async function isSystemDataTaken(u, p, skipTenantUser, skipBuyerUser) {
     if (localDB.buyers) {
         for(let k in localDB.buyers) {
             let b = localDB.buyers[k];
-            if (b && b.username !== skipBuyerUser) {
-                if (b.username === u) return "ዩዘርኔም በሌላ ደንበኛ (ገዥ) ተይዟል (ትይዟል)!";
-                if (b.phone === p) return "ስልክ ቁጥር በሌላ ደንበኛ (ገዥ) ተይዟል (ትይዟል)!";
+            if (b && b.username !== skipBuyerUser && b.phone === p) {
+                return "ስልክ ቁጥር በሌላ ደንበኛ (ገዥ) ተይዟል!";
             }
         }
     }
     if (localDB.revenueAuthorities) {
         for(let k in localDB.revenueAuthorities) {
             let r = localDB.revenueAuthorities[k];
-            if (r && r.username !== skipTenantUser) {
-                if (r.username === u) return "ይህ ዩዘርኔም በገቢዎች ባለስልጣን ተይዟል!";
-                if (r.phone === p || r.contactPhone === p) return "ይህ ስልክ ቁጥር በገቢዎች ባለስልጣን ተይዟል!";
+            if (r && r.username !== skipTenantUser && (r.phone === p || r.contactPhone === p)) {
+                return "ይህ ስልክ ቁጥር በገቢዎች ባለስልጣን ተይዟል!";
             }
         }
     }
     if (localDB.motors) {
         for(let k in localDB.motors) {
             let m = localDB.motors[k];
-            if (m && m.username === u) return "ይህ ዩዘርኔም በሌላ ሞተረኛ ተይዟል!";
             if (m && m.phone === p) return "ይህ ስልክ ቁጥር በሌላ ሞተረኛ ተይዟል!";
         }
     }
