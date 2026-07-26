@@ -81,32 +81,26 @@ function getPublicTenantsData(tenantsData) {
 }
 
 // --------------------------------------------------------
-// 🛠️ 2. የተስተካከለ የ Action Queue አስተዳዳሪ ኮድ (የቁጥር 5 መፍትሄ)
+// 🛠️ 2. የ Action Queue አስተዳዳሪ ኮድ
 // --------------------------------------------------------
 
 function queueAction(actionType, collection, docId, data) {
     const newAction = {
-        id: Date.now().toString() + "_" + Math.random().toString(36).substr(2, 4),
+        id: Date.now().toString(),
         actionType: actionType, 
         collection: collection, 
         docId: docId, 
         payload: data, 
-        timestamp: Date.now(),
-        retryCount: 0 // የሙከራ ብዛት መቆጣጠሪያ
+        timestamp: Date.now()
     };
     actionQueue.push(newAction);
     localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
 }
 
-let isProcessingQueue = false; // በአንድ ጊዜ ሁለት ጊዜ እንዳይሰራ መቆጣጠሪያ
-
 function processActionQueue() {
-    if (!isOnline || actionQueue.length === 0 || typeof db === 'undefined' || isProcessingQueue) return;
+    if (!isOnline || actionQueue.length === 0 || typeof db === 'undefined') return;
 
-    isProcessingQueue = true;
     let currentAction = actionQueue[0];
-    if (!currentAction.retryCount) currentAction.retryCount = 0;
-
     let refPath = currentAction.docId 
         ? `tirfe_system/${currentAction.collection}/${currentAction.docId}` 
         : `tirfe_system/${currentAction.collection}`;
@@ -122,46 +116,13 @@ function processActionQueue() {
 
     if (fbRequest) {
         fbRequest.then(() => {
-            actionQueue.shift(); // በስኬት ከተላከ ከ Queue ማስወጣት
+            actionQueue.shift(); 
             localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
-            isProcessingQueue = false;
             if (actionQueue.length > 0) processActionQueue(); 
-        }).catch(err => {
-            console.error("Firebase Sync Error:", err);
-            currentAction.retryCount += 1;
-            
-            // ከ3 ጊዜ ሙከራ በኋላ አሁንም ካልሰራ Queue እንዳይዘጋ ይወገዳል
-            if (currentAction.retryCount >= 3) {
-                console.warn(`Action ID ${currentAction.id} failed 3 times. Removing from queue to prevent locking.`, err);
-                actionQueue.shift();
-            }
-            
-            localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
-            isProcessingQueue = false;
-
-            // Queueው ውስጥ የቀረ ካለ ከ 1.5 ሰከንድ በኋላ ቀጣዩን መሞከር
-            if (actionQueue.length > 0 && isOnline) {
-                setTimeout(processActionQueue, 1500);
-            }
-        });
-    } else {
-        // የማይሰራ Action አይነት ከሆነ በቀጥታ ማስወገድ
-        actionQueue.shift();
-        localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
-        isProcessingQueue = false;
-        if (actionQueue.length > 0) processActionQueue();
+        }).catch(err => console.error("Firebase Sync Error, will retry:", err));
     }
 }
-
 const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
-
-// የቁጥር 3 መፍትሄ፡ የ Firebase Server Timestamp ማግኛ ረዳት ፋንክሽን
-function getServerTimestamp() {
-    if (typeof firebase !== 'undefined' && firebase.database && firebase.database.ServerValue) {
-        return firebase.database.ServerValue.TIMESTAMP;
-    }
-    return Date.now();
-}
 
 // --------------------------------------------------------
 // 🚀 3. ሚናን መሰረት ያደረጉ የማመሳሰያ ፋንክሽኖች
@@ -183,7 +144,7 @@ function pushTenantFirebase() {
     if(typeof currentTenant !== 'undefined' && currentTenant) {
         let tenantData = cleanData(localDB.tenants[currentTenant.username]);
         if(tenantData) {
-            tenantData.lastUpdated = getServerTimestamp(); // Server Timestamp ተተክቷል
+            tenantData.lastUpdated = Date.now(); 
             
             queueAction('UPDATE', 'tenants', currentTenant.username, tenantData);
             
@@ -204,7 +165,7 @@ function pushBuyerFirebase() {
     if(typeof currentBuyer !== 'undefined' && currentBuyer) {
         let buyerData = cleanData(localDB.buyers[currentBuyer.username]);
         if(buyerData) {
-            buyerData.lastUpdated = getServerTimestamp(); // Server Timestamp ተተክቷል
+            buyerData.lastUpdated = Date.now();
             queueAction('UPDATE', 'buyers', currentBuyer.username, buyerData);
         }
     }
@@ -214,26 +175,26 @@ function pushRevenueFirebase() {
     if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
         let revData = cleanData(localDB.revenueAuthorities[currentRevenueOfficer.username]);
         if(revData) {
-            revData.lastUpdated = getServerTimestamp(); // Server Timestamp ተተክቷል
+            revData.lastUpdated = Date.now();
             queueAction('UPDATE', 'revenueAuthorities', currentRevenueOfficer.username, revData);
         }
+        // የገቢዎች ሰራተኛ የሞተረኛ ኮታውን በ UPDATE እንዲያዘምን ተደርጓል (ዳታ እንዳያጠፋ)
         if(localDB.motorQuotas) {
             queueAction('UPDATE', 'motorQuotas', null, cleanData(localDB.motorQuotas));
         }
     }
 }
-
 function pushMotorFirebase() {
     if(typeof currentMotor !== 'undefined' && currentMotor) {
         let motorData = cleanData(localDB.motors[currentMotor.username]);
         if(motorData) {
-            motorData.lastUpdated = getServerTimestamp(); // Server Timestamp ተተክቷል
+            motorData.lastUpdated = Date.now();
             queueAction('UPDATE', 'motors', currentMotor.username, motorData);
         }
     }
 }
 
-// ዋናው መቆጣጠሪያ
+// ዋናው መቆጣጠሪያ - ሌሎች ፋይሎች እንዳይበላሹ 
 function pushToFirebase() { 
     saveToLocalStorage();
     
@@ -248,6 +209,7 @@ function pushToFirebase() {
     
     processActionQueue();
 }
+
 // --------------------------------------------------------
 // 💬 Telegram እና Firebase Listeners
 // --------------------------------------------------------
@@ -263,7 +225,6 @@ function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant) return;
     fetch("/api/sendTenantTelegram", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentTenant.username, text: message }) }).catch(err => console.log(err));
 }
-
 function sendMotorTelegramAlert(username, message) {
     fetch("/api/sendMotorTelegram", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username, text: message }) }).catch(err => console.log(err));
 }
@@ -289,11 +250,10 @@ if(typeof db !== 'undefined') {
 
 window.setupSecureUserListeners = function() {
     
-    // የቁጥር 3 መፍትሄ፡ የሰዓት ማወዳደሪያውን አስተማማኝ ማድረግ
     function shouldUpdateLocal(incomingData, localData) {
         if (!localData) return true; 
-        let incomingTime = (incomingData && typeof incomingData.lastUpdated === 'number') ? incomingData.lastUpdated : 0;
-        let localTime = (localData && typeof localData.lastUpdated === 'number') ? localData.lastUpdated : 0;
+        let incomingTime = incomingData.lastUpdated || 0;
+        let localTime = localData.lastUpdated || 0;
         return incomingTime >= localTime; 
     }
 
@@ -449,4 +409,4 @@ window.setupSecureUserListeners = function() {
             if(typeof renderAdminBuyers === 'function') renderAdminBuyers();
         }
     }
-                         }
+}
