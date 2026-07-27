@@ -159,8 +159,8 @@ window.payTenantVat = function(username) {
         }
         // ==========================================================
 
-        pushRevenueFirebase();
         pushTenantFirebase();
+        pushRevenueFirebase();
         renderRevenuePanel();
         showCustomAlert("ተሳክቷል", "ክፍያው በተሳካ ሁኔታ ተሰብስቧል! የነጋዴው የተሰበሰበ ቫት 0.00 ሆኗል፤ እንዲሁም የግብር ደረሰኝ አውቶማቲክ ወደ ተከራዩ ተልኳል።");
     });
