@@ -398,7 +398,7 @@ window.acceptMotorOrder = function(index) {
     // 4. ወደ ሎካል እና ፋየርቤዝ ሴቭ ማድረግ
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushMotorFirebase();
+    if (typeof pushToFirebase === 'function') pushTenantFirebase();
     
     alert("ትዕዛዙን በተሳካ ሁኔታ ተቀብለዋል! ዝርዝር መረጃው በቴሌግራም ተልኮልዎታል።");
     renderMotorOrders(); // ቴብሉን ዳግም እንስላለን
@@ -432,7 +432,7 @@ window.cancelMotorOrder = function(index) {
 
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushMotorFirebase();
+    if (typeof pushToFirebase === 'function') pushTenantFirebase();
 
     alert("ትዕዛዙ ተሰርዟል! መረጃው ወደ ሻጩ ተመልሷል።");
     renderMotorPage(); // ገፁን ዳግም መሳል (ይህ በተኑን ተመልሶ እንዲበራ ያደርገዋል)
