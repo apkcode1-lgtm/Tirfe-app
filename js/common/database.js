@@ -195,11 +195,14 @@ function pushAdminFirebase() {
         queueAction('UPDATE', '', null, adminUpdates); 
     }
 }
-
 function pushTenantFirebase() {
     if(typeof currentTenant !== 'undefined' && currentTenant) {
+        // ✅ 1. መጀመሪያ አዲስ እቃ/ለውጥ ሲኖር የሎካል ዳታውን ሰዓት እናዘምናለን 
+        localDB.tenants[currentTenant.username].lastUpdated = Date.now();
+
         let tenantData = cleanData(localDB.tenants[currentTenant.username]);
         if(tenantData) {
+            // ለ Firebase የሚላከው ደግሞ የሰርቨር ሰዓት ይይዛል
             tenantData.lastUpdated = getServerTimestamp();
             
             queueAction('UPDATE', 'tenants', currentTenant.username, tenantData);
@@ -224,7 +227,6 @@ function pushTenantFirebase() {
         }
     }
 }
-
 function pushBuyerFirebase() {
     if(typeof currentBuyer !== 'undefined' && currentBuyer) {
         let buyerData = cleanData(localDB.buyers[currentBuyer.username]);
