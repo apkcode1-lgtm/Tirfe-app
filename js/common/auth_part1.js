@@ -157,6 +157,7 @@ async function handleUnifiedLogin() {
                     if(typeof isTenantExpired === 'function' && isTenantExpired(t, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
                     currentUserRole = "owner";
                     if(localDB.tenants) localDB.tenants[user] = t; 
+                    if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
                     pushTenantFirebase();
                     document.cookie = "userRole=shop; path=/; max-age=86400;";
@@ -220,6 +221,7 @@ async function handleUnifiedLogin() {
                     currentMotor = m;
                     currentUserRole = "motor";
                     if(localDB.motors) localDB.motors[user] = m;
+                    if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'motor', loginMode: 'motor', username: user }));
                     pushMotorFirebase();
                     document.cookie = "userRole=delivery; path=/; max-age=86400;";
@@ -239,6 +241,7 @@ async function handleUnifiedLogin() {
                         if(typeof isTenantExpired === 'function' && isTenantExpired(parentTenant, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
                         currentUserRole = "staff";
                         if(localDB.tenants) localDB.tenants[s.tenantUsername] = parentTenant;
+                        if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                         localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: parentTenant.username }));
                         pushTenantFirebase();
                         document.cookie = "userRole=staff; path=/; max-age=86400;";
