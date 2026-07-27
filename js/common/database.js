@@ -307,7 +307,6 @@ if(typeof db !== 'undefined') {
         });
     }
     fetchStaticData();
-
     window.setupSecureUserListeners = function() {
         
         // ✅ አሮጌ ዳታ አዲሱን እንዳያጠፋ የተጨመረ መከላከያ 
@@ -365,19 +364,55 @@ if(typeof db !== 'undefined') {
             });
         }
 
+        // ==========================================
+        // 🚀 የሻጩን (Tenant) ዳታ የሚያዳምጠው የተስተካከለው ክፍል
+        // ==========================================
         if(typeof currentTenant !== 'undefined' && currentTenant && !window.tenantListenerAttached) {
             window.tenantListenerAttached = true;
+            
+            // 1. የሻጩን ሙሉ ዳታ በቀጥታ ማዳመጫ
             db.ref(`tirfe_system/tenants/${currentTenant.username}`).on('value', (snapshot) => {
                 if(snapshot.exists()) {
                     let incomingData = snapshot.val();
+                    
+                    // --- አዲስ የተጨመረ: Firebase Object ካደረጋቸው ወደ Array መመለሻ ---
+                    if (incomingData && incomingData.data) {
+                        if (incomingData.data.deliveryOrders && !Array.isArray(incomingData.data.deliveryOrders)) {
+                            incomingData.data.deliveryOrders = Object.values(incomingData.data.deliveryOrders);
+                        }
+                        if (incomingData.data.remoteCarts && typeof incomingData.data.remoteCarts === 'object') {
+                            for (let user in incomingData.data.remoteCarts) {
+                                if (!Array.isArray(incomingData.data.remoteCarts[user])) {
+                                    incomingData.data.remoteCarts[user] = Object.values(incomingData.data.remoteCarts[user]);
+                                }
+                            }
+                        }
+                    }
+                    // --------------------------------------------------------
+
                     if(shouldUpdateLocal(incomingData, localDB.tenants[currentTenant.username])) {
                         localDB.tenants[currentTenant.username] = incomingData;
                         saveToLocalStorage(); triggerUIRefresh();
                     }
                 }
             });
+
+            // 2. የዴሊቨሪ ትዕዛዞች በቅጽበት ሲመጡ ለብቻው ማዳመጫ (አዲስ የተጨመረ)
+            db.ref(`tirfe_system/tenants/${currentTenant.username}/data/deliveryOrders`).on('value', (snapshot) => {
+                if(snapshot.exists()) {
+                    let orders = snapshot.val();
+                    if (!Array.isArray(orders)) orders = Object.values(orders);
+
+                    if(localDB.tenants[currentTenant.username] && localDB.tenants[currentTenant.username].data) {
+                        localDB.tenants[currentTenant.username].data.deliveryOrders = orders;
+                        saveToLocalStorage();
+                        triggerUIRefresh();
+                    }
+                }
+            });
         }
-        
+        // ==========================================
+
         if(typeof currentBuyer !== 'undefined' && currentBuyer && !window.buyerListenerAttached) {
             window.buyerListenerAttached = true;
             db.ref(`tirfe_system/buyers/${currentBuyer.username}`).on('value', (snapshot) => {
@@ -436,7 +471,8 @@ if(typeof db !== 'undefined') {
             });
         }
     };
-    setupSecureUserListeners();
+
+setupSecureUserListeners();
 
     function triggerUIRefresh() {
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
