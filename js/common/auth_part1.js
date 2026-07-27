@@ -176,6 +176,7 @@ async function handleUnifiedLogin() {
                     }
                     currentBuyer = b;
                     if(localDB.buyers) localDB.buyers[user] = b;
+                    if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: user }));
                     pushBuyerFirebase();
                     document.cookie = "userRole=buyer; path=/; max-age=86400;";
