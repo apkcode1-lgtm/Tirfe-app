@@ -15,4 +15,5 @@ if (!firebase.apps.length) {
 }
 var db = firebase.database();
 var auth = firebase.auth();
+var db = firebase.firestore();
 var perf = firebase.performance();
