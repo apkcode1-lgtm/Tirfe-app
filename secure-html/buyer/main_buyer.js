@@ -78,7 +78,7 @@ window.openBuyerProfileSettings = function() {
             localDB.buyers[newU] = currentBuyer;
         }
         
-        pushToFirebase(); 
+        pushBuyerFirebase();
         renderBuyerCatalog();
         showCustomAlert("✅ ተሳክቷል", "ፕሮፋይልዎ በትክክል ተስተካክሏል!");
     });
@@ -165,7 +165,7 @@ window.submitDeliveryFee = function(shopKey, orderId) {
             }
 
             localDB.tenants[shopKey] = t;
-            pushToFirebase();
+            pushBuyerFirebase();
             if (typeof db !== 'undefined' && navigator.onLine) {
                 db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(t.data.deliveryOrders);
             }
@@ -257,7 +257,7 @@ window.checkoutBuyerCart = function(orderType) {
                 if(!t.data.remoteCarts[currentBuyer.username]) t.data.remoteCarts[currentBuyer.username] = [];
                 newCartItems.forEach(ci => t.data.remoteCarts[currentBuyer.username].push(ci));
                 localDB.tenants[shopKey] = t;
-                pushToFirebase();
+                pushBuyerFirebase();
             }
 
             window.buyerCartData = [];
@@ -314,7 +314,7 @@ window.checkoutBuyerCart = function(orderType) {
                     if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
                     t.data.deliveryOrders.push(newOrder);
                     localDB.tenants[shopKey] = t;
-                    pushToFirebase();
+                    pushBuyerFirebase();
                 }
 
                 window.buyerCartData = [];
