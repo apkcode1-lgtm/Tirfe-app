@@ -312,7 +312,7 @@ window.checkoutBuyerCart = function(orderType) {
                     if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
                     t.data.deliveryOrders.push(newOrder);
                     localDB.tenants[shopKey] = t;
-                    pushBuyerFirebase();
+                    pushTenantFirebase();
                 }
 
                 window.buyerCartData = [];
