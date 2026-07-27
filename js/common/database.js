@@ -316,13 +316,14 @@ if(typeof db !== 'undefined') {
 
     window.setupSecureUserListeners = function() {
         
-        function shouldUpdateLocal(incomingData, localData) {
-            if (!localData) return true; 
-            let incomingTime = (incomingData && typeof incomingData.lastUpdated === 'number') ? incomingData.lastUpdated : 0;
-            let localTime = (localData && typeof localData.lastUpdated === 'number') ? localData.lastUpdated : 0;
-            return incomingTime >= localTime; 
-        }
-
+function shouldUpdateLocal(incomingData, localData) {
+    if (!localData) return true; 
+    let incomingTime = (incomingData && typeof incomingData.lastUpdated === 'number') ? incomingData.lastUpdated : 0;
+    let localTime = (localData && typeof localData.lastUpdated === 'number') ? localData.lastUpdated : 0;
+    
+    // ✅ የ Firebase ዳታ ሰዓት ከሎካል ዳታው በአዲስ ሰዓት የተመዘገበ ከሆነ ብቻ እንዲቀበል (>= የነበረውን ወደ > ቀይረነዋል)
+    return incomingTime > localTime; 
+  }
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin' && !window.adminListenerAttached) {
             window.adminListenerAttached = true;
             const adminNodes = [
