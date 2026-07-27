@@ -26,7 +26,7 @@ function renderMotorPage() {
         currentMotor.status = 'blocked';
         localDB.motors[currentMotor.username] = currentMotor;
         if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-        if (typeof pushToFirebase === 'function') pushToFirebase();
+        if (typeof pushToFirebase === 'function') pushMotorFirebase();
     }
 
     let overlay = document.getElementById('motorBlockedOverlay');
@@ -146,7 +146,7 @@ function saveMotorSettings() {
     
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushToFirebase();
+    if (typeof pushToFirebase === 'function') pushMotorFirebase();
 
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, "✅ የፕሮፋይል ማስተካከያዎ (Settings) በትክክል ተቀምጧል።");
@@ -176,7 +176,7 @@ function toggleMotorOnlineStatus() {
     localDB.motors[currentMotor.username] = currentMotor;
     
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushToFirebase();
+    if (typeof pushToFirebase === 'function') pushMotorFirebase();
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, `🔄 የስራ ሁኔታዎ ወደ ${isChecked ? 'ኦንላይን (Online)' : 'ኦፍላይን (Offline)'} ተቀይሯል።`);
     }
@@ -224,7 +224,7 @@ function submitMotorCredit() {
 
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushToFirebase();
+    if (typeof pushToFirebase === 'function') pushMotorFirebase();
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, `💰 ሂሳብዎ ላይ ${amount} ብር ክሬዲት ተሞልቷል!\nአጠቃላይ ክሬዲት፡ ${currentMotor.credit} ETB`);
     }
@@ -398,7 +398,7 @@ window.acceptMotorOrder = function(index) {
     // 4. ወደ ሎካል እና ፋየርቤዝ ሴቭ ማድረግ
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushToFirebase();
+    if (typeof pushToFirebase === 'function') pushMotorFirebase();
     
     alert("ትዕዛዙን በተሳካ ሁኔታ ተቀብለዋል! ዝርዝር መረጃው በቴሌግራም ተልኮልዎታል።");
     renderMotorOrders(); // ቴብሉን ዳግም እንስላለን
@@ -432,7 +432,7 @@ window.cancelMotorOrder = function(index) {
 
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushToFirebase();
+    if (typeof pushToFirebase === 'function') pushMotorFirebase();
 
     alert("ትዕዛዙ ተሰርዟል! መረጃው ወደ ሻጩ ተመልሷል።");
     renderMotorPage(); // ገፁን ዳግም መሳል (ይህ በተኑን ተመልሶ እንዲበራ ያደርገዋል)
@@ -460,7 +460,7 @@ window.clearIncomingFee = function() {
 
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushToFirebase();
+    if (typeof pushToFirebase === 'function') pushMotorFirebase();
     if (typeof sendMotorTelegramAlert === 'function') {
         let blockMsg = currentMotor.status === 'blocked' ?
         "\n\n⚠️ ክሬዲትዎ 25 ብር ስለደረሰ አካውንትዎ ታግዷል! እባክዎ ክሬዲት ይሙሉ።" : "\n\nአሁን አዲስ ትዕዛዝ መቀበል ይችላሉ!";
@@ -550,7 +550,7 @@ function completeMotorOrder(index) {
     
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushToFirebase();
+    if (typeof pushToFirebase === 'function') pushMotorFirebase();
 
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, `✅ ትዕዛዝ በተሳካ ሁኔታ አድረሷል!\n\n🏢 ሱቅ: ${order.shopName}\n👤 ደንበኛ: ${order.buyerName}\n💵 ያገኙት ክፍያ: ${actualFee} ETB`);
@@ -739,7 +739,7 @@ async function processMotorRegistration() {
             }
             
             if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-            if (typeof pushToFirebase === 'function') pushToFirebase();
+            if (typeof pushToFirebase === 'function') pushMotorFirebase();
 
             // ማስተካከያ:- አዲስ ሞተረኛ ሲመዘገብ የተስማማንባቸውን መረጃዎች አካተን ወደ አድሚን እንልካለን
             let nowForReg2 = new Date();
@@ -791,7 +791,7 @@ window.clearMotorData = function() {
     localDB.motors[currentMotor.username] = currentMotor;
     
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushToFirebase();
+    if (typeof pushToFirebase === 'function') pushMotorFirebase();
 
     alert("✅ የሞተረኛ ዳታዎ በተሳካ ሁኔታ ፀድቶ አዲስ ጀምሯል!");
     renderMotorPage();
