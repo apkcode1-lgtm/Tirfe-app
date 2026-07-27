@@ -158,6 +158,7 @@ async function handleUnifiedLogin() {
                     currentUserRole = "owner";
                     if(localDB.tenants) localDB.tenants[user] = t; 
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
+                    pushTenantFirebase();
                     document.cookie = "userRole=shop; path=/; max-age=86400;";
                     window.location.href = "/api/router";
                     return;
@@ -176,6 +177,7 @@ async function handleUnifiedLogin() {
                     currentBuyer = b;
                     if(localDB.buyers) localDB.buyers[user] = b;
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: user }));
+                    pushBuyerFirebase();
                     document.cookie = "userRole=buyer; path=/; max-age=86400;";
                     window.location.href = "/api/router";
                     return;
