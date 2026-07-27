@@ -6,7 +6,7 @@ window.saveAdminEmailSettings = function() {
     localDB.adminSettings.adminEmail = email;
     localDB.adminSettings.adminAppPass = pass;
     
-    pushToFirebase();
+    pushAdminFirebase();
     showCustomAlert("ተሳክቷል", "የዋና አከራይ ኢሜል ማዋቀሪያ (SMTP) በተሳካ ሁኔታ ተቀምጧል!");
 };
 
@@ -19,7 +19,7 @@ window.saveAdminSystemSettings = function() {
     localDB.adminSettings.tgToken = tgToken;
     localDB.adminSettings.tgChatId = tgChatId;
     localDB.adminSettings.bankAccount = bankAccount;
-    pushToFirebase();
+    pushAdminFirebase();
 
     showCustomAlert("ተሳክቷል", "የዋና አከራይ ቴሌግራም እና ባንክ መረጃ በተሳካ ሁኔታ ተቀምጧል!");
 };
@@ -33,7 +33,7 @@ window.openVATSettings = function() {
         let vat = parseFloat(res.vatRate) || 0;
         if(!localDB.adminSettings) localDB.adminSettings = { tgToken: '', tgChatId: '', bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 };
         localDB.adminSettings.vatRate = vat;
-        pushToFirebase();
+        pushTenantFirebase();
         showCustomAlert("ተሳክቷል", `የቫት መጠን ወደ ${vat}% በተሳካ ሁኔታ ተስተካክሏል! ይህ መጠን በተከራዮች ገፅ ላይ ይታያል።`);
     });
 };
@@ -61,7 +61,7 @@ window.openTariffSettings = function() {
             });
         }
         
-        pushToFirebase();
+        pushTenantFirebase();
         renderAdminPanel(); // ማሳያው እንዲታደስ
         showCustomAlert("ተሳክቷል", `ታሪፉ ለ "${res.tariffTier}" በተሳካ ሁኔታ ወደ ${newAmount} ETB ተቀይሯል! አዲስ ሲመዘገቡ ይህ ዋጋ ይመጣል።\n\n${updatedCount > 0 ? `እንዲሁም ${updatedCount} ነባር ተከራዮች ላይ የታሪፍ ማስተካከያ ተደርጓል።` : ''}`);
     });
@@ -122,7 +122,7 @@ window.addNewBizType = function() {
     }
     
     localDB.businessTypes.push(newType);
-    pushToFirebase();
+    pushTenantFirebase();
     if (typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
     renderBizTypesList();
     inputField.value = ''; // clear input
@@ -205,7 +205,7 @@ async function registerTenant() {
                     data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, accumulatedVat: 0, lastMonthlyResetDate: timestampNow } 
                 };
 
-                pushToFirebase(); renderAdminPanel();
+                pushTenantFirebase(); renderAdminPanel();
                 
                 document.getElementById('newShopName').value = ''; document.getElementById('newFullName').value = '';
                 document.getElementById('newUsername').value = ''; document.getElementById('newEmail').value = '';
@@ -399,8 +399,7 @@ window.openMotorTariffSettings = function() {
         let rate = parseFloat(res.deliveryCommissionRate) || 0;
         if(!localDB.adminSettings) localDB.adminSettings = { tgToken: '', tgChatId: '', bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 };
         localDB.adminSettings.deliveryCommissionRate = rate;
-        pushToFirebase();
-       
+        pushMotorFirebase();
         showCustomAlert("ተሳክቷል", `የሞተረኛ ኮሚሽን መጠን ወደ ${rate}% በተሳካ ሁኔታ ተስተካክሏል! ይህ መጠን ሞተረኞች ክፍያ ሲቀበሉ ይቆረጣል።`);
     });
 };
@@ -470,7 +469,7 @@ window.toggleMotorStatus = function(username) {
             m.status = "blocked";
         }
         
-        pushToFirebase(); 
+        pushMotorFirebase(); 
         renderAdminMotors();
         showCustomAlert("ተስተካክሏል", "የሞተረኛው ሁኔታ በተሳካ ሁኔታ ተቀይሯል።");
     }
@@ -478,8 +477,7 @@ window.toggleMotorStatus = function(username) {
 
 window.deleteMotor = function(username) {
     showCustomConfirm("ሞተረኛ ማጥፊያ", "ይህንን ሞተረኛ ሙሉ በሙሉ ለማጥፋት እርግጠኛ ኖት?", () => { 
-        delete localDB.motors[username]; 
-        pushToFirebase(); 
+        pushMotorFirebase();
         renderAdminMotors(); 
     });
 };
@@ -594,7 +592,7 @@ function renderAdminPanel() {
 }
 
 window.deleteBuyer = function(username) {
-    showCustomConfirm("ገዥ ማጥፊያ", "ይህንን ገዥ ማጥፋት ይፈልጋሉ?", () => { delete localDB.buyers[username]; pushToFirebase(); renderAdminBuyers(); });
+    showCustomConfirm("ገዥ ማጥፊያ", "ይህንን ገዥ ማጥፋት ይፈልጋሉ?", () => { delete localDB.buyers[username]; pushBuyerFirebase(); renderAdminBuyers(); });
 };
 
 function renderAdminBuyers() {
@@ -618,7 +616,7 @@ window.toggleBuyerStatus = function(username) {
     if(localDB.buyers && localDB.buyers[username]) {
         let b = localDB.buyers[username];
         b.status = b.status === "blocked" ? "active" : "blocked";
-        pushToFirebase(); renderAdminBuyers(); showCustomAlert("ተስተካክሏል", "የገዥው መረጃ ሁኔታ ተቀይሯል።");
+        pushBuyerFirebase(); renderAdminBuyers(); showCustomAlert("ተስተካክሏል", "የገዥው መረጃ ሁኔታ ተቀይሯል።");
     }
 };
 
@@ -626,15 +624,15 @@ function regenerateTenantCode(user) {
     let t = localDB.tenants[user]; let newCode = generateRandomCode();
     t.activationCode = newCode; t.password = newCode;
     t.codeCreatedAt = new Date().getTime(); t.isActivated = false; 
-    localDB.tenants[user] = t; pushToFirebase(); renderAdminPanel();
+    localDB.tenants[user] = t; pushTenantFirebase(); renderAdminPanel();
     showCustomAlert("ኮድ ተለውጧል", `ለተከራዩ አዲስ ኮድ ተፈጥሯል፦ ${newCode}`);
 }
 
 function toggleTenantStatus(user) { 
     let t = localDB.tenants[user]; t.status = t.status === "active" ? "blocked" : "active";
-    pushToFirebase(); renderAdminPanel();
+    pushTenantFirebase(); renderAdminPanel();
 }
 
 function deleteTenant(user) { 
-    showCustomConfirm("ተከራይ ማጥፊያ", "ይህንን ተከራይ ሙሉ በሙሉ ለማጥፋት እርግጠኛ ኖት?", () => { delete localDB.tenants[user]; pushToFirebase(); renderAdminPanel(); });
+    showCustomConfirm("ተከራይ ማጥፊያ", "ይህንን ተከራይ ሙሉ በሙሉ ለማጥፋት እርግጠኛ ኖት?", () => { delete localDB.tenants[user]; pushTenantFirebase(); renderAdminPanel(); });
 }
