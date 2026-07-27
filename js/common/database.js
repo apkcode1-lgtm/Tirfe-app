@@ -1,5 +1,5 @@
 // ==========================================
-// 📁 database.js - ሙሉው የተስተካከለ ኮድ (ከ Storage አፕሎድ ጋር)
+// 📁 database.js - ሙሉው የተስተካከለ ኮድ
 // ==========================================
 
 let localDB = { 
@@ -144,14 +144,6 @@ function processActionQueue() {
 
 const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
 
-// የ Firebase Server Timestamp ማግኛ ረዳት ፋንክሽን
-function getServerTimestamp() {
-    if (typeof firebase !== 'undefined' && firebase.database && firebase.database.ServerValue) {
-        return firebase.database.ServerValue.TIMESTAMP;
-    }
-    return Date.now();
-}
-
 // --------------------------------------------------------
 // ☁️ 3. ፋይሎችን ወደ Firebase Storage የመጫኛ ረዳት ፋንክሽን
 // --------------------------------------------------------
@@ -160,17 +152,14 @@ async function uploadImageToStorage(file, folderName, username) {
     if (!file) return null;
     
     try {
-        // የፋይሉን ስም ለየት ለማድረግ ሰዓት እንጠቀማለን (ለምሳሌ: idCard_168435234.jpg)
         let fileExtension = file.name.split('.').pop();
         let uniqueFileName = `${folderName}_${Date.now()}.${fileExtension}`;
         let fullPath = `kyc_documents/${username}/${uniqueFileName}`;
         
         let storageRef = firebase.storage().ref(fullPath);
         
-        // ፋይሉን መጫን
         let snapshot = await storageRef.put(file);
         
-        // ከተጫነ በኋላ ሊንኩን ማግኘት
         let downloadURL = await snapshot.ref.getDownloadURL();
         return downloadURL;
         
@@ -181,7 +170,7 @@ async function uploadImageToStorage(file, folderName, username) {
 }
 
 // --------------------------------------------------------
-// 🚀 4. ሚናን መሰረት ያደረጉ የማመሳሰያ ፋንክሽኖች
+// 🚀 4. ሚናን መሰረት ያደረጉ የማመሳሰያ ፋንክሽኖች (ሰዓት የተስተካከለበት)
 // --------------------------------------------------------
 
 function pushAdminFirebase() {
@@ -195,15 +184,16 @@ function pushAdminFirebase() {
         queueAction('UPDATE', '', null, adminUpdates); 
     }
 }
+
 function pushTenantFirebase() {
     if(typeof currentTenant !== 'undefined' && currentTenant) {
-        // ✅ 1. መጀመሪያ አዲስ እቃ/ለውጥ ሲኖር የሎካል ዳታውን ሰዓት እናዘምናለን 
-        localDB.tenants[currentTenant.username].lastUpdated = Date.now();
+        // ✅ የሎካል እና የ Firebase ሰዓት አንድ አይነት እንዲሆን Date.now() እንጠቀማለን
+        let currentTime = Date.now();
+        localDB.tenants[currentTenant.username].lastUpdated = currentTime;
 
         let tenantData = cleanData(localDB.tenants[currentTenant.username]);
         if(tenantData) {
-            // ለ Firebase የሚላከው ደግሞ የሰርቨር ሰዓት ይይዛል
-            tenantData.lastUpdated = getServerTimestamp();
+            tenantData.lastUpdated = currentTime;
             
             queueAction('UPDATE', 'tenants', currentTenant.username, tenantData);
             
@@ -214,7 +204,7 @@ function pushTenantFirebase() {
                 address: tenantData.address,
                 googleMapsLink: tenantData.googleMapsLink,
                 shopLogo: tenantData.shopLogo,
-                lastUpdated: tenantData.lastUpdated
+                lastUpdated: currentTime
             };
             queueAction('UPDATE', 'public_tenants', currentTenant.username, publicTenantData);
 
@@ -227,11 +217,13 @@ function pushTenantFirebase() {
         }
     }
 }
+
 function pushBuyerFirebase() {
     if(typeof currentBuyer !== 'undefined' && currentBuyer) {
+        let currentTime = Date.now();
         let buyerData = cleanData(localDB.buyers[currentBuyer.username]);
         if(buyerData) {
-            buyerData.lastUpdated = getServerTimestamp();
+            buyerData.lastUpdated = currentTime;
             queueAction('UPDATE', 'buyers', currentBuyer.username, buyerData);
         }
     }
@@ -239,9 +231,10 @@ function pushBuyerFirebase() {
 
 function pushRevenueFirebase() {
     if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
+        let currentTime = Date.now();
         let revData = cleanData(localDB.revenueAuthorities[currentRevenueOfficer.username]);
         if(revData) {
-            revData.lastUpdated = getServerTimestamp();
+            revData.lastUpdated = currentTime;
             queueAction('UPDATE', 'revenueAuthorities', currentRevenueOfficer.username, revData);
         }
         if(localDB.motorQuotas) {
@@ -252,9 +245,10 @@ function pushRevenueFirebase() {
 
 function pushMotorFirebase() {
     if(typeof currentMotor !== 'undefined' && currentMotor) {
+        let currentTime = Date.now();
         let motorData = cleanData(localDB.motors[currentMotor.username]);
         if(motorData) {
-            motorData.lastUpdated = getServerTimestamp();
+            motorData.lastUpdated = currentTime;
             queueAction('UPDATE', 'motors', currentMotor.username, motorData);
         }
     }
@@ -316,14 +310,21 @@ if(typeof db !== 'undefined') {
 
     window.setupSecureUserListeners = function() {
         
-function shouldUpdateLocal(incomingData, localData) {
-    if (!localData) return true; 
-    let incomingTime = (incomingData && typeof incomingData.lastUpdated === 'number') ? incomingData.lastUpdated : 0;
-    let localTime = (localData && typeof localData.lastUpdated === 'number') ? localData.lastUpdated : 0;
-    
-    // ✅ የ Firebase ዳታ ሰዓት ከሎካል ዳታው በአዲስ ሰዓት የተመዘገበ ከሆነ ብቻ እንዲቀበል (>= የነበረውን ወደ > ቀይረነዋል)
-    return incomingTime > localTime; 
-  }
+        // ✅ አሮጌ ዳታ አዲሱን እንዳያጠፋ የተጨመረ መከላከያ 
+        function shouldUpdateLocal(incomingData, localData) {
+            // ገና ያልተላከ አዲስ ዳታ በ Queue ውስጥ ካለ ከ Firebase የሚመጣውን አንቀበልም
+            let pendingQueue = actionQueue || JSON.parse(localStorage.getItem('tirfe_action_queue')) || [];
+            if (pendingQueue.length > 0) {
+                return false; 
+            }
+
+            if (!localData) return true; 
+            let incomingTime = (incomingData && typeof incomingData.lastUpdated === 'number') ? incomingData.lastUpdated : 0;
+            let localTime = (localData && typeof localData.lastUpdated === 'number') ? localData.lastUpdated : 0;
+            
+            return incomingTime > localTime; 
+        }
+
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin' && !window.adminListenerAttached) {
             window.adminListenerAttached = true;
             const adminNodes = [
