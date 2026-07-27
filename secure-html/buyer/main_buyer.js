@@ -102,7 +102,6 @@ window.addToBuyerCart = function(shopKey, itemIdx, itemName, price, availableRem
         let qty = parseFloat(res.qty) || 0;
         if(qty <= 0) { showCustomAlert("ስህተት", "የተሳሳተ ብዛት!"); return; }
         if(qty > availableRem) { showCustomAlert("ብዛት የለም", "የጠየቁት ብዛት በአሁኑ ሰዓት ከስቶር የለም (አልቋል)!"); return; }
-
         let existIdx = window.buyerCartData.findIndex(c => c.shopKey === shopKey && c.itemIdx === itemIdx);
         if(existIdx > -1) {
             let totalWanted = window.buyerCartData[existIdx].qty + qty;
@@ -186,7 +185,6 @@ window.renderBuyerCart = function() {
         if(cartTotalBar) cartTotalBar.innerHTML = `አጠቃላይ ሂሳብ: <span id="buyerCartTotalSum" style="color: var(--success-color);">0</span> ብር`;
         return;
     }
-
     section.style.display = 'block'; listBody.innerHTML = '';
     let grandTotal = 0;
     window.buyerCartData.forEach((c, i) => {
@@ -218,11 +216,9 @@ window.renderBuyerCart = function() {
 };
 
 window.removeFromBuyerCart = function(i) { if(window.buyerCartData) { window.buyerCartData.splice(i, 1); renderBuyerCart(); } };
+
 window.checkoutBuyerCart = function(orderType) {
-    if(!window.buyerCartData || window.buyerCartData.length === 0) { 
-        showCustomAlert("ስህተት", "ምንም ዕቃ አልመረጡም!"); 
-        return; 
-    }
+    if(!window.buyerCartData || window.buyerCartData.length === 0) { showCustomAlert("ስህተት", "ምንም ዕቃ አልመረጡም!"); return; }
 
     let shopKey = window.buyerCartData[0].shopKey;
     let t = localDB.tenants[shopKey];
@@ -246,25 +242,25 @@ window.checkoutBuyerCart = function(orderType) {
                 });
             });
 
+            // Overwrite fix: Fetch latest remoteCarts from Firebase before pushing
             if (typeof db !== 'undefined' && navigator.onLine) {
-                let targetPath = `tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`;
-                db.ref(targetPath).once('value').then(snap => {
+                db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`).once('value').then(snap => {
                     let latestCart = snap.exists() ? snap.val() : [];
-                    if (!Array.isArray(latestCart)) latestCart = Object.values(latestCart);
                     newCartItems.forEach(ci => latestCart.push(ci));
-                    
-                    return db.ref(targetPath).set(latestCart);
-                }).then(() => {
-                    window.buyerCartData = [];
-                    renderBuyerCart();
-                    showCustomAlert("✅ ተሳክቷል", "ትዕዛዞችዎ በተሳካ ሁኔታ ተልከዋል!");
-                }).catch(err => {
-                    console.error("Cart Push Error:", err);
-                    showCustomAlert("ስህተት", "ትዕዛዙን መላክ አልተቻለም። እባክዎ ድጋሚ ይሞክሩ።");
+                    db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`).set(latestCart);
                 });
             } else {
-                showCustomAlert("ስህተት", "ትዕዛዝ ለመላክ የኢንተርኔት ግንኙነት ያስፈልጋል!");
+                if(!t.data) t.data = {};
+                if(!t.data.remoteCarts) t.data.remoteCarts = {};
+                if(!t.data.remoteCarts[currentBuyer.username]) t.data.remoteCarts[currentBuyer.username] = [];
+                newCartItems.forEach(ci => t.data.remoteCarts[currentBuyer.username].push(ci));
+                localDB.tenants[shopKey] = t;
+                pushBuyerFirebase();
             }
+
+            window.buyerCartData = [];
+            renderBuyerCart();
+            showCustomAlert("✅ ተሳክቷል", "ትዕዛዞችዎ በተሳካ ሁኔታ ተልከዋል! ሱቁ ሲያረጋግጥ የ'ተቆረጡ ደረሰኞች' ቦታ ላይ ይደርስዎታል።");
         });
     } else if(orderType === 'delivery') {
         showFormModal("🚚 ዴሊቨሪ ማዘዣ", [
@@ -278,7 +274,7 @@ window.checkoutBuyerCart = function(orderType) {
             ]}
         ], (res) => {
             if(!res.address || !res.phone || !res.transport) {
-                showCustomAlert("ስህተት", "እባክዎ ሁሉንም ግዴታ የሆኑትን መረጃዎች ይሙሉ!");
+                showCustomAlert("ስህተት", "እባክዎ ያላስገቡት ወይም ያልመረጡት የፎርም ዝርዝር አለ! ሁሉንም ግዴታ የሆኑትን በትክክል ይሙሉ!");
                 return;
             }
 
@@ -286,45 +282,43 @@ window.checkoutBuyerCart = function(orderType) {
             let vatAmount = (grandTotal * vatRate) / 100;
             let finalTotal = grandTotal + vatAmount;
             let confirmMsg = `የታዘዙ ዕቃዎች: ${combinedItems}\nየትራንስፖርት: ${res.transport === 'car' ? '🚗 መኪና' : '🏍️ ሞተረኛ'}\n\nጠቅላላ የሚጠበቅ ሂሳብ: ${finalTotal.toFixed(2)} ETB\n\nይህንን ትዕዛዝ ወደ ሻጩ መላክ እርግጠኛ ነዎት?`;
-            
             showCustomConfirm("📦 የትዕዛዝ ማረጋገጫ (Order Checkout)", confirmMsg, () => {
                 let orderId = Math.floor(100000 + Math.random() * 900000);
                 let newOrder = {
                     orderId: orderId, buyerUser: currentBuyer.username, buyerPhone: res.phone,
                     address: res.address, mapLink: res.mapLink,
-                    itemIdx: window.buyerCartData[0].itemIdx,
+                    itemIdx: window.buyerCartData[0].itemIdx, // Primary ID for legacy logic
                     itemName: combinedItems,
-                    qty: 1, 
+                    qty: 1, // Quantity representing 1 grouped package
                     price: grandTotal, 
                     total: grandTotal,
                     status: "pending", date: getTodayFormatted(),
                     transport: res.transport, deliveryFeePaid: 0,
-                    cartItems: window.buyerCartData
+                    cartItems: window.buyerCartData // Preserving original array
                 };
 
+                // Overwrite fix: Fetch latest deliveryOrders from Firebase before pushing
                 if (typeof db !== 'undefined' && navigator.onLine) {
-                    let deliveryPath = `tirfe_system/tenants/${shopKey}/data/deliveryOrders`;
-                    db.ref(deliveryPath).once('value').then(snap => {
+                    db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).once('value').then(snap => {
                         let latestOrders = snap.exists() ? snap.val() : [];
-                        // Firebase Array ወደ Object ከተቀየረ ወደ Array መመለሻ
-                        if (!Array.isArray(latestOrders)) latestOrders = Object.values(latestOrders);
-                        
+                        // Check to prevent double-click duplicates
                         if(!latestOrders.find(o => o.orderId === orderId)) {
                             latestOrders.push(newOrder);
-                            return db.ref(deliveryPath).set(latestOrders);
+                            db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(latestOrders);
                         }
-                    }).then(() => {
-                        window.buyerCartData = [];
-                        renderBuyerCart();
-                        showCustomAlert("ተሳክቷል", "ትዕዛዝዎ በዴሊቨሪ ለሻጩ ተልኳል።");
-                        renderBuyerCatalog();
-                    }).catch(err => {
-                        console.error("Delivery Order Error:", err);
-                        showCustomAlert("ስህተት", "ትዕዛዙ አልተላከም። እባክዎ የኢንተርኔት መስመርዎን ያረጋግጡ።");
                     });
                 } else {
-                    showCustomAlert("ስህተት", "ትዕዛዝ ለመላክ የኢንተርኔት ግንኙነት ያስፈልጋል!");
+                    if(!t.data) t.data = {};
+                    if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
+                    t.data.deliveryOrders.push(newOrder);
+                    localDB.tenants[shopKey] = t;
+                    pushBuyerFirebase();
                 }
+
+                window.buyerCartData = [];
+                renderBuyerCart();
+                showCustomAlert("ተሳክቷል", "ትዕዛዝዎ በዴሊቨሪ ለሻጩ ተልኳል። ሻጩ ሲቀበለው በገጽዎ ላይ 'በመንገድ ላይ ነው' የሚል ምልክት ያያሉ።");
+                renderBuyerCatalog();
             });
         });
     }
@@ -421,7 +415,6 @@ window.renderBuyerCatalog = async function() {
                         }
                     });
                 }
-
                 if(liveBuyer && t.data && t.data.deliveryOrders) {
                     t.data.deliveryOrders.forEach(ord => {
                         if(ord.buyerUser === liveBuyer.username) {
@@ -629,4 +622,3 @@ window.addEventListener('DOMContentLoaded', () => {
         window.renderBuyerCatalog();
     }
 });
-
