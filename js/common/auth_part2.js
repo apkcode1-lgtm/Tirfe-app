@@ -51,7 +51,7 @@ async function triggerUnifiedRegistration() {
                         db.ref(`tirfe_system/buyers/${pendingRegistrationData.user}`).set(localDB.buyers[pendingRegistrationData.user]).catch(err => console.log(err));
                         db.ref(`tirfe_system/usernames/${pendingRegistrationData.user}`).set({ role: 'buyer' });
                     }
-                    pushToFirebase();
+                    pushBuyerFirebase();
                     
                     showCustomAlert("✅ ተሳክቷል", "በተሳካ ሁኔታ ተመዝግበዋል! አሁን በሚያውቁት ፓስዎርድ ሎጊን በማድረግ ይግቡ።");
                     if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
@@ -131,7 +131,7 @@ async function triggerUnifiedRegistration() {
                             db.ref(`tirfe_system/usernames/${user}`).set({ role: 'tenant' });
 
                         }
-                        pushToFirebase();
+                        pushTenantFirebase();
                         
                         let capitalTierAmh = "ያልተመረጠ";
                         if (capitalTier === 'low') capitalTierAmh = "ዝቅተኛ (Low)";
@@ -230,7 +230,7 @@ try {
                     db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
                     db.ref(`tirfe_system/usernames/${user}`).set({ role: 'motor' });
                 }
-                pushToFirebase();
+                pushMotorFirebase();
                 
                 let nowForReg = new Date();
                 let timeStampReg = nowForReg.toLocaleDateString('am-ET') + " " + nowForReg.toLocaleTimeString('am-ET');
