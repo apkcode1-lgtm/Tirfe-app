@@ -164,7 +164,7 @@ window.submitDeliveryFee = function(shopKey, orderId) {
             }
 
             localDB.tenants[shopKey] = t;
-            pushBuyerFirebase();
+            pushMotorFirebase();
             if (typeof db !== 'undefined' && navigator.onLine) {
                 db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(t.data.deliveryOrders);
             }
