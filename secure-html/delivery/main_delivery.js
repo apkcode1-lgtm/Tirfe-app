@@ -224,7 +224,7 @@ function submitMotorCredit() {
 
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushMotorFirebase();
+    if (typeof pushToFirebase === 'function') pushMotorFirebase();        pushAdminFirebase();
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, `💰 ሂሳብዎ ላይ ${amount} ብር ክሬዲት ተሞልቷል!\nአጠቃላይ ክሬዲት፡ ${currentMotor.credit} ETB`);
     }
@@ -398,7 +398,9 @@ window.acceptMotorOrder = function(index) {
     // 4. ወደ ሎካል እና ፋየርቤዝ ሴቭ ማድረግ
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushTenantFirebase();
+    if (typeof pushToFirebase === 'function') 
+    pushTenantFirebase(); 
+    pushMotorFirebase();
     
     alert("ትዕዛዙን በተሳካ ሁኔታ ተቀብለዋል! ዝርዝር መረጃው በቴሌግራም ተልኮልዎታል።");
     renderMotorOrders(); // ቴብሉን ዳግም እንስላለን
@@ -432,8 +434,9 @@ window.cancelMotorOrder = function(index) {
 
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushTenantFirebase();
-
+    if (typeof pushToFirebase === 'function') 
+    pushTenantFirebase();
+    pushMotorFirebase();
     alert("ትዕዛዙ ተሰርዟል! መረጃው ወደ ሻጩ ተመልሷል።");
     renderMotorPage(); // ገፁን ዳግም መሳል (ይህ በተኑን ተመልሶ እንዲበራ ያደርገዋል)
 };
@@ -460,8 +463,10 @@ window.clearIncomingFee = function() {
 
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushMotorFirebase();
-    if (typeof sendMotorTelegramAlert === 'function') {
+    if (typeof pushToFirebase === 'function') 
+    pushMotorFirebase();
+    pushAdminFirebase();
+        if (typeof sendMotorTelegramAlert === 'function') {
         let blockMsg = currentMotor.status === 'blocked' ?
         "\n\n⚠️ ክሬዲትዎ 25 ብር ስለደረሰ አካውንትዎ ታግዷል! እባክዎ ክሬዲት ይሙሉ።" : "\n\nአሁን አዲስ ትዕዛዝ መቀበል ይችላሉ!";
         sendMotorTelegramAlert(currentMotor.username, `✅ ክፍያ ተረጋግጧል!\n\nገዥው የከፈለው: ${feeCollected} ETB\nየተቆረጠ ኮሚሽን: ${commissionAmount} ETB` + blockMsg);
