@@ -9,7 +9,7 @@ window.saveRevenueProfileData = function() {
     if(nPass) currentRevenueOfficer.authPass = nPass;
     let targetUser = currentRevenueOfficer.authUser || currentRevenueOfficer.username;
     localDB.revenueAuthorities[targetUser] = currentRevenueOfficer;
-    pushToFirebase();
+    pushRevenueFirebase();
     
     document.getElementById('revenueProfileSettingsCard').classList.add('hidden');
     renderRevenuePanel();
@@ -31,7 +31,7 @@ window.setMotorQuotaLimit = function() {
     if(!localDB.motorQuotas) localDB.motorQuotas = {};
     localDB.motorQuotas[locKey] = parseInt(limitVal); // ወደ ዳታቤዝ ማስገባት
     
-    pushToFirebase();
+    pushRevenueFirebase();
     renderRevenuePanel();
     showCustomAlert("ተሳክቷል", `በእርስዎ ምድብ የሚፈቀደው ከፍተኛ የሞተረኛ ብዛት ጣሪያ ወደ ${limitVal} በተሳካ ሁኔታ ተወስኗል!`);
     document.getElementById('revMotorLimitInput').value = '';
@@ -159,7 +159,7 @@ window.payTenantVat = function(username) {
         }
         // ==========================================================
 
-        pushToFirebase();
+        pushTenantFirebase();
         renderRevenuePanel();
         showCustomAlert("ተሳክቷል", "ክፍያው በተሳካ ሁኔታ ተሰብስቧል! የነጋዴው የተሰበሰበ ቫት 0.00 ሆኗል፤ እንዲሁም የግብር ደረሰኝ አውቶማቲክ ወደ ተከራዩ ተልኳል።");
     });
@@ -174,7 +174,7 @@ window.closeRevenueBudgetAnnual = function() {
         
             localDB.revenueAuthorities[targetUser] = currentRevenueOfficer;
             
-            pushToFirebase();
+            pushRevenueFirebase();
             renderRevenuePanel();
             showCustomAlert("በጀት ተዘግቷል", "የአመቱ የቫት በጀት በተሳካ ሁኔታ ተዘግቶ ወደ 0.00 ተመልሷል።");
         }
