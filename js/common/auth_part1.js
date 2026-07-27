@@ -196,6 +196,7 @@ async function handleUnifiedLogin() {
                     localDB.revenueAuthorities[user] = r;
                     if(typeof saveToLocalStorage === 'function') saveToLocalStorage(); // 🔹 ገፁ ሳይቀየር ዳታው በሎካል እንዲቀመጥ ያደርጋል
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'revenue', loginMode: 'revenue', username: user }));
+                    pushRevenueFirebase();
                     document.cookie = "userRole=revenue; path=/; max-age=86400;";
                     window.location.href = "/api/router";
                     return;
@@ -219,6 +220,7 @@ async function handleUnifiedLogin() {
                     currentUserRole = "motor";
                     if(localDB.motors) localDB.motors[user] = m;
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'motor', loginMode: 'motor', username: user }));
+                    pushMotorFirebase();
                     document.cookie = "userRole=delivery; path=/; max-age=86400;";
                     window.location.href = "/api/router";
                     return;
@@ -237,6 +239,7 @@ async function handleUnifiedLogin() {
                         currentUserRole = "staff";
                         if(localDB.tenants) localDB.tenants[s.tenantUsername] = parentTenant;
                         localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: parentTenant.username }));
+                        pushTenantFirebase();
                         document.cookie = "userRole=staff; path=/; max-age=86400;";
                         window.location.href = "/api/router";
                         return;
