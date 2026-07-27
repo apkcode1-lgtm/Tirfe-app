@@ -252,7 +252,7 @@ function openAdminTenantEditor(user) {
         t.registrationFee = parseFloat(res.registrationFee) || 0;
         t.expiryDate = res.expiryDate;
         
-        localDB.tenants[user] = t; pushToFirebase(); renderAdminPanel();
+        localDB.tenants[user] = t; pushTenantFirebase(); renderAdminPanel();
         showCustomAlert("ተሳክቷል", "የተከራዩ መረጃ በተሳካ ሁኔታ ተሻሽሏል!");
     });
 }
@@ -318,7 +318,7 @@ window.openRevenueRegistrationModal = function() {
                 status: "active"
             };
 
-            pushToFirebase();
+            pushRevenueFirebase();
             
             // ምርጫዎቹ ሪፍሬሽ ሳይደረግ ወዲያውኑ ለተከራይ እንዲታዩ መላክ
             if(typeof updateAllLocationDropdowns === 'function') {
@@ -367,7 +367,7 @@ window.renderAdminRevenueList = function() {
 window.deleteRevenueAuth = function(key) {
     showCustomConfirm("ገቢ ማጥፊያ", "ይህንን የገቢ ባለስልጣን አካውንት ማጥፋት ይፈልጋሉ?", () => {
         delete localDB.revenueAuthorities[key];
-        pushToFirebase();
+        pushRevenueFirebase();
         
         // ዳታው ሲጠፋ ምርጫውም አብሮ እንዲስተካከል
         if(typeof updateAllLocationDropdowns === 'function') {
