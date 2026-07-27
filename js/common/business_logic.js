@@ -5,7 +5,7 @@ function isTenantExpired(tenant, errorElement) {
         let expiry = new Date(tenant.expiryDate); expiry.setHours(0,0,0,0);
         if(today > expiry) {
             tenant.status = "blocked";
-            localDB.tenants[tenant.username] = tenant; pushToFirebase();
+            localDB.tenants[tenant.username] = tenant; pushTenantFirebase();
             errorElement.innerText = "🔒 የኪራይ ውልዎ ጊዜ አልቋል! እባክዎ ባለቤቱን ያነጋግሩ።"; return true;
         }
     }
