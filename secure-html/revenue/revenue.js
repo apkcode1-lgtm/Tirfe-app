@@ -103,7 +103,6 @@ function renderRevenuePanel() {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#94a3b8;">በእርስዎ ምድብ የተመዘገበ ግብር ከፋይ (ተከራይ) እስካሁን የለም።</td></tr>`;
     }
 }
-
 window.payTenantVat = function(username) {
     let t = localDB.tenants[username];
     if(!t || !t.data) return;
@@ -125,7 +124,6 @@ window.payTenantVat = function(username) {
         let targetUser = currentRevenueOfficer.authUser || currentRevenueOfficer.username;
         localDB.revenueAuthorities[targetUser] = currentRevenueOfficer;
 
-        // --- አዲሱ የግብር ደረሰኝ (Tax Receipt) ሎጂክ እዚህ ይገባል ---
         let recId = Math.floor(100000 + Math.random() * 900000);
         let todayDate = typeof getTodayFormatted === 'function' ? getTodayFormatted() : new Date().toISOString().split('T')[0];
         let newTaxReceipt = {
@@ -143,28 +141,45 @@ window.payTenantVat = function(username) {
             tenantTin: t.tinNumber || "-",
             reason: "የቫት (VAT) ግብር ክፍያ"
         };
+        
         if(!t.data.taxReceipts) t.data.taxReceipts = [];
         t.data.taxReceipts.push(newTaxReceipt);
 
         if(!localDB.taxReceipts) localDB.taxReceipts = [];
         localDB.taxReceipts.push(newTaxReceipt);
-        // ----------------------------------------------------
 
+        // እዳውን ዜሮ ማድረግ
         t.data.accumulatedVat = 0;
         localDB.tenants[username] = t;
-        // ================== ማስተካከያ የተደረገበት (2 እና 3) ==================
-        // የግብር ሰብሳቢው (Revenue) ዳታ ብቻ ሳይሆን፣ የሻጩ/ተከራዩ 0.00 የሆነው የቫት ዳታ እና ደረሰኝ በቀጥታ ወደ ሻጩ ገፅ (Firebase) እንዲገባ
-        if(typeof db !== 'undefined' && typeof isOnline !== 'undefined' && isOnline) {
-            db.ref(`tirfe_system/tenants/${username}`).set(JSON.parse(JSON.stringify(t))).catch(err => console.error(err));
-        }
-        // ==========================================================
 
-        pushTenantFirebase();
-        pushRevenueFirebase();
+        // በቀጥታ ወደ Firebase መላክ (ለገቢዎች ሰራተኛው)
+        if(typeof db !== 'undefined' && isOnline) {
+             let currentTime = Date.now();
+             currentRevenueOfficer.lastUpdated = currentTime;
+             db.ref(`tirfe_system/revenueAuthorities/${targetUser}`).update({
+                 monthlyVat: currentRevenueOfficer.monthlyVat,
+                 annualVat: currentRevenueOfficer.annualVat,
+                 lastUpdated: currentTime
+             });
+             
+             // በቀጥታ ወደ Firebase መላክ (ለሻጩ/ተከራዩ) - እዳው 0 መሆኑን እና ደረሰኙን
+             t.lastUpdated = currentTime;
+             db.ref(`tirfe_system/tenants/${username}`).update({
+                 "data/accumulatedVat": 0,
+                 "data/taxReceipts": t.data.taxReceipts,
+                 lastUpdated: currentTime
+             }).then(() => {
+                 // የ Public Tenant ዳታንም Update ማድረግ ካስፈለገ
+                 db.ref(`tirfe_system/public_tenants/${username}/lastUpdated`).set(currentTime);
+             }).catch(err => console.error(err));
+        }
+
+        saveToLocalStorage(); // ዳታውን ሎካል ላይም ማስቀመጥ
         renderRevenuePanel();
         showCustomAlert("ተሳክቷል", "ክፍያው በተሳካ ሁኔታ ተሰብስቧል! የነጋዴው የተሰበሰበ ቫት 0.00 ሆኗል፤ እንዲሁም የግብር ደረሰኝ አውቶማቲክ ወደ ተከራዩ ተልኳል።");
     });
 };
+
 window.closeRevenueBudgetAnnual = function() {
     showCustomConfirm("በጀት መዝጊያ", "በእርግጥ የአመቱን በጀት መዝጋት ይፈልጋሉ? ይህ ድርጊት የወሩን እና የአመቱን የቫት ድምር ወደ 0.00 ይመልሰዋል።", () => {
         if(currentRevenueOfficer) {
