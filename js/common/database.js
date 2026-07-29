@@ -405,9 +405,10 @@ if(typeof db !== 'undefined') {
                 }
             });
         }
-        
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer && !window.revenueListenerAttached) {
             window.revenueListenerAttached = true;
+            
+            // የገቢዎች ሰራተኛውን የራሱን ዳታ ማንበብ
             db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).on('value', (snapshot) => {
                 if(snapshot.exists()) { 
                     let incomingData = snapshot.val();
@@ -417,8 +418,27 @@ if(typeof db !== 'undefined') {
                     }
                 }
             });
-        }
-        
+
+            // አዲሱ ኮድ: የሻጮችን (Tenants) ዳታ ከ Firebase ማንበብ 
+            db.ref(`tirfe_system/tenants`).on('value', (snapshot) => {
+                if(snapshot.exists()) {
+                    let incomingTenants = snapshot.val();
+                    let hasUpdates = false;
+                    for (let tUser in incomingTenants) {
+                        let tData = incomingTenants[tUser];
+                        // የገቢዎች ሰራተኛው ክልል፣ ዞን እና ወረዳ ጋር የሚመሳሰሉትን ሻጮች ብቻ መውሰድ (ወይም ሁሉንም አውርዶ renderRevenuePanel ላይ ማጣራት)
+                        if(shouldUpdateLocal(tData, localDB.tenants[tUser])) {
+                             localDB.tenants[tUser] = tData;
+                             hasUpdates = true;
+                        }
+                    }
+                    if(hasUpdates) {
+                        saveToLocalStorage();
+                        if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
+                    }
+                }
+            });
+        } 
         if(typeof currentMotor !== 'undefined' && currentMotor && !window.motorListenerAttached) {
             window.motorListenerAttached = true;
             db.ref(`tirfe_system/motors/${currentMotor.username}`).on('value', (snapshot) => {
