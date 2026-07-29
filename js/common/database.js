@@ -344,7 +344,6 @@ if(typeof db !== 'undefined') {
                             hasUpdates = true;
 
                         }
-
                     }
                     if(hasUpdates) {
                 saveToLocalStorage(); 
@@ -383,8 +382,7 @@ if(typeof db !== 'undefined') {
                 saveToLocalStorage();
                 if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
             });
-            // 🆕 ጥገና: ከዚህ በፊት ለሞተረኛ (motors) ጭራሽ listener ስላልነበረ የሞተረኛ መቁጠሪያው ባዶ ይታይ ነበር።
-
+            
             // የገቢዎች ሰራተኛው ምድብ (ክልል/ዞን/ወረዳ) ውስጥ ያሉትን ሞተረኞች ብቻ Query በማድረግ ማንበብ
             db.ref(`tirfe_system/motors`).orderByChild('locationKey').equalTo(officerLocKey).on('value', (snapshot) => {
                 if(!localDB.motors) localDB.motors = {};
