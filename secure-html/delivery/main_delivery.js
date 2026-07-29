@@ -261,27 +261,16 @@ function submitMotorCredit() {
     renderMotorPage();
 }
 
-// 7. ትዕዛዞችን ማሳያ (Active Deliveries) - ከ Firebase ጋር የተገናኘ
+// 7. ትዕዛዞችን ማሳያ (Active Deliveries) - የተስተካከለ
 function renderMotorOrders() {
     const tbody = document.getElementById('motorActiveOrdersBody');
     if (!tbody) return;
     
-    // ትዕዛዞቹ እስኪመጡ ድረስ 'እየፈለገ ነው' የሚል እናሳያለን
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">ትዕዛዞችን ከሰርቨር በማምጣት ላይ...</td></tr>`;
-
-    // ዳታውን ከ Firebase ማምጣት
-    if (typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined' && currentMotor && currentMotor.username) {
-        db.ref(`tirfe_system/motors/${currentMotor.username}/activeOrders`).once('value').then(snap => {
-            let liveOrders = snap.val() || [];
-            currentMotor.activeOrders = liveOrders; // ዳታውን አፕዴት እናደርጋለን
-            drawOrdersTable(liveOrders); // ቴብሉን የምንስልበትን ፈንክሽን እንጠራለን
-        }).catch(err => {
-            console.error(err);
-            drawOrdersTable(currentMotor.activeOrders || []); // ስህተት ካጋጠመ የቆየውን ያሳያል
-        });
-    } else {
-        drawOrdersTable(currentMotor.activeOrders || []); // ኦፍላይን ከሆነ የቆየውን ያሳያል
-    }
+    // ዳታቤዝ (.on listener) በ database.js ላይ ስለተሰራ፣ 
+    // እዚህ ጋር በድጋሚ ከ Firebase ማምጣት አያስፈልግም። በቀጥታ ሎካል ያለውን እናሳያለን።
+    let liveOrders = (typeof currentMotor !== 'undefined' && currentMotor.activeOrders) ? currentMotor.activeOrders : [];
+    
+    drawOrdersTable(liveOrders);
 
     // ቴብሉን የምንስልበት (Loop የሚያደርገው) ሎጂክ
     function drawOrdersTable(activeOrders) {
@@ -326,6 +315,7 @@ function renderMotorOrders() {
         });
     }
 }
+
 // 8. ኦርደር ሲቀበል (Lock & Link) - ከ Firebase ጋር የተገናኘ
 window.acceptMotorOrder = function(index) {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
