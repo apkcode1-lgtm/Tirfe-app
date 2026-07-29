@@ -52,7 +52,6 @@ async function triggerUnifiedRegistration() {
                         db.ref(`tirfe_system/usernames/${pendingRegistrationData.user}`).set({ role: 'buyer' });
                     }
                     pushBuyerFirebase();
-                    pushAdminFirebase();   
                     
                     showCustomAlert("✅ ተሳክቷል", "በተሳካ ሁኔታ ተመዝግበዋል! አሁን በሚያውቁት ፓስዎርድ ሎጊን በማድረግ ይግቡ።");
                     if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
@@ -121,6 +120,7 @@ async function triggerUnifiedRegistration() {
                             shopName: shop, fullName: fullName, phone: phone, telegram: telegram || "-", address: address || "-",
                             businessType: businessType, googleMapsLink: mapsLink || "", shopLogo: shopLogoBase64 || "", gmail: newEmail,
                             region: region, zone: zone, woreda: woreda, kebele: kebele, houseNo: houseNo, tinNumber: tinNum, tradeRegistration: tradeReg,
+                            locationKey: `${region}_${zone}_${woreda}`, // 🆕 ገቢዎች ባለስልጣን በክልል+ዞን+ወረዳ ተጣምሮ Firebase ላይ Query (ማጣራት) እንዲያደርግ የሚያስችል መለያ
                             username: user, codeCreatedAt: timestampNow, // ❌ Password እና activationCode ተሰርዟል
                             isActivated: true, contractType: contractType, expiryDate: expiryDate, registrationFee: registrationFee,
                             status: "active", theme: "theme-deepblue", staffAccounts: [],
@@ -132,9 +132,7 @@ async function triggerUnifiedRegistration() {
                             db.ref(`tirfe_system/usernames/${user}`).set({ role: 'tenant' });
 
                         }
-                        pushAdminFirebase();
                         pushTenantFirebase();
-                        pushRevenueFirebase();
                         
                         let capitalTierAmh = "ያልተመረጠ";
                         if (capitalTier === 'low') capitalTierAmh = "ዝቅተኛ (Low)";
@@ -222,6 +220,7 @@ try {
                     firstName: firstName, lastName: lastName, phone: phone, email: email,
                     username: user, telegramToken: tgToken, plateNumber: plateNumber,
                     region: region, zone: zone, woreda: woreda,
+                    locationKey: `${region}_${zone}_${woreda}`, // 🆕 ገቢዎች ባለስልጣን በክልል+ዞን+ወረዳ ተጣምሮ ሞተረኞችን Query (ማጣራት እና መቁጠር) እንዲያደርግ የሚያስችል መለያ
                     // ❌ Base64 ተሰርዟል፣ ✅ አሁን ከ Storage የተገኘው የፎቶ ሊንክ (URL) ብቻ ዳታቤዝ ላይ ይቀመጣል
                     idCardImage: idCardUrl, 
                     licenseImage: licenseUrl,
@@ -233,8 +232,6 @@ try {
                     db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
                     db.ref(`tirfe_system/usernames/${user}`).set({ role: 'motor' });
                 }
-                pushAdminFirebase();
-                pushRevenueFirebase();    
                 pushMotorFirebase();
                 
                 let nowForReg = new Date();
@@ -338,3 +335,4 @@ function verifyEmailCodeSubmit() {
         showCustomAlert("❌ ስህተት", "ያስገቡት ማረጋገጫ ኮድ የተሳሳተ ነው!");
     }
 }
+
