@@ -144,7 +144,6 @@ tr:hover td { background-color: var(--hover-color) !important; }
    ========================================================================== */
 .grid-3 { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px; }
 @media(min-width: 768px) { .grid-3 { grid-template-columns: repeat(3, 1fr); } .btn-clear { grid-column: span 2; } }
-
 .profile-data { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); font-size: 0.9rem; }
 .profile-data label { font-weight: bold; color: #94a3b8; }
 .profile-data span { color: var(--warning-color); font-weight: bold; }
@@ -207,7 +206,6 @@ tr:hover td { background-color: var(--hover-color) !important; }
    ========================================================================== */
 .offline-tag { background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; animation: blink 1.5s infinite; }
 @keyframes blink { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
-
 .critical-offline-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(11, 15, 25, 0.95); z-index: 99999; display: flex; justify-content: center; align-items: center; padding: 20px; text-align: center; }
 .offline-status-card { background-color: #151f32; border: 1px solid rgba(248, 113, 113, 0.3); padding: 35px 25px; border-radius: 16px; max-width: 460px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
 .offline-status-card .icon-zone { font-size: 3.5rem; margin-bottom: 15px; animation: pulse-glow 2s infinite ease-in-out; }
@@ -274,13 +272,17 @@ img.goog-te-gadget-icon {
 
         <section id="revenueProfileSettingsCard" class="section-box hidden" style="border-color: var(--purple-color); margin-bottom: 20px;">
             <h3 style="color: var(--purple-color); margin-bottom: 10px;">⚙️ የገቢዎች ፕሮፋይል ማስተካከያ</h3>
-            <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 10px;">እዚህ ላይ የአስተዳዳሪውን ስም፣ ኢሜል እና የይለፍ ቃል ብቻ መቀየር ይችላሉ። ሌላ መረጃ መቀየር አይፈቀድም።</p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 10px;">የአስተዳዳሪውን ስም እዚህ በቀጥታ መቀየር ይችላሉ። ኢሜል እና የይለፍ ቃል ለደህንነት ሲባል የአሁኑን የይለፍ ቃል በማረጋገጥ ብቻ ይቀየራሉ።</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <input type="text" id="revOfficerName" placeholder="የአስተዳዳሪው ስም (Admin Name)">
-                <input type="email" id="revOfficerEmail" placeholder="ኢሜል (Gmail)">
-                <input type="password" id="revOfficerPassword" placeholder="አዲስ የይለፍ ቃል (Password)">
+                <input type="email" id="revOfficerEmail" placeholder="ኢሜል (Gmail)" disabled style="opacity:0.7; cursor:not-allowed;">
             </div>
-            <button class="btn-sell btn-block" style="margin-top: 10px; background-color: var(--purple-color);" onclick="saveRevenueProfileData()">💾 የፕሮፋይል ለውጦችን አስቀምጥ</button>
+            <button class="btn-sell btn-block" style="margin-top: 10px; background-color: var(--purple-color);" onclick="saveRevenueProfileData()">💾 ስም አስቀምጥ</button>
+
+            <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; border-top: 1px dashed rgba(148,163,184,0.3); padding-top: 14px;">
+                <button class="btn-config btn-block" style="flex:1; min-width:160px; background-color: var(--warning-color); color:#1e293b; font-weight:bold;" onclick="changeRevenuePassword()">🔑 የይለፍ ቃል ቀይር</button>
+                <button class="btn-config btn-block" style="flex:1; min-width:160px; background-color: var(--accent-color); color:#fff; font-weight:bold;" onclick="changeRevenueEmail()">📧 ኢሜል ቀይር</button>
+            </div>
         </section>
 
         <section class="dashboard" style="margin-bottom: 20px;">
@@ -377,11 +379,5 @@ img.goog-te-gadget-icon {
 <script defer src="js/common/auth_part1.js"></script>
 <script defer src="js/common/auth_part2.js"></script>
 <script defer src="/api/router?file=revenue.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
 </body>
 </html>
-
-
-
