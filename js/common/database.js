@@ -1,7 +1,6 @@
 // ==========================================
 // 📁 database.js - ሙሉው የተስተካከለ ኮድ
 // ==========================================
-
 let localDB = { 
     tenants: {}, 
     buyers: {}, 
@@ -11,38 +10,30 @@ let localDB = {
     taxReceipts: [], 
     adminSettings: { bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 }, 
     tariffs: { low: 500, medium: 1000, high: 2000 }, 
-    businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"] 
+    businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"]
 };
-
 let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
-
 // 1. የ Action Queue ማከማቻ
 let actionQueue = JSON.parse(localStorage.getItem('tirfe_action_queue')) || [];
 window.addEventListener('online', handleOnlineStatus);
 window.addEventListener('offline', handleOnlineStatus);
-
 loadLocalStorageBackup();
-
 function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
     const criticalScreen = document.getElementById('criticalOfflineScreen');
-
     if(!isOnline) {
         if(tag) tag.classList.remove('hidden');
         if(criticalScreen) criticalScreen.classList.remove('hidden');
     } else {
         if(tag) tag.classList.add('hidden');
         if(criticalScreen) criticalScreen.classList.add('hidden');
-        
         // ኢንተርኔት ሲመጣ መጀመሪያ የተጠራቀሙ ትዕዛዞችን ይልካል
-        processActionQueue();
-        
+       processActionQueue();
         // በመቀጠል አሁን ያለውን የሎካል ዳታ ወደ Queue ያስገባል
         pushToFirebase();
     }
 }
-
 function loadLocalStorageBackup() {
     let backup = localStorage.getItem('tirfe_local_db');
     if(backup) {
@@ -55,7 +46,6 @@ function loadLocalStorageBackup() {
         if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
         if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
         if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
-        
         if(parsedBackup.adminSettings) {
             localDB.adminSettings = parsedBackup.adminSettings;
             if (localDB.adminSettings.deliveryCommissionRate === undefined) {
@@ -66,38 +56,31 @@ function loadLocalStorageBackup() {
         if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
     }
 }
-
 function saveToLocalStorage() {
     localStorage.setItem('tirfe_local_db', JSON.stringify(localDB));
 }
-
 // --------------------------------------------------------
 // 🛠️ 2. የተስተካከለ የ Action Queue አስተዳዳሪ (የዳታ መጥፋት እንዳይከሰት የተስተካከለ)
 // --------------------------------------------------------
-
 function queueAction(actionType, collection, docId, data) {
     const newAction = {
         id: Date.now().toString() + "_" + Math.random().toString(36).substr(2, 4),
         actionType: actionType, 
         collection: collection, 
         docId: docId, 
-        payload: data, 
+       payload: data, 
         timestamp: Date.now(),
         retryCount: 0
     };
     actionQueue.push(newAction);
-    localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
+   localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
 }
-
 let isProcessingQueue = false;
-
 function processActionQueue() {
     if (!isOnline || actionQueue.length === 0 || typeof db === 'undefined' || isProcessingQueue) return;
-
     isProcessingQueue = true;
     let currentAction = actionQueue[0];
     if (!currentAction.retryCount) currentAction.retryCount = 0;
-
     let refPath = currentAction.docId 
         ? `tirfe_system/${currentAction.collection}/${currentAction.docId}` 
         : `tirfe_system/${currentAction.collection}`;
@@ -109,7 +92,6 @@ function processActionQueue() {
     } else if (currentAction.actionType === 'DELETE') {
         fbRequest = db.ref(refPath).remove();
     }
-
     if (fbRequest) {
         fbRequest.then(() => {
             // በስኬት ከተላከ ብቻ ከ Queue ማስወጣት
@@ -119,12 +101,10 @@ function processActionQueue() {
             if (actionQueue.length > 0) processActionQueue(); 
         }).catch(err => {
             console.error("Firebase Sync Error:", err);
-            currentAction.retryCount += 1;
-            
+            currentAction.retryCount += 1;           
             // ❌ ዳታው እንዳይጠፋ ከ Queue ውስጥ አይሰረዝም!
             localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
             isProcessingQueue = false;
-
             // ከ 3 ጊዜ በላይ ከተሳሳተ 10 ሰከንድ፣ አለበለዚያ 2 ሰከንድ አርፎ እንደገና ይሞክራል (Exponential Backoff)
             if (isOnline) {
                 let delayTime = (currentAction.retryCount >= 3) ? 10000 : 2000;
@@ -139,64 +119,49 @@ function processActionQueue() {
         if (actionQueue.length > 0) processActionQueue();
     }
 }
-
 const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
-
 // --------------------------------------------------------
 // ☁️ 3. ፋይሎችን ወደ Firebase Storage የመጫኛ ረዳት ፋንክሽን
 // --------------------------------------------------------
-
 async function uploadImageToStorage(file, folderName, username) {
     if (!file) return null;
-    
-    try {
-        let fileExtension = file.name.split('.').pop();
+     try {
+       let fileExtension = file.name.split('.').pop();
         let uniqueFileName = `${folderName}_${Date.now()}.${fileExtension}`;
         let fullPath = `kyc_documents/${username}/${uniqueFileName}`;
-        
         let storageRef = firebase.storage().ref(fullPath);
-        
         let snapshot = await storageRef.put(file);
-        
         let downloadURL = await snapshot.ref.getDownloadURL();
         return downloadURL;
-        
-    } catch (error) {
+      } catch (error) {
         console.error("Storage Upload Error:", error);
         throw error;
     }
 }
-
 // --------------------------------------------------------
 // 🚀 4. ሚናን መሰረት ያደረጉ የማመሳሰያ ፋንክሽኖች (ሰዓት የተስተካከለበት)
 // --------------------------------------------------------
-
 function pushAdminFirebase() {
     let adminUpdates = {};
     if(localDB.motorQuotas) adminUpdates['motorQuotas'] = cleanData(localDB.motorQuotas);
     if(localDB.tariffs) adminUpdates['tariffs'] = cleanData(localDB.tariffs);
     if(localDB.businessTypes) adminUpdates['businessTypes'] = cleanData(localDB.businessTypes);
     if(localDB.adminSettings) adminUpdates['adminSettings'] = cleanData(localDB.adminSettings);
-
     if(Object.keys(adminUpdates).length > 0) {
         queueAction('UPDATE', '', null, adminUpdates); 
     }
 }
-
 function pushTenantFirebase() {
     if(typeof currentTenant !== 'undefined' && currentTenant) {
         // ✅ የሎካል እና የ Firebase ሰዓት አንድ አይነት እንዲሆን Date.now() እንጠቀማለን
         let currentTime = Date.now();
         localDB.tenants[currentTenant.username].lastUpdated = currentTime;
-
         let tenantData = cleanData(localDB.tenants[currentTenant.username]);
         if(tenantData) {
             tenantData.lastUpdated = currentTime;
-            
             queueAction('UPDATE', 'tenants', currentTenant.username, tenantData);
-            
             let publicTenantData = {
-                shopName: tenantData.shopName,
+              shopName: tenantData.shopName,
                 businessType: tenantData.businessType,
                 phone: tenantData.phone,
                 address: tenantData.address,
@@ -214,7 +179,6 @@ function pushTenantFirebase() {
         }
     }
 }
-
 function pushBuyerFirebase() {
     if(typeof currentBuyer !== 'undefined' && currentBuyer) {
         let currentTime = Date.now();
@@ -227,7 +191,7 @@ function pushBuyerFirebase() {
 }
 function pushRevenueFirebase() {
     if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
-        let currentTime = Date.now();
+      let currentTime = Date.now();
         let revData = cleanData(localDB.revenueAuthorities[currentRevenueOfficer.username]);
         if(revData) {
             revData.lastUpdated = currentTime;
@@ -238,7 +202,6 @@ function pushRevenueFirebase() {
         }
     }
 }
-
 function pushMotorFirebase() {
     if(typeof currentMotor !== 'undefined' && currentMotor) {
         let currentTime = Date.now();
@@ -249,10 +212,8 @@ function pushMotorFirebase() {
         }
     }
 }
-
 function pushToFirebase() { 
     saveToLocalStorage();
-    
     if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
         pushAdminFirebase();
     } else {
@@ -261,34 +222,27 @@ function pushToFirebase() {
         pushRevenueFirebase();
         pushMotorFirebase();
     }
-    
     processActionQueue();
 }
-
 // --------------------------------------------------------
 // 💬 Telegram እና Firebase Listeners
 // --------------------------------------------------------
-
 function sendAdminTelegramAlert(message) {
     const backendAPIUrl = "/api/sendAdminTelegram";
     let tgToken = (localDB.adminSettings && localDB.adminSettings.tgToken) ? localDB.adminSettings.tgToken : null;
     let tgChatId = (localDB.adminSettings && localDB.adminSettings.tgChatId) ? localDB.adminSettings.tgChatId : null;
     fetch(backendAPIUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: message, token: tgToken, chatId: tgChatId }) }).catch(err => console.log(err));
 }
-
 function sendTelegramAlert(message) {
     if (typeof currentTenant === 'undefined' || !currentTenant) return;
     fetch("/api/sendTenantTelegram", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentTenant.username, text: message }) }).catch(err => console.log(err));
 }
-
 function sendMotorTelegramAlert(username, message) {
-    fetch("/api/sendMotorTelegram", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username, text: message }) }).catch(err => console.log(err));
+   fetch("/api/sendMotorTelegram", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username, text: message }) }).catch(err => console.log(err));
 }
-
 if(typeof db !== 'undefined') {
-    
     const fetchStaticData = function() {
-        const staticNodes = ['tariffs', 'businessTypes', 'adminSettings'];
+      const staticNodes = ['tariffs', 'businessTypes', 'adminSettings'];
         staticNodes.forEach(node => {
             db.ref(`tirfe_system/${node}`).once('value').then((snapshot) => {
                 if(snapshot.exists()) {
@@ -303,11 +257,9 @@ if(typeof db !== 'undefined') {
         });
     }
     fetchStaticData();
-
     window.setupSecureUserListeners = function() {
-        
         // ✅ አሮጌ ዳታ አዲሱን እንዳያጠፋ የተጨመረ መከላከያ 
-        function shouldUpdateLocal(incomingData, localData, collection, docId) {
+      function shouldUpdateLocal(incomingData, localData, collection, docId) {
             // ✅ ተስተካክሏል: ገና ያልተላከ ዳታ በ Queue ውስጥ ካለ የምናግድበት ለዚያው collection/docId ብቻ ነው
             // (ከዚህ በፊት ማንኛውም unrelated pending action ካለ ሁሉንም incoming data ላይመታ ይከለክል ነበር)
             let pendingQueue = actionQueue || JSON.parse(localStorage.getItem('tirfe_action_queue')) || [];
@@ -317,14 +269,11 @@ if(typeof db !== 'undefined') {
                 );
                 if (hasPendingForThis) return false;
             }
-
-            if (!localData) return true; 
+            if (!localData) return true;
             let incomingTime = (incomingData && typeof incomingData.lastUpdated === 'number') ? incomingData.lastUpdated : 0;
             let localTime = (localData && typeof localData.lastUpdated === 'number') ? localData.lastUpdated : 0;
-            
             return incomingTime > localTime; 
         }
-
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin' && !window.adminListenerAttached) {
             window.adminListenerAttached = true;
             const adminNodes = [
@@ -332,39 +281,33 @@ if(typeof db !== 'undefined') {
                 { fbNode: 'buyers', localKey: 'buyers' }, 
                 { fbNode: 'motors', localKey: 'motors' }
             ];
-
             adminNodes.forEach(nodeObj => {
                 let fbPath = nodeObj.fbNode;
                 let localDbPath = nodeObj.localKey;
-
                 if (!localDB[localDbPath]) localDB[localDbPath] = {}; 
                 let ref = db.ref(`tirfe_system/${fbPath}`);
-                
                 ref.on('child_added', (snapshot) => {
-                    let incomingData = snapshot.val();
+                   let incomingData = snapshot.val();
                     let childKey = snapshot.key;
                     if(shouldUpdateLocal(incomingData, localDB[localDbPath][childKey], fbPath, childKey)) {
-                        localDB[localDbPath][childKey] = incomingData;
-                        saveToLocalStorage(); triggerUIRefresh();
+        localDB[localDbPath][childKey] = incomingData;
+            saveToLocalStorage(); triggerUIRefresh();
                     }
                 });
-
                 ref.on('child_changed', (snapshot) => {
                     let incomingData = snapshot.val();
                     let childKey = snapshot.key;
                     if(shouldUpdateLocal(incomingData, localDB[localDbPath][childKey], fbPath, childKey)) {
-                        localDB[localDbPath][childKey] = incomingData;
+              localDB[localDbPath][childKey] = incomingData;
                         saveToLocalStorage(); triggerUIRefresh();
                     }
                 });
-
                 ref.on('child_removed', (snapshot) => {
                     delete localDB[localDbPath][snapshot.key];
                     saveToLocalStorage(); triggerUIRefresh();
                 });
             });
         }
-
         if(typeof currentTenant !== 'undefined' && currentTenant && !window.tenantListenerAttached) {
             window.tenantListenerAttached = true;
             db.ref(`tirfe_system/tenants/${currentTenant.username}`).on('value', (snapshot) => {
@@ -377,7 +320,6 @@ if(typeof db !== 'undefined') {
                 }
             });
         }
-        
         if(typeof currentBuyer !== 'undefined' && currentBuyer && !window.buyerListenerAttached) {
             window.buyerListenerAttached = true;
             db.ref(`tirfe_system/buyers/${currentBuyer.username}`).on('value', (snapshot) => {
@@ -389,21 +331,23 @@ if(typeof db !== 'undefined') {
                     }
                 }
             });
-            
             db.ref(`tirfe_system/public_tenants`).on('value', (snapshot) => {
                 if(snapshot.exists()) { 
                     let incomingTenants = snapshot.val();
                     let hasUpdates = false;
-                    
                     for (let tUser in incomingTenants) {
-                        let inData = incomingTenants[tUser];
+                     let inData = incomingTenants[tUser];
                         if(shouldUpdateLocal(inData, localDB.tenants[tUser], 'tenants', tUser)) {
+
                             localDB.tenants[tUser] = Object.assign({}, localDB.tenants[tUser] || {}, inData);
+
                             hasUpdates = true;
+
                         }
+
                     }
                     if(hasUpdates) {
-                        saveToLocalStorage(); 
+                saveToLocalStorage(); 
                         if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog(); 
                     }
                 }
@@ -411,7 +355,6 @@ if(typeof db !== 'undefined') {
         }
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer && !window.revenueListenerAttached) {
             window.revenueListenerAttached = true;
-            
             // የገቢዎች ሰራተኛውን የራሱን ዳታ ማንበብ
             db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).on('value', (snapshot) => {
                 if(snapshot.exists()) { 
@@ -422,25 +365,40 @@ if(typeof db !== 'undefined') {
                     }
                 }
             });
-
-            // አዲሱ ኮድ: የሻጮችን (Tenants) ዳታ ከ Firebase ማንበብ 
-            db.ref(`tirfe_system/tenants`).on('value', (snapshot) => {
+            // 🆕 የገቢዎች ሰራተኛው ክልል+ዞን+ወረዳ የተጣመረ መለያ (locationKey) - ተመሳሳይ ስም ያላቸው ወረዳዎች (ለምሳሌ በተለያዩ ዞን ያሉ) እንዳይምታቱ
+            let officerLocKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
+            // 🛠️ ማስተካከያ: ሙሉ የሀገሪቱን ነጋዴዎች ከማውረድ ይልቅ Firebase ላይ locationKey ተመሳሳይ የሆኑትን ብቻ Query ማድረግ (ደህንነትንም ፍጥነትንም ያሻሽላል)
+            db.ref(`tirfe_system/tenants`).orderByChild('locationKey').equalTo(officerLocKey).on('value', (snapshot) => {
+             let hasUpdates = false;
                 if(snapshot.exists()) {
                     let incomingTenants = snapshot.val();
-                    let hasUpdates = false;
                     for (let tUser in incomingTenants) {
                         let tData = incomingTenants[tUser];
-                        // የገቢዎች ሰራተኛው ክልል፣ ዞን እና ወረዳ ጋር የሚመሳሰሉትን ሻጮች ብቻ መውሰድ (ወይም ሁሉንም አውርዶ renderRevenuePanel ላይ ማጣራት)
                         if(shouldUpdateLocal(tData, localDB.tenants[tUser], 'tenants', tUser)) {
                              localDB.tenants[tUser] = tData;
                              hasUpdates = true;
                         }
                     }
-                    if(hasUpdates) {
-                        saveToLocalStorage();
-                        if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
+                }
+                saveToLocalStorage();
+                if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
+            });
+            // 🆕 ጥገና: ከዚህ በፊት ለሞተረኛ (motors) ጭራሽ listener ስላልነበረ የሞተረኛ መቁጠሪያው ባዶ ይታይ ነበር።
+
+            // የገቢዎች ሰራተኛው ምድብ (ክልል/ዞን/ወረዳ) ውስጥ ያሉትን ሞተረኞች ብቻ Query በማድረግ ማንበብ
+            db.ref(`tirfe_system/motors`).orderByChild('locationKey').equalTo(officerLocKey).on('value', (snapshot) => {
+                if(!localDB.motors) localDB.motors = {};
+                if(snapshot.exists()) {
+                    let incomingMotors = snapshot.val();
+                    for (let mUser in incomingMotors) {
+                        let mData = incomingMotors[mUser];
+                        if(shouldUpdateLocal(mData, localDB.motors[mUser], 'motors', mUser)) {
+                             localDB.motors[mUser] = mData;
+                        }
                     }
                 }
+                saveToLocalStorage();
+                if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
             });
         } 
         if(typeof currentMotor !== 'undefined' && currentMotor && !window.motorListenerAttached) {
@@ -453,17 +411,16 @@ if(typeof db !== 'undefined') {
                         saveToLocalStorage(); triggerUIRefresh();
                     }
                 }
-            });
+           });
         }
     };
     setupSecureUserListeners();
-
     function triggerUIRefresh() {
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
         if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
-
         if(typeof currentTenant !== 'undefined' && currentTenant) {
             let checkTenant = localDB.tenants[currentTenant.username];
+
             if(!checkTenant || checkTenant.status === "blocked") { 
                 if(typeof logout === 'function') logout();
                 return; 
@@ -472,30 +429,25 @@ if(typeof db !== 'undefined') {
             if(typeof renderApp === 'function') renderApp();
             if(typeof renderTenantTaxReceipts === 'function') renderTenantTaxReceipts();
         }
-     
         if(typeof currentBuyer !== 'undefined' && currentBuyer) {
             let checkBuyer = localDB.buyers[currentBuyer.username];
-            if(checkBuyer) currentBuyer = checkBuyer;
+          if(checkBuyer) currentBuyer = checkBuyer;
         }
         if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
-
         if(typeof currentMotor !== 'undefined' && currentMotor) {
-            let checkMotor = localDB.motors[currentMotor.username];
+          let checkMotor = localDB.motors[currentMotor.username];
             if(checkMotor) {
                 currentMotor = checkMotor;
                 if(typeof renderMotorPage === 'function') renderMotorPage();
             }
         }
-        
-        if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
+         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
             if(typeof renderAdminPanel === 'function') renderAdminPanel();
             if(typeof renderAdminMotors === 'function') renderAdminMotors();
             if(typeof renderAdminBuyers === 'function') renderAdminBuyers();
         }
     }
 }
-
