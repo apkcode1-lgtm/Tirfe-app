@@ -316,7 +316,7 @@ function renderMotorOrders() {
     }
 }
 
-// 8. ኦርደር ሲቀበል (Lock & Link) - ከ Firebase ጋር የተገናኘ
+// 8. ኦርደር ሲቀበል (Lock & Link) - የተስተካከለ
 window.acceptMotorOrder = function(index) {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
     
@@ -335,7 +335,7 @@ window.acceptMotorOrder = function(index) {
     acceptedOrder.status = 'accepted';
     
     let poolId = acceptedOrder.poolId;
-    let shopUser = acceptedOrder.shopUsername; // ሻጩ ሲያዝ ያስቀመጥነው አዲስ መለያ
+    let shopUser = acceptedOrder.shopUsername;
 
     // 1. ሌሎች ሞተረኞች ጋር የተላከውን ጥሪ ከ Firebase ላይ ማጥፋት
     if(poolId && typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
@@ -344,7 +344,6 @@ window.acceptMotorOrder = function(index) {
             Object.keys(allMotors).forEach(mUser => {
                 if(mUser !== currentMotor.username) {
                     let otherMotorActive = allMotors[mUser].activeOrders || [];
-                    // ይሄንን poolId የሌለውን ብቻ እናስቀራለን (እንጠራዋለን)
                     let filteredOrders = otherMotorActive.filter(o => o.poolId !== poolId);
                     
                     if(otherMotorActive.length !== filteredOrders.length) {
@@ -388,13 +387,18 @@ window.acceptMotorOrder = function(index) {
     // 4. ወደ ሎካል እና ፋየርቤዝ ሴቭ ማድረግ
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') 
-    pushTenantFirebase(); 
-    pushMotorFirebase();
+    
+    // ማስተካከያ:- እዚህ ጋር pushTenantFirebase(); የሚል የነበረው ስህተት ስለሆነ ተሰርዟል
+    if (typeof pushMotorFirebase === 'function') {
+        pushMotorFirebase();
+    }
     
     alert("ትዕዛዙን በተሳካ ሁኔታ ተቀብለዋል! ዝርዝር መረጃው በቴሌግራም ተልኮልዎታል።");
-    renderMotorOrders(); // ቴብሉን ዳግም እንስላለን
+    
+    // ገፁን አፕዴት ማድረግ
+    renderMotorPage(); 
 };
+
 // ሞተረኛው የተቀበለውን ትዕዛዝ መሰረዝ ሲፈልግ
 window.cancelMotorOrder = function(index) {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
