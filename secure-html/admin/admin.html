@@ -251,7 +251,6 @@ img.goog-te-gadget-icon {
     <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-performance-compat.js"></script>
     
         <script type="text/javascript">
@@ -283,12 +282,12 @@ img.goog-te-gadget-icon {
     </div>
 </div>
 
-<main class="container"
+<main class="container">
     
     <section id="adminPage" class="hidden">
         <header class="welcome-header">
             <h1>👑 የባለቤቱ ማዕከላዊ ቁጥጥር ፓነል</h1>
-            <p>እዚህ ገጽ ላይ አዳዲስ ተከራዮችን መመዝገብ፣ የውል ሁኔታ መወሰን እና ማስተዳደር ይችላሉ።</p>
+            <p>እዚህ ገጽ ላይ የውል ሁኔታ መወሰን እና ሲስተሙን ማስተዳደር ይችላሉ።</p>
             <div id="google_translate_element" style="margin-bottom: 15px;"></div>
             <button class="btn-expense" style="margin-top: 15px; width:100%;" onclick="forceLogout()">🚪 ከሲስተሙ ውጣ</button>
         </header>
@@ -327,67 +326,6 @@ img.goog-te-gadget-icon {
                 <button class="btn-config" style="background-color: #f43f5e; color: white; font-weight:bold;" onclick="if(typeof openMotorTariffSettings === 'function') openMotorTariffSettings()">🏍️ የሞተረኛ ታሪፍ</button>
             </nav>
 
-            <section class="section-box" style="border-color: var(--success-color);">
-                <h2 style="color: var(--success-color);">➕ አዲስ ተከራይ መመዝገቢያ ፎርም (Admin)</h2>
-                <div id="regTenantForm" style="margin-top: 15px; text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="text" id="newShopName" placeholder="የሱቅ ስም (ምሳሌ፡ አልፋ) (ግዴታ)">
-                    <input type="text" id="newFullName" placeholder="የተከራይ ሙሉ ስም (ግዴታ)">
-                    <input type="text" id="newUsername" placeholder="መግቢያ ስም (Username) (ግዴታ)">
-                    <input type="email" id="newEmail" placeholder="ኢሜል አድራሻ (ግዴታ)">
-                    <input type="tel" id="newPhone" placeholder="ስልክ ቁጥር (10 አሃዝ) (ግዴታ)" maxlength="10">
-                    <input type="text" id="newTelegram" placeholder="የቴሌግራም መግቢያ (አማራጭ)">
-                    
-                    <select id="newRegion" onchange="handleRegionChange('newRegion', 'newZone', 'newWoreda')">
-                        <option value="">-- ክልል ይምረጡ --</option>
-                    </select>
-                    <select id="newZone" onchange="handleZoneChange('newRegion', 'newZone', 'newWoreda')">
-                        <option value="">-- መጀመሪያ ክልል ይምረጡ --</option>
-                    </select>
-                    <select id="newWoreda">
-                        <option value="">-- መጀመሪያ ዞን ይምረጡ --</option>
-                    </select>
-
-                    <input type="text" id="newKebele" placeholder="ቀበሌ (ግዴታ)">
-                    <input type="text" id="newHouseNo" placeholder="የቤት ቁጥር (ግዴታ)">
-                    <input type="text" id="newTin" placeholder="TIN Number (ግዴታ)">
-                    <input type="text" id="newTradeReg" placeholder="የንግድ ምዝገባ ቁጥር (ግዴታ)" style="grid-column: span 2;">
-                    <input type="text" id="newMapsLink" placeholder="የሱቅ ጎግል ማፕ ሊንክ (አማራጭ)" style="grid-column: span 2;">
-                    <input type="text" id="newAddress" placeholder="ያለበት ሀገር / ከተማ / ክልል (አማራጭ)">
-                    
-                    <select id="newBusinessType" style="padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white;">
-                        <option value="">-- የንግድ ዘርፍ ይምረጡ (ግዴታ) --</option>
-                    </select>
-                    
-                    <div style="grid-column: span 2; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                        <label style="color: var(--accent-color); font-size: 0.85rem; display:block;">የንግድ ካፒታል መጠን (የኪራይ መቁረጫ ምድብ):</label>
-                        <select id="newCapitalTier" onchange="autoFillCapitalFee()">
-                            <option value="">-- ካፒታል ይምረጡ --</option>
-                            <option value="low">ዝቅተኛ (Low)</option>
-                            <option value="medium">መካከለኛ (Medium)</option>
-                            <option value="high">ከፍተኛ (High)</option>
-                        </select>
-
-                        <label style="font-size: 0.85rem; color: var(--accent-color); display:block; margin-top: 8px;">የውል ዓይነት (Contract Type)፦</label>
-                        <select id="newContractType">
-                            <option value="በወር">በወር (Monthly)</option>
-                            <option value="በዓመት">በዓመት (Yearly)</option>
-                        </select>
-
-                        <label style="font-size: 0.85rem; color: var(--accent-color); display:block; margin-top: 8px;">የውል ማብቂያ ቀን (Expiry Date)፦</label>
-                        <input type="date" id="newExpiryDate" required>
-                        
-                        <label style="font-size: 0.85rem; color: var(--accent-color); display:block; margin-top: 8px;">የመመዝገቢያ/ኪራይ ክፍያ (ETB):</label>
-                        <input type="number" id="newRegistrationFee" placeholder="የመመዝገቢያ ክፍያ (ETB)" readonly style="background: rgba(255,255,255,0.1);">
-                    </div>
-
-                    <div style="grid-column: span 2;">
-                        <label style="color: var(--accent-color); font-size: 0.85rem; margin-top:10px; display:block;">የሱቅ ፕሮፋይል ፎቶ (አማራጭ)፡</label>
-                        <input type="file" id="newShopLogoFile" accept="image/*">
-                    </div>
-                    <button class="btn-warning btn-block" style="background:var(--warning-color); color:#000; font-weight:bold; padding:12px; margin-top:10px; border-radius:8px; grid-column: span 2;" onclick="registerTenant()">ምዝገባውን ላክ (Submit)</button>
-                </div>
-            </section>
-
             <section class="section-box hidden" id="adminTenantsSection">
                 <h2>📈 የተከራዮች ሁኔታ እና የውል መቆጣጠሪያ</h2>
                 <div class="search-container">
@@ -399,7 +337,7 @@ img.goog-te-gadget-icon {
                             <tr>
                                 <th>የሱቅ ስም / ዘርፍ / ካፒታል</th>
                                 <th>የተከራይ መገለጫ (Profile)</th>
-                                <th>የመግቢያ ዝርዝር / ኮድ</th>
+                                <th>የመግቢያ ዝርዝር</th>
                                 <th>የውል ዓይነት / ክፍያ</th>
                                 <th>የማብቂያ ቀን</th>
                                 <th>የአሁን ሁኔታ</th>
@@ -519,7 +457,6 @@ img.goog-te-gadget-icon {
 
 <script defer src="js/common/firebase-config.js"></script>
 <script defer src="js/common/database.js"></script>
-<script defer src="js/common1/telegramNotifier.js"></script>
 <script defer src="js/common/utils.js"></script>
 <script defer src="js/common/globals.js"></script>
 <script defer src="js/common/session_security.js"></script>
@@ -532,5 +469,3 @@ img.goog-te-gadget-icon {
 <script>eruda.init();</script>
  </body>
 </html>
-
-
