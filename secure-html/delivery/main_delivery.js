@@ -12,14 +12,12 @@ function renderMotorPage() {
     document.getElementById('motSetEmail').value = currentMotor.email || '';
     document.getElementById('motSetPhone').value = currentMotor.phone || '';
     document.getElementById('motSetTelegram').value = currentMotor.telegramToken || currentMotor.tgToken || '';
-    document.getElementById('motSetPassword').value = currentMotor.password || '';
 
     // ሐ. 25 ብር እገዳ እና ኮሚሽን ማሳያ
     let commRate = (localDB.adminSettings && localDB.adminSettings.deliveryCommissionRate) ?
         localDB.adminSettings.deliveryCommissionRate : 10;
     let commDisplay = document.getElementById('motorCommissionRateDisplay');
     if (commDisplay) commDisplay.innerText = commRate + '%';
-
     const credit = currentMotor.credit || 0;
     // ክሬዲቱ ከ25 ብር በታች ከሆነ እና ታግዷል (blocked) ካልተባለ፣ እገዳውን በራስ-ሰር ጀምር
     if (credit <= 25 && currentMotor.status !== 'blocked') {
@@ -129,32 +127,140 @@ function toggleMotorSettings() {
     }
 }
 
-// 3. የተስተካከለውን ሲቲንግ ሴቭ ማድረጊያ
+// 3. የተስተካከለውን ሲቲንግ ሴቭ ማድረጊያ (ስልክ እና ቴሌግራም ብቻ - ኢሜል/ፓስዎርድ ከታች ባሉት 2-ደረጃ ፈንክሽኖች ይቀየራሉ)
 function saveMotorSettings() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
-    const email = document.getElementById('motSetEmail').value.trim();
     const phone = document.getElementById('motSetPhone').value.trim();
-    const pass = document.getElementById('motSetPassword').value.trim();
     const tg = document.getElementById('motSetTelegram').value.trim();
-    if (email) currentMotor.email = email;
     if (phone) currentMotor.phone = phone;
     if (tg) {
         currentMotor.tgToken = tg;
         currentMotor.telegramToken = tg;
     }
-    if (pass) currentMotor.password = pass;
-    
+
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
-    if (typeof pushToFirebase === 'function') pushMotorFirebase();
+    if (typeof pushMotorFirebase === 'function') pushMotorFirebase();
 
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, "✅ የፕሮፋይል ማስተካከያዎ (Settings) በትክክል ተቀምጧል።");
     }
 
-    alert("ማስተካከያው በትክክል ተቀምጧል!");
+    if (typeof showCustomAlert === 'function') showCustomAlert("ተሳክቷል", "ማስተካከያው በትክክል ተቀምጧል!");
+    else alert("ማስተካከያው በትክክል ተቀምጧል!");
     toggleMotorSettings();
     renderMotorPage();
+}
+
+// ==========================================================
+// 🔑 የይለፍ ቃል ቀይር - 2-ደረጃ ፍሎው (ደረጃ1፡ ነባሩን ማረጋገጥ → ደረጃ2፡ አዲሱን ማስገባት)
+// ==========================================================
+function changeMotorPassword() {
+    if (typeof currentMotor === 'undefined' || !currentMotor) return;
+    let oldEmail = currentMotor.email;
+
+    // ደረጃ 1/2: የአሁኑን የይለፍ ቃል ጠይቆ ከFirebase ጋር ማረጋገጥ
+    showFormModal("🔒 ደረጃ 1/2 - ማረጋገጫ", [
+        { id: "curPass", label: "የይለፍ ቃል ለመቀየር የአሁኑን የይለፍ ቃል ያስገቡ፦", type: "password", placeholder: "የአሁኑ ፓስዎርድ" }
+    ], async (res) => {
+        let curPass = res.curPass ? res.curPass.trim() : "";
+        if(!curPass) { showCustomAlert("ስህተት", "እባክዎ የአሁኑን ፓስዎርድ ያስገቡ!"); return; }
+
+        try {
+            let cred = firebase.auth.EmailAuthProvider.credential(oldEmail, curPass);
+            await auth.currentUser.reauthenticateWithCredential(cred);
+        } catch(error) {
+            console.error("Motor Password Reauth Error:", error);
+            let errMsg = "ማረጋገጫው አልተሳካም! " + (error.message || "");
+            if(error.code === 'auth/wrong-password') errMsg = "❌ ያስገቡት የአሁኑ ፓስዎርድ ትክክል አይደለም!";
+            if(error.code === 'auth/too-many-requests') errMsg = "❌ በጣም ብዙ ጊዜ ተሞክሯል፣ እባክዎ ትንሽ ቆይተው ደግመው ይሞክሩ!";
+            showCustomAlert("❌ ስህተት", errMsg);
+            return;
+        }
+
+        // ደረጃ 2/2: ነባሩ ከተረጋገጠ በኋላ ብቻ አዲሱን የይለፍ ቃል መጠየቅ
+        showFormModal("🔑 ደረጃ 2/2 - አዲስ የይለፍ ቃል", [
+            { id: "newPass", label: "አዲስ የይለፍ ቃል፦", type: "password", placeholder: "ቢያንስ 6 ፊደል/ቁጥር" },
+            { id: "newPass2", label: "አዲሱን የይለፍ ቃል ደግመው ያስገቡ፦", type: "password", placeholder: "አዲስ የይለፍ ቃል ያረጋግጡ" }
+        ], async (res2) => {
+            let newPass = res2.newPass ? res2.newPass.trim() : "";
+            let newPass2 = res2.newPass2 ? res2.newPass2.trim() : "";
+            if(!newPass || newPass.length < 6) { showCustomAlert("ስህተት", "አዲሱ የይለፍ ቃል ቢያንስ 6 ፊደል/ቁጥር ሊኖረው ይገባል!"); return; }
+            if(newPass !== newPass2) { showCustomAlert("ስህተት", "ያስገቧቸው ሁለት አዲስ የይለፍ ቃሎች አይመሳሰሉም!"); return; }
+
+            try {
+                await auth.currentUser.updatePassword(newPass);
+                // ❌ ፓስዎርድ በጭራሽ RTDB ላይ አይቀመጥም - Firebase Auth ብቻ ነው የሚያዘው
+                localDB.motors[currentMotor.username] = currentMotor;
+                if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+                if (typeof pushMotorFirebase === 'function') pushMotorFirebase();
+                showCustomAlert("ተሳክቷል", "የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል! ከዚህ በኋላ በአዲሱ የይለፍ ቃል ብቻ ሎጊን ያድርጉ።");
+            } catch(error) {
+                console.error("Motor Update Password Error:", error);
+                let errMsg = "የይለፍ ቃል ማስቀመጥ አልተቻለም! " + (error.message || "");
+                if(error.code === 'auth/requires-recent-login') errMsg = "❌ ደህንነት ችግር፡ እባክዎ Logout አድርገው እንደገና ሎጊን ካደረጉ በኋላ ይሞክሩ!";
+                if(error.code === 'auth/weak-password') errMsg = "❌ አዲሱ ፓስዎርድ ደካማ ነው (ቢያንስ 6 ፊደል/ቁጥር ያስፈልጋል)!";
+                showCustomAlert("❌ ስህተት", errMsg);
+            }
+        });
+    });
+}
+
+// ==========================================================
+// 📧 ኢሜል ቀይር - 2-ደረጃ ፍሎው (ደረጃ1፡ ነባሩን ማረጋገጥ → ደረጃ2፡ አዲሱን ማስገባት)
+// ==========================================================
+function changeMotorEmail() {
+    if (typeof currentMotor === 'undefined' || !currentMotor) return;
+    let oldEmail = currentMotor.email;
+
+    // ደረጃ 1/2: ኢሜል ለመቀየር ደህንነት ሲባል የአሁኑን የይለፍ ቃል ጠይቆ ማረጋገጥ
+    showFormModal("🔒 ደረጃ 1/2 - ማረጋገጫ", [
+        { id: "curPass", label: "ኢሜል ለመቀየር የአሁኑን የይለፍ ቃል ያስገቡ፦", type: "password", placeholder: "የአሁኑ ፓስዎርድ" }
+    ], async (res) => {
+        let curPass = res.curPass ? res.curPass.trim() : "";
+        if(!curPass) { showCustomAlert("ስህተት", "እባክዎ የአሁኑን ፓስዎርድ ያስገቡ!"); return; }
+
+        try {
+            let cred = firebase.auth.EmailAuthProvider.credential(oldEmail, curPass);
+            await auth.currentUser.reauthenticateWithCredential(cred);
+        } catch(error) {
+            console.error("Motor Email Reauth Error:", error);
+            let errMsg = "ማረጋገጫው አልተሳካም! " + (error.message || "");
+            if(error.code === 'auth/wrong-password') errMsg = "❌ ያስገቡት የአሁኑ ፓስዎርድ ትክክል አይደለም!";
+            if(error.code === 'auth/too-many-requests') errMsg = "❌ በጣም ብዙ ጊዜ ተሞክሯል፣ እባክዎ ትንሽ ቆይተው ደግመው ይሞክሩ!";
+            showCustomAlert("❌ ስህተት", errMsg);
+            return;
+        }
+
+        // ደረጃ 2/2: ነባሩ ከተረጋገጠ በኋላ ብቻ አዲሱን ኢሜል መጠየቅ
+        showFormModal("📧 ደረጃ 2/2 - አዲስ ኢሜል", [
+            { id: "newEmail", label: "አዲስ ኢሜል (Gmail)፦", type: "email", placeholder: "newemail@gmail.com" },
+            { id: "newEmail2", label: "አዲሱን ኢሜል ደግመው ያስገቡ፦", type: "email", placeholder: "አዲስ ኢሜል ያረጋግጡ" }
+        ], async (res2) => {
+            let newEmail = res2.newEmail ? res2.newEmail.trim() : "";
+            let newEmail2 = res2.newEmail2 ? res2.newEmail2.trim() : "";
+            if(!newEmail) { showCustomAlert("ስህተት", "እባክዎ አዲሱን ኢሜል ያስገቡ!"); return; }
+            if(newEmail.toLowerCase() !== newEmail2.toLowerCase()) { showCustomAlert("ስህተት", "ያስገቧቸው ሁለት አዲስ ኢሜሎች አይመሳሰሉም!"); return; }
+            if(newEmail.toLowerCase() === String(oldEmail || "").toLowerCase()) { showCustomAlert("ስህተት", "አዲሱ ኢሜል ካለው ኢሜል ጋር ተመሳሳይ ነው!"); return; }
+
+            try {
+                await auth.currentUser.updateEmail(newEmail);
+                currentMotor.email = newEmail;
+                localDB.motors[currentMotor.username] = currentMotor;
+                if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+                if (typeof pushMotorFirebase === 'function') pushMotorFirebase();
+                renderMotorPage();
+                showCustomAlert("ተሳክቷል", "ኢሜልዎ በተሳካ ሁኔታ ተቀይሯል! ከዚህ በኋላ በአዲሱ ኢሜል ብቻ ሎጊን ያድርጉ።");
+            } catch(error) {
+                console.error("Motor Update Email Error:", error);
+                let errMsg = "ኢሜል ማስቀመጥ አልተቻለም! " + (error.message || "");
+                if(error.code === 'auth/requires-recent-login') errMsg = "❌ ደህንነት ችግር፡ እባክዎ Logout አድርገው እንደገና ሎጊን ካደረጉ በኋላ ይሞክሩ!";
+                if(error.code === 'auth/email-already-in-use') errMsg = "❌ ይህ ኢሜል በሌላ አካውንት ተይዟል!";
+                if(error.code === 'auth/invalid-email') errMsg = "❌ የገቡት ኢሜል ቅርፅ ትክክል አይደለም!";
+                showCustomAlert("❌ ስህተት", errMsg);
+            }
+        });
+    });
 }
 // 4. ኦንላይን/ኦፍላይን መቀየሪያ
 function toggleMotorOnlineStatus() {
@@ -205,7 +311,6 @@ function submitMotorCredit() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
     const amountInput = document.getElementById('motorCreditAmount').value;
     const amount = parseFloat(amountInput);
-
     if (isNaN(amount) || amount <= 0) {
         alert("እባክዎ ትክክለኛ የብር መጠን ያስገቡ!");
         return;
@@ -772,7 +877,6 @@ async function processMotorRegistration() {
     btn.innerText = originalText;
     btn.disabled = false;
 }
-
 // 14. የሞተረኛን ዳታ ማጽጃ (Clear Data)
 window.clearMotorData = function() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
@@ -795,4 +899,4 @@ window.clearMotorData = function() {
     alert("✅ የሞተረኛ ዳታዎ በተሳካ ሁኔታ ፀድቶ አዲስ ጀምሯል!");
     renderMotorPage();
    
-}
+                                                     }
