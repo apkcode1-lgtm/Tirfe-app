@@ -1,15 +1,3 @@
-window.saveAdminEmailSettings = function() {
-    let email = document.getElementById('adminEmailConfig').value.trim();
-    let pass = document.getElementById('adminAppPassConfig').value.trim();
-    
-    if(!localDB.adminSettings) localDB.adminSettings = {};
-    localDB.adminSettings.adminEmail = email;
-    localDB.adminSettings.adminAppPass = pass;
-    
-    pushAdminFirebase();
-    showCustomAlert("ተሳክቷል", "የዋና አከራይ ኢሜል ማዋቀሪያ (SMTP) በተሳካ ሁኔታ ተቀምጧል!");
-};
-
 window.saveAdminSystemSettings = function() {
     let tgToken = document.getElementById('adminTgToken').value.trim();
     let tgChatId = document.getElementById('adminTgChatId').value.trim();
