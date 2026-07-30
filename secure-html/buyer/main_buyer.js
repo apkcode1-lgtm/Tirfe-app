@@ -49,12 +49,11 @@ window.clearBuyerData = function() {
 
 window.openBuyerProfileSettings = function() {
     if(!currentBuyer) return;
+    // ✅ ኢሜል/ፓስዎርድ ከዚህ ውስጥ ተነስተዋል፤ ለብቻቸው 🔑/📧 2-ደረጃ ማረጋገጫ ባላቸው ፈንክሽኖች ብቻ ይቀየራሉ
     showFormModal("⚙️ የፕሮፋይል ሲቲንግ", [
         { id: "b_name", label: "ሙሉ ስም (Name)", type: "text", defaultValue: currentBuyer.name },
         { id: "b_username", label: "መግቢያ ስም (Username)", type: "text", defaultValue: currentBuyer.username },
-        { id: "b_email", label: "ኢሜል (Gmail)", type: "email", defaultValue: currentBuyer.email || "" },
-        { id: "b_phone", label: "ስልክ ቁጥር (Phone)", type: "tel", defaultValue: currentBuyer.phone },
-        { id: "b_password", label: "የይለፍ ቃል (Password)", type: "text", defaultValue: currentBuyer.password }
+        { id: "b_phone", label: "ስልክ ቁጥር (Phone)", type: "tel", defaultValue: currentBuyer.phone }
     ], async (res) => {
         let newU = res.b_username.trim().toLowerCase();
         let newP = res.b_phone.trim();
@@ -67,9 +66,7 @@ window.openBuyerProfileSettings = function() {
         let oldU = currentBuyer.username;
         currentBuyer.name = res.b_name.trim();
         currentBuyer.username = newU;
-        currentBuyer.email = res.b_email.trim();
         currentBuyer.phone = newP; 
-        currentBuyer.password = res.b_password.trim();
         if(oldU !== newU) {
             localDB.buyers[newU] = currentBuyer;
             delete localDB.buyers[oldU];
@@ -81,6 +78,110 @@ window.openBuyerProfileSettings = function() {
         pushBuyerFirebase();
         renderBuyerCatalog();
         showCustomAlert("✅ ተሳክቷል", "ፕሮፋይልዎ በትክክል ተስተካክሏል!");
+    });
+};
+
+// ==========================================================
+// 🔑 የይለፍ ቃል ቀይር - 2-ደረጃ ፍሎው (ደረጃ1፡ ነባሩን ማረጋገጥ → ደረጃ2፡ አዲሱን ማስገባት)
+// ==========================================================
+window.changeBuyerPassword = function() {
+    if(!currentBuyer) return;
+    let oldEmail = currentBuyer.email;
+
+    showFormModal("🔒 ደረጃ 1/2 - ማረጋገጫ", [
+        { id: "curPass", label: "የይለፍ ቃል ለመቀየር የአሁኑን የይለፍ ቃል ያስገቡ፦", type: "password", placeholder: "የአሁኑ ፓስዎርድ" }
+    ], async (res) => {
+        let curPass = res.curPass ? res.curPass.trim() : "";
+        if(!curPass) { showCustomAlert("ስህተት", "እባክዎ የአሁኑን ፓስዎርድ ያስገቡ!"); return; }
+
+        try {
+            let cred = firebase.auth.EmailAuthProvider.credential(oldEmail, curPass);
+            await auth.currentUser.reauthenticateWithCredential(cred);
+        } catch(error) {
+            console.error("Buyer Password Reauth Error:", error);
+            let errMsg = "ማረጋገጫው አልተሳካም! " + (error.message || "");
+            if(error.code === 'auth/wrong-password') errMsg = "❌ ያስገቡት የአሁኑ ፓስዎርድ ትክክል አይደለም!";
+            if(error.code === 'auth/too-many-requests') errMsg = "❌ በጣም ብዙ ጊዜ ተሞክሯል፣ እባክዎ ትንሽ ቆይተው ደግመው ይሞክሩ!";
+            showCustomAlert("❌ ስህተት", errMsg);
+            return;
+        }
+
+        showFormModal("🔑 ደረጃ 2/2 - አዲስ የይለፍ ቃል", [
+            { id: "newPass", label: "አዲስ የይለፍ ቃል፦", type: "password", placeholder: "ቢያንስ 6 ፊደል/ቁጥር" },
+            { id: "newPass2", label: "አዲሱን የይለፍ ቃል ደግመው ያስገቡ፦", type: "password", placeholder: "አዲስ የይለፍ ቃል ያረጋግጡ" }
+        ], async (res2) => {
+            let newPass = res2.newPass ? res2.newPass.trim() : "";
+            let newPass2 = res2.newPass2 ? res2.newPass2.trim() : "";
+            if(!newPass || newPass.length < 6) { showCustomAlert("ስህተት", "አዲሱ የይለፍ ቃል ቢያንስ 6 ፊደል/ቁጥር ሊኖረው ይገባል!"); return; }
+            if(newPass !== newPass2) { showCustomAlert("ስህተት", "ያስገቧቸው ሁለት አዲስ የይለፍ ቃሎች አይመሳሰሉም!"); return; }
+
+            try {
+                await auth.currentUser.updatePassword(newPass);
+                // ❌ ፓስዎርድ በጭራሽ RTDB ላይ አይቀመጥም - Firebase Auth ብቻ ነው የሚያዘው
+                localDB.buyers[currentBuyer.username] = currentBuyer;
+                pushBuyerFirebase();
+                showCustomAlert("ተሳክቷል", "የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል! ከዚህ በኋላ በአዲሱ የይለፍ ቃል ብቻ ሎጊን ያድርጉ።");
+            } catch(error) {
+                console.error("Buyer Update Password Error:", error);
+                let errMsg = "የይለፍ ቃል ማስቀመጥ አልተቻለም! " + (error.message || "");
+                if(error.code === 'auth/requires-recent-login') errMsg = "❌ ደህንነት ችግር፡ እባክዎ Logout አድርገው እንደገና ሎጊን ካደረጉ በኋላ ይሞክሩ!";
+                if(error.code === 'auth/weak-password') errMsg = "❌ አዲሱ ፓስዎርድ ደካማ ነው (ቢያንስ 6 ፊደል/ቁጥር ያስፈልጋል)!";
+                showCustomAlert("❌ ስህተት", errMsg);
+            }
+        });
+    });
+};
+
+// ==========================================================
+// 📧 ኢሜል ቀይር - 2-ደረጃ ፍሎው (ደረጃ1፡ ነባሩን ማረጋገጥ → ደረጃ2፡ አዲሱን ማስገባት)
+// ==========================================================
+window.changeBuyerEmail = function() {
+    if(!currentBuyer) return;
+    let oldEmail = currentBuyer.email;
+
+    showFormModal("🔒 ደረጃ 1/2 - ማረጋገጫ", [
+        { id: "curPass", label: "ኢሜል ለመቀየር የአሁኑን የይለፍ ቃል ያስገቡ፦", type: "password", placeholder: "የአሁኑ ፓስዎርድ" }
+    ], async (res) => {
+        let curPass = res.curPass ? res.curPass.trim() : "";
+        if(!curPass) { showCustomAlert("ስህተት", "እባክዎ የአሁኑን ፓስዎርድ ያስገቡ!"); return; }
+        try {
+            let cred = firebase.auth.EmailAuthProvider.credential(oldEmail, curPass);
+            await auth.currentUser.reauthenticateWithCredential(cred);
+        } catch(error) {
+            console.error("Buyer Email Reauth Error:", error);
+            let errMsg = "ማረጋገጫው አልተሳካም! " + (error.message || "");
+            if(error.code === 'auth/wrong-password') errMsg = "❌ ያስገቡት የአሁኑ ፓስዎርድ ትክክል አይደለም!";
+            if(error.code === 'auth/too-many-requests') errMsg = "❌ በጣም ብዙ ጊዜ ተሞክሯል፣ እባክዎ ትንሽ ቆይተው ደግመው ይሞክሩ!";
+            showCustomAlert("❌ ስህተት", errMsg);
+            return;
+        }
+
+        showFormModal("📧 ደረጃ 2/2 - አዲስ ኢሜል", [
+            { id: "newEmail", label: "አዲስ ኢሜል (Gmail)፦", type: "email", placeholder: "newemail@gmail.com" },
+            { id: "newEmail2", label: "አዲሱን ኢሜል ደግመው ያስገቡ፦", type: "email", placeholder: "አዲስ ኢሜል ያረጋግጡ" }
+        ], async (res2) => {
+            let newEmail = res2.newEmail ? res2.newEmail.trim() : "";
+            let newEmail2 = res2.newEmail2 ? res2.newEmail2.trim() : "";
+            if(!newEmail) { showCustomAlert("ስህተት", "እባክዎ አዲሱን ኢሜል ያስገቡ!"); return; }
+            if(newEmail.toLowerCase() !== newEmail2.toLowerCase()) { showCustomAlert("ስህተት", "ያስገቧቸው ሁለት አዲስ ኢሜሎች አይመሳሰሉም!"); return; }
+            if(newEmail.toLowerCase() === String(oldEmail || "").toLowerCase()) { showCustomAlert("ስህተት", "አዲሱ ኢሜል ካለው ኢሜል ጋር ተመሳሳይ ነው!"); return; }
+
+            try {
+                await auth.currentUser.updateEmail(newEmail);
+                currentBuyer.email = newEmail;
+                localDB.buyers[currentBuyer.username] = currentBuyer;
+                pushBuyerFirebase();
+                renderBuyerCatalog();
+                showCustomAlert("ተሳክቷል", "ኢሜልዎ በተሳካ ሁኔታ ተቀይሯል! ከዚህ በኋላ በአዲሱ ኢሜል ብቻ ሎጊን ያድርጉ።");
+            } catch(error) {
+                console.error("Buyer Update Email Error:", error);
+                let errMsg = "ኢሜል ማስቀመጥ አልተቻለም! " + (error.message || "");
+                if(error.code === 'auth/requires-recent-login') errMsg = "❌ ደህንነት ችግር፡ እባክዎ Logout አድርገው እንደገና ሎጊን ካደረጉ በኋላ ይሞክሩ!";
+                if(error.code === 'auth/email-already-in-use') errMsg = "❌ ይህ ኢሜል በሌላ አካውንት ተይዟል!";
+                if(error.code === 'auth/invalid-email') errMsg = "❌ የገቡት ኢሜል ቅርፅ ትክክል አይደለም!";
+                showCustomAlert("❌ ስህተት", errMsg);
+            }
+        });
     });
 };
 
@@ -102,6 +203,7 @@ window.addToBuyerCart = function(shopKey, itemIdx, itemName, price, availableRem
         let qty = parseFloat(res.qty) || 0;
         if(qty <= 0) { showCustomAlert("ስህተት", "የተሳሳተ ብዛት!"); return; }
         if(qty > availableRem) { showCustomAlert("ብዛት የለም", "የጠየቁት ብዛት በአሁኑ ሰዓት ከስቶር የለም (አልቋል)!"); return; }
+
         let existIdx = window.buyerCartData.findIndex(c => c.shopKey === shopKey && c.itemIdx === itemIdx);
         if(existIdx > -1) {
             let totalWanted = window.buyerCartData[existIdx].qty + qty;
@@ -125,7 +227,6 @@ window.submitDeliveryFee = function(shopKey, orderId) {
         showCustomAlert("ስህተት", "እባክዎ ለዴሊቨሪ የከፈሉትን ትክክለኛ የብር መጠን ያስገቡ!");
         return;
     }
-
     let t = localDB.tenants[shopKey];
     if(t && t.data && t.data.deliveryOrders) {
         let ord = t.data.deliveryOrders.find(o => o.orderId == orderId);
@@ -164,7 +265,7 @@ window.submitDeliveryFee = function(shopKey, orderId) {
             }
 
             localDB.tenants[shopKey] = t;
-            pushMotorFirebase();
+            pushBuyerFirebase();
             if (typeof db !== 'undefined' && navigator.onLine) {
                 db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(t.data.deliveryOrders);
             }
@@ -185,6 +286,7 @@ window.renderBuyerCart = function() {
         if(cartTotalBar) cartTotalBar.innerHTML = `አጠቃላይ ሂሳብ: <span id="buyerCartTotalSum" style="color: var(--success-color);">0</span> ብር`;
         return;
     }
+
     section.style.display = 'block'; listBody.innerHTML = '';
     let grandTotal = 0;
     window.buyerCartData.forEach((c, i) => {
@@ -312,7 +414,7 @@ window.checkoutBuyerCart = function(orderType) {
                     if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
                     t.data.deliveryOrders.push(newOrder);
                     localDB.tenants[shopKey] = t;
-                    pushTenantFirebase();
+                    pushBuyerFirebase();
                 }
 
                 window.buyerCartData = [];
@@ -415,6 +517,7 @@ window.renderBuyerCatalog = async function() {
                         }
                     });
                 }
+
                 if(liveBuyer && t.data && t.data.deliveryOrders) {
                     t.data.deliveryOrders.forEach(ord => {
                         if(ord.buyerUser === liveBuyer.username) {
@@ -501,7 +604,6 @@ window.renderBuyerCatalog = async function() {
         </div>
         <div style="grid-column: 1 / -1; margin-bottom: 12px; margin-top: 5px;"><h3 style="color: #fff; font-size: 1.1rem; margin: 0; font-weight: 600;">🛍️ አጠቃላይ የዕቃዎች ዝርዝር (All Mixed Products)</h3></div>
         `;
-
         container.innerHTML = carouselHTML;
 
         allItems.forEach(item => {
