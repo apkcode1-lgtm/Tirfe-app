@@ -123,7 +123,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 .section-box { background-color: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); }
 .section-box h2 { font-size: 1.2rem; margin-bottom: 12px; border-bottom: 2px solid var(--border-color); padding-bottom: 6px; color: var(--accent-color); }
 .table-responsive { width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-color); -webkit-overflow-scrolling: touch; }
-
 table { width: 100%; border-collapse: collapse; min-width: 100%; background-color: var(--card-bg) !important; table-layout: auto; }
 th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.05); white-space: normal; word-wrap: break-word; font-size: 0.9rem; color: #f1f5f9 !important; }
 th { background-color: rgba(0,0,0,0.6) !important; color: var(--accent-color) !important; font-weight: bold; }
@@ -261,12 +260,16 @@ img.goog-te-gadget-icon {
             <section id="motorSettingsSection" class="section-box hidden" style="border-color: var(--accent-color);">
                 <h3 style="color: var(--accent-color); margin-bottom: 10px;">⚙️ የሞተረኛ ሲቲንግ / ማስተካከያ</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="email" id="motSetEmail" placeholder="ኢሜል (Gmail)">
+                    <input type="email" id="motSetEmail" placeholder="ኢሜል (Gmail)" disabled style="opacity:0.7; cursor:not-allowed;">
                     <input type="tel" id="motSetPhone" placeholder="ስልክ ቁጥር">
-                    <input type="password" id="motSetPassword" placeholder="አዲስ የይለፍ ቃል (Password)">
                     <input type="text" id="motSetTelegram" placeholder="Telegram Token">
                 </div>
                 <button class="btn-sell btn-block" style="margin-top: 10px;" onclick="saveMotorSettings()">💾 ማስተካከያውን አስቀምጥ</button>
+
+                <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; border-top: 1px dashed rgba(148,163,184,0.3); padding-top: 14px;">
+                    <button class="btn-config btn-block" style="flex:1; min-width:160px; background-color: var(--warning-color); color:#1e293b; font-weight:bold;" onclick="changeMotorPassword()">🔑 የይለፍ ቃል ቀይር</button>
+                    <button class="btn-config btn-block" style="flex:1; min-width:160px; background-color: var(--accent-color); color:#000; font-weight:bold;" onclick="changeMotorEmail()">📧 ኢሜል ቀይር</button>
+                </div>
             </section>
             <section class="dashboard">
                 <div class="card" style="border-left: 4px solid var(--success-color);">
@@ -359,6 +362,40 @@ img.goog-te-gadget-icon {
             <button class="btn-sell" onclick="submitMotorCredit()">አስገባ</button>
         </div>
     </div>
+
+    <div id="alertModal" class="modal-card hidden">
+        <div class="modal-header">
+            <h3 id="alertTitle">ማስታወቂያ</h3>
+        </div>
+        <div class="modal-body">
+            <p id="alertMessage" style="font-size: 1rem; line-height: 1.5; color: var(--text-color);"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-add">እሺ (OK)</button>
+        </div>
+    </div>
+    <div id="confirmModal" class="modal-card hidden">
+        <div class="modal-header">
+            <h3 id="confirmTitle">ማረጋገጫ</h3>
+        </div>
+        <div class="modal-body">
+            <p id="confirmMessage" style="font-size: 1rem; line-height: 1.5; color: var(--text-color);"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-config" onclick="closeActiveModal()">ሰርዝ (Cancel)</button>
+            <button id="confirmYesBtn" class="btn-sell">አዎ አረጋግጣለሁ</button>
+        </div>
+    </div>
+
+    <div id="formModal" class="modal-card hidden">
+        <div class="modal-header">
+            <h3 id="formModalTitle">ማስገቢያ</h3>
+        </div>
+        <div class="modal-body" id="formModalBody">
+        </div>
+        <div class="modal-footer" id="formModalFooter">
+        </div>
+    </div>
 </div>
 </main>
   
@@ -378,5 +415,3 @@ img.goog-te-gadget-icon {
     
 </body>
 </html>
-
-
