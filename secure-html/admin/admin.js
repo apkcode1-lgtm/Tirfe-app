@@ -50,7 +50,6 @@ window.openTariffSettings = function() {
         
         localDB.tariffs[res.tariffTier] = newAmount; 
         
-        // 💡 ማሻሻያ፡- የድሮ ተከራዮችን አዲስ በተስተካከለው ዋጋ ማሻሻል (Batch Update)
         let updatedCount = 0;
         if (localDB.tenants) {
             Object.keys(localDB.tenants).forEach(key => {
@@ -62,13 +61,10 @@ window.openTariffSettings = function() {
         }
         
         pushTenantFirebase();
-        renderAdminPanel(); // ማሳያው እንዲታደስ
+        renderAdminPanel(); 
         showCustomAlert("ተሳክቷል", `ታሪፉ ለ "${res.tariffTier}" በተሳካ ሁኔታ ወደ ${newAmount} ETB ተቀይሯል! አዲስ ሲመዘገቡ ይህ ዋጋ ይመጣል።\n\n${updatedCount > 0 ? `እንዲሁም ${updatedCount} ነባር ተከራዮች ላይ የታሪፍ ማስተካከያ ተደርጓል።` : ''}`);
     });
 };
-
-/* --- የንግድ ዘርፍ ማስተዳደሪያ (Business Type Manager) --- */
-// 💡 ማሻሻያ:- populateAllBizTypeDropdowns የሚለው ወደ globals.js ተወስዷል (ሁሉም ተጠቃሚዎች እንዲያዩት)
 
 window.openBizTypeManager = function() {
     let modal = document.getElementById('bizTypeModal');
@@ -115,7 +111,6 @@ window.addNewBizType = function() {
     
     if(!localDB.businessTypes) localDB.businessTypes = [];
 
-    // Duplicate Check
     if(localDB.businessTypes.includes(newType)) {
         showCustomAlert("ማሳሰቢያ", `"${newType}" የሚለው የንግድ ዘርፍ ከዚህ በፊት ተመዝግቧል! አዲስ ያስገቡ።`);
         return;
@@ -125,7 +120,7 @@ window.addNewBizType = function() {
     pushTenantFirebase();
     if (typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
     renderBizTypesList();
-    inputField.value = ''; // clear input
+    inputField.value = ''; 
 };
 
 window.deleteBizType = function(bizName) {
@@ -137,97 +132,6 @@ window.deleteBizType = function(bizName) {
         renderBizTypesList();
     });
 };
-
-/* -------------------------------------------------------- */
-
-function autoFillCapitalFee() {
-    let capital = document.getElementById('newCapitalTier').value;
-    let feeInput = document.getElementById('newRegistrationFee');
-
-    let tariffs = localDB.tariffs || { low: 500, medium: 1000, high: 2000 };
-    
-    if (capital === 'low') feeInput.value = tariffs.low;
-    else if (capital === 'medium') feeInput.value = tariffs.medium;
-    else if (capital === 'high') feeInput.value = tariffs.high;
-    else feeInput.value = '';
-}
-
-async function registerTenant() {
-    let shop = document.getElementById('newShopName').value.trim();
-    let fullName = document.getElementById('newFullName').value.trim();
-    let user = document.getElementById('newUsername').value.trim().toLowerCase();
-    let phone = document.getElementById('newPhone').value.trim();
-    let newEmail = document.getElementById('newEmail').value.trim();
-    let telegram = document.getElementById('newTelegram').value.trim();
-    let region = document.getElementById('newRegion').value.trim();
-    let zone = document.getElementById('newZone').value.trim();
-    let woreda = document.getElementById('newWoreda').value.trim();
-    let kebele = document.getElementById('newKebele').value.trim();
-    let houseNo = document.getElementById('newHouseNo').value.trim();
-    let tinNum = document.getElementById('newTin').value.trim();
-    let tradeReg = document.getElementById('newTradeReg').value.trim();
-    let mapsLink = document.getElementById('newMapsLink').value.trim();
-    let address = document.getElementById('newAddress').value.trim();
-    let businessType = document.getElementById('newBusinessType').value.trim() || 'አጠቃላይ ንግድ';
-    let registrationFee = parseFloat(document.getElementById('newRegistrationFee').value) || 0;
-    let contractType = document.getElementById('newContractType').value;
-    let expiryDate = document.getElementById('newExpiryDate').value;
-    
-    if(!shop || !user || !expiryDate || !fullName || !phone || !newEmail || !region || !zone || !woreda || !kebele || !houseNo || !tinNum || !tradeReg || !businessType) { 
-        showCustomAlert("ስህተት", "እባክዎ መሠረታዊ እና አስገዳጅ መረጃዎችን ሙሉ በሙሉ ያሟሉ!");
-        return; 
-    }
-
-    let checkUser = await isSystemDataTaken(user, phone, "", "");
-    if (checkUser) { showCustomAlert("⚠️ ምዝገባው አልተሳካም", checkUser);
-        return; }
-
-    pendingRegType = 'admin_tenant';
-    triggerOTPFlow(newEmail);
-    onVerifySuccess = () => {
-        let fileInput = document.getElementById('newShopLogoFile');
-        let file = fileInput.files[0];
-        
-        let proceedRegistration = async function(shopLogoBase64) {
-            let genCode = generateRandomCode();
-            let timestampNow = new Date().getTime();
-
-            try {
-                // 🔒 በፋየርቤዝ Auth በኩል መመዝገብ (የአድሚን ተከራይ ፈጠራ)
-                await auth.createUserWithEmailAndPassword(newEmail, genCode);
-                localDB.tenants[user] = { 
-                    shopName: shop, fullName: fullName, phone: phone, telegram: telegram || "-", address: address || "-",
-                    businessType: businessType, googleMapsLink: mapsLink || "", shopLogo: shopLogoBase64 || "", gmail: newEmail,
-                    region: region, zone: zone, woreda: woreda, kebele: kebele, houseNo: houseNo, tinNumber: tinNum, tradeRegistration: tradeReg,
-                    username: user, password: genCode, activationCode: genCode, codeCreatedAt: timestampNow,
-                    isActivated: false, contractType: contractType, expiryDate: expiryDate, registrationFee: registrationFee,
-                    status: "active", theme: "theme-deepblue", staffAccounts: [],
-                    data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, accumulatedVat: 0, lastMonthlyResetDate: timestampNow } 
-                };
-
-                pushTenantFirebase(); renderAdminPanel();
-                
-                document.getElementById('newShopName').value = ''; document.getElementById('newFullName').value = '';
-                document.getElementById('newUsername').value = ''; document.getElementById('newEmail').value = '';
-                document.getElementById('newPhone').value = ''; document.getElementById('newTelegram').value = '';
-                document.getElementById('newMapsLink').value = ''; document.getElementById('newAddress').value = ''; 
-                document.getElementById('newBusinessType').value = ''; document.getElementById('newExpiryDate').value = '';
-                document.getElementById('newRegistrationFee').value = ''; document.getElementById('newShopLogoFile').value = '';
-                document.getElementById('newCapitalTier').value = '';
-                document.getElementById('newRegion').value = ''; document.getElementById('newZone').value = '';
-                document.getElementById('newWoreda').value = ''; document.getElementById('newKebele').value = '';
-                document.getElementById('newHouseNo').value = '';
-                document.getElementById('newTin').value = ''; document.getElementById('newTradeReg').value = '';
-                
-                showCustomAlert("ተሳክቷል", "አዲሱ ተከራይ በተሳካ ሁኔታ ተመዝግቧል! መግቢያ ኮዳቸው: " + genCode + " ነው::");
-            } catch (error) {
-                showCustomAlert("ስህተት", "የተከራይ ምዝገባ አልተሳካም (Firebase): " + error.message);
-            }
-        };
-        
-        if(file) processImageUpload(file, proceedRegistration); else proceedRegistration("");
-    };
-}
 
 function openAdminTenantEditor(user) {
     let t = localDB.tenants[user];
@@ -268,7 +172,6 @@ window.toggleTenantListView = function() {
     if(section) section.classList.toggle('hidden');
 };
 
-/* --- የገቢዎች (Revenue) ሲስተም አስተዳደር --- */
 window.toggleAdminRevenueView = function() {
     let main = document.getElementById('adminDashboardMain');
     let section = document.getElementById('adminRevenueSection');
@@ -303,7 +206,6 @@ window.openRevenueRegistrationModal = function() {
             return; }
 
         try {
-            // 🔒 በፋየርቤዝ Auth በኩል መመዝገብ (የገቢዎች ባለስልጣን)
             await auth.createUserWithEmailAndPassword(email, pass);
             localDB.revenueAuthorities[user] = {
                 username: user,
@@ -320,7 +222,6 @@ window.openRevenueRegistrationModal = function() {
 
             pushRevenueFirebase();
             
-            // ምርጫዎቹ ሪፍሬሽ ሳይደረግ ወዲያውኑ ለተከራይ እንዲታዩ መላክ
             if(typeof updateAllLocationDropdowns === 'function') {
                 updateAllLocationDropdowns();
             }
@@ -369,7 +270,6 @@ window.deleteRevenueAuth = function(key) {
         delete localDB.revenueAuthorities[key];
         pushRevenueFirebase();
         
-        // ዳታው ሲጠፋ ምርጫውም አብሮ እንዲስተካከል
         if(typeof updateAllLocationDropdowns === 'function') {
             updateAllLocationDropdowns();
         }
@@ -378,7 +278,6 @@ window.deleteRevenueAuth = function(key) {
     });
 };
 
-/* --- የሞተረኞች (Motors/Delivery) ሲስተም አስተዳደር --- */
 window.toggleAdminMotorsView = function() {
     let main = document.getElementById('adminDashboardMain');
     let section = document.getElementById('adminMotorsSection');
@@ -390,7 +289,6 @@ window.toggleAdminMotorsView = function() {
 };
 
 window.openMotorTariffSettings = function() {
-    // ፐርሰንቱን ከዳታቤዝ አውጣ፣ ከሌለ 10% ይሁን
     let currentComm = (localDB.adminSettings && localDB.adminSettings.deliveryCommissionRate) !== undefined ? localDB.adminSettings.deliveryCommissionRate : 10;
     
     showFormModal("🏍️ የሞተረኛ ኮሚሽን ማስተካከያ", [
@@ -508,8 +406,6 @@ window.viewMotorDocs = function(username) {
     }
 };
 
-/* ---------------------------------------------------- */
-
 function renderAdminPanel() {
     if(localDB.adminSettings) {
         let tk = document.getElementById('adminTgToken');
@@ -554,15 +450,11 @@ function renderAdminPanel() {
         let statusBadge = t.status === "active" ? `<span class="badge-success">Active</span>` : `<span class="badge-danger">Blocked</span>`;
         let profileInfo = `👤 <b>${t.fullName || '-'}</b><br>📞 ${t.phone || '-'}<br>📍 ${t.address || '-'}<br>✈️ ${t.telegram || '-'}`;
         
-        let codeDisplay = "";
-        if (!t.isActivated) { 
-            codeDisplay = `⏱️ ጊዜያዊ ኮድ: <b class="text-warning" style="font-size:1.1rem; background:rgba(0,0,0,0.4); padding:2px 6px; border-radius:4px;">${t.activationCode}</b>`;
-        } else { 
-            codeDisplay = `<span class="text-success">🔒 ተከራዩ የራሱን ምስጢር ቆልፏል</span>`;
-        }
-        
         let staffCnt = t.staffAccounts ? t.staffAccounts.length : 0;
-        let loginInfo = `👤 አባል ስም: <code>${t.username}</code><br>${codeDisplay}<br>🛠️ ሰራተኛ: <code>${staffCnt} የተመዘገቡ</code>`;
+        
+        // ማሻሻያ፡ የመግቢያ ዝርዝር ኮድ (የተቆለፈ/ያልተቆለፈ) ማሳያው ጠፍቷል
+        let loginInfo = `👤 አባል ስም: <code>${t.username}</code><br>🛠️ ሰራተኛ: <code>${staffCnt} የተመዘገቡ</code>`;
+        
         let contractDisplay = `<span>${t.contractType || 'በወር'}</span><br><b class="text-warning">${t.registrationFee || 0} ETB</b>`;
         let bType = t.businessType || 'አጠቃላይ ንግድ';
 
@@ -574,7 +466,6 @@ function renderAdminPanel() {
                 <button class="btn-add btn-sm" onclick="openAdminTenantEditor('${t.username}')">✍️ አሻሽል</button>
                 <button class="btn-config btn-sm" onclick="toggleTenantStatus('${t.username}')">ሁኔታ ቀይር</button>
                 <button class="btn-expense btn-sm" onclick="deleteTenant('${t.username}')">Delete</button>
-                <button class="btn-add btn-sm" style="margin-top:4px;" onclick="regenerateTenantCode('${t.username}')">🔄 አዲስ ኮድ</button>
             </td>
         </tr>`;
     });
@@ -619,14 +510,6 @@ window.toggleBuyerStatus = function(username) {
         pushBuyerFirebase(); renderAdminBuyers(); showCustomAlert("ተስተካክሏል", "የገዥው መረጃ ሁኔታ ተቀይሯል።");
     }
 };
-
-function regenerateTenantCode(user) {
-    let t = localDB.tenants[user]; let newCode = generateRandomCode();
-    t.activationCode = newCode; t.password = newCode;
-    t.codeCreatedAt = new Date().getTime(); t.isActivated = false; 
-    localDB.tenants[user] = t; pushTenantFirebase(); renderAdminPanel();
-    showCustomAlert("ኮድ ተለውጧል", `ለተከራዩ አዲስ ኮድ ተፈጥሯል፦ ${newCode}`);
-}
 
 function toggleTenantStatus(user) { 
     let t = localDB.tenants[user]; t.status = t.status === "active" ? "blocked" : "active";
