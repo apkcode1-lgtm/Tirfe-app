@@ -121,7 +121,7 @@ window.deleteBizType = function(bizName) {
     });
 };
 
-function openAdminTenantEditor(user) {
+window.openAdminTenantEditor = function(user) {
     let t = localDB.tenants[user];
     let bizOptions = (localDB.businessTypes || ["አጠቃላይ ንግድ"]).map(b => ({ value: b, label: b }));
 
@@ -148,12 +148,6 @@ function openAdminTenantEditor(user) {
         showCustomAlert("ተሳክቷል", "የተከራዩ መረጃ በተሳካ ሁኔታ ተሻሽሏል!");
     });
 }
-
-window.toggleAdminBuyersView = function() {
-    let main = document.getElementById('adminDashboardMain'); let section = document.getElementById('adminBuyersSection');
-    if(main && section) { main.classList.toggle('hidden');
-        section.classList.toggle('hidden'); renderAdminBuyers(); }
-};
 
 window.toggleTenantListView = function() {
     let section = document.getElementById('adminTenantsSection');
@@ -194,8 +188,9 @@ window.openRevenueRegistrationModal = function() {
             return; }
 
         try {
-            await auth.createUserWithEmailAndPassword(email, pass);
+            let userCredential = await auth.createUserWithEmailAndPassword(email, pass);
             localDB.revenueAuthorities[user] = {
+                uid: userCredential.user.uid, // ለወደፊት ለማጥፋት እንዲረዳ UID እናስቀምጣለን
                 username: user,
                 authUser: user,
                 authName: (res.revName || "").trim(),
@@ -254,7 +249,22 @@ window.renderAdminRevenueList = function() {
 };
 
 window.deleteRevenueAuth = function(key) {
-    showCustomConfirm("ገቢ ማጥፊያ", "ይህንን የገቢ ባለስልጣን አካውንት ማጥፋት ይፈልጋሉ?", () => {
+    showCustomConfirm("ገቢ ማጥፊያ", "ይህንን የገቢ ባለስልጣን አካውንት ሙሉ በሙሉ ማጥፋት ይፈልጋሉ?", async () => {
+        let authUid = localDB.revenueAuthorities[key].uid;
+        
+        if (authUid) {
+            try {
+                let response = await fetch('/api/delete-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid: authUid })
+                });
+                if(!response.ok) throw new Error("Backend API Error");
+            } catch (error) {
+                console.error("Firebase Auth delete failed:", error);
+            }
+        }
+        
         delete localDB.revenueAuthorities[key];
         pushRevenueFirebase();
         
@@ -263,6 +273,7 @@ window.deleteRevenueAuth = function(key) {
         }
 
         renderAdminRevenueList();
+        showCustomAlert("ተሳክቷል", "የገቢዎች ባለስልጣን አካውንት ሙሉ በሙሉ ጠፍቷል።");
     });
 };
 
@@ -362,9 +373,26 @@ window.toggleMotorStatus = function(username) {
 };
 
 window.deleteMotor = function(username) {
-    showCustomConfirm("ሞተረኛ ማጥፊያ", "ይህንን ሞተረኛ ሙሉ በሙሉ ለማጥፋት እርግጠኛ ኖት?", () => { 
+    showCustomConfirm("ሞተረኛ ማጥፊያ", "ይህንን ሞተረኛ ሙሉ በሙሉ ለማጥፋት እርግጠኛ ኖት?", async () => { 
+        let authUid = localDB.motors[username].uid;
+        
+        if (authUid) {
+            try {
+                let response = await fetch('/api/delete-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid: authUid })
+                });
+                if(!response.ok) throw new Error("Backend API Error");
+            } catch (error) {
+                console.error("Firebase Auth delete failed:", error);
+            }
+        }
+
+        delete localDB.motors[username];
         pushMotorFirebase();
         renderAdminMotors(); 
+        showCustomAlert("ተሳክቷል", "ሞተረኛው ሙሉ በሙሉ ተሰርዟል።");
     });
 };
 
@@ -394,7 +422,7 @@ window.viewMotorDocs = function(username) {
     }
 };
 
-function renderAdminPanel() {
+window.renderAdminPanel = function() {
     if(localDB.adminSettings) {
         let tk = document.getElementById('adminTgToken');
         if(tk && tk.value==='') tk.value = localDB.adminSettings.tgToken || "";
@@ -406,6 +434,7 @@ function renderAdminPanel() {
     }
     
     let tbody = document.getElementById('tenantTableBody');
+    if(!tbody) return;
     tbody.innerHTML = '';
     let query = document.getElementById('adminSearchInput') ? document.getElementById('adminSearchInput').value.trim().toLowerCase() : "";
     
@@ -413,7 +442,7 @@ function renderAdminPanel() {
     let totalFeesCollected = 0; let alertsHTML = '';
     let needsPush = false;
     
-    Object.keys(localDB.tenants).forEach(key => {
+    Object.keys(localDB.tenants || {}).forEach(key => {
         let t = localDB.tenants[key]; totalTenants++;
         if (t.status === "active") activeTenants++;
         totalFeesCollected += (parseFloat(t.registrationFee) || 0);
@@ -439,8 +468,6 @@ function renderAdminPanel() {
         let profileInfo = `👤 <b>${t.fullName || '-'}</b><br>📞 ${t.phone || '-'}<br>📍 ${t.address || '-'}<br>✈️ ${t.telegram || '-'}`;
         
         let staffCnt = t.staffAccounts ? t.staffAccounts.length : 0;
-        
-        // ማሻሻያ፡ የመግቢያ ዝርዝር ኮድ (የተቆለፈ/ያልተቆለፈ) ማሳያው ጠፍቷል
         let loginInfo = `👤 አባል ስም: <code>${t.username}</code><br>🛠️ ሰራተኛ: <code>${staffCnt} የተመዘገቡ</code>`;
         
         let contractDisplay = `<span>${t.contractType || 'በወር'}</span><br><b class="text-warning">${t.registrationFee || 0} ETB</b>`;
@@ -458,52 +485,52 @@ function renderAdminPanel() {
         </tr>`;
     });
 
-    document.getElementById('adminExpiryAlerts').innerHTML = alertsHTML;
-    document.getElementById('adminTotalTenants').innerText = totalTenants;
-    document.getElementById('adminActiveTenants').innerText = activeTenants;
-    document.getElementById('adminTotalFees').innerText = totalFeesCollected.toFixed(1) + " ETB";
-    document.getElementById('adminTotalBuyers').innerText = Object.keys(localDB.buyers || {}).length;
+    let alertsContainer = document.getElementById('adminExpiryAlerts');
+    if(alertsContainer) alertsContainer.innerHTML = alertsHTML;
     
-    renderAdminBuyers();
+    let totalTenantsElem = document.getElementById('adminTotalTenants');
+    if(totalTenantsElem) totalTenantsElem.innerText = totalTenants;
+    
+    let activeTenantsElem = document.getElementById('adminActiveTenants');
+    if(activeTenantsElem) activeTenantsElem.innerText = activeTenants;
+    
+    let totalFeesElem = document.getElementById('adminTotalFees');
+    if(totalFeesElem) totalFeesElem.innerText = totalFeesCollected.toFixed(1) + " ETB";
+    
     if(typeof renderAdminRevenueList === "function") renderAdminRevenueList();
     if(typeof renderAdminMotors === "function") renderAdminMotors();
     if(needsPush) pushToFirebase();
-}
-
-window.deleteBuyer = function(username) {
-    showCustomConfirm("ገዥ ማጥፊያ", "ይህንን ገዥ ማጥፋት ይፈልጋሉ?", () => { delete localDB.buyers[username]; pushBuyerFirebase(); renderAdminBuyers(); });
 };
 
-function renderAdminBuyers() {
-    let tbody = document.getElementById('adminBuyersTableBody'); if(!tbody) return;
-    tbody.innerHTML = ''; if(!localDB.buyers) return;
-    Object.values(localDB.buyers).forEach(b => {
-        let status = b.status === "blocked" ? '<span class="badge-danger">Blocked / ታግዷል</span>' : '<span class="badge-success">Active / ይሰራል</span>';
-        let actionText = b.status === "blocked" ? "Unblock" : "Block";
-        let actionClass = b.status === "blocked" ? "btn-add" : "btn-warning";
-        tbody.innerHTML += `<tr>
-            <td>👤 ${b.username}</td><td>📞 ${b.phone}</td><td>${status}</td>
-            <td style="display:flex; gap:5px;">
-                <button class="${actionClass} btn-sm" onclick="toggleBuyerStatus('${b.username}')">🚫 ${actionText}</button>
-                <button class="btn-expense btn-sm" onclick="deleteBuyer('${b.username}')">🗑️ አጥፋ</button>
-            </td>
-        </tr>`;
+window.toggleTenantStatus = function(user) { 
+    let t = localDB.tenants[user]; 
+    t.status = t.status === "active" ? "blocked" : "active";
+    pushTenantFirebase(); 
+    renderAdminPanel();
+};
+
+window.deleteTenant = function(user) { 
+    showCustomConfirm("ተከራይ ማጥፊያ", "ይህንን ተከራይ ሙሉ በሙሉ ለማጥፋት እርግጠኛ ኖት? እርምጃው አይቀለበስም።", async () => { 
+        let authUid = localDB.tenants[user].uid;
+        
+        // ከ Firebase Authentication ላይ ለማጥፋት የ Backend API ን መጥራት
+        if (authUid) {
+            try {
+                let response = await fetch('/api/delete-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid: authUid })
+                });
+                if(!response.ok) throw new Error("Backend API Error");
+            } catch (error) {
+                console.error("Firebase Auth delete failed:", error);
+                // Auth ማጥፋት ባይሳካም ዳታቤዙን ለማጥፋት ከፈለግክ ከስር ያለው ኮድ ይቀጥላል
+            }
+        }
+        
+        delete localDB.tenants[user]; 
+        pushTenantFirebase(); 
+        renderAdminPanel(); 
+        showCustomAlert("ተሳክቷል", "ተከራዩ ሙሉ በሙሉ ጠፍቷል።");
     });
-}
-
-window.toggleBuyerStatus = function(username) {
-    if(localDB.buyers && localDB.buyers[username]) {
-        let b = localDB.buyers[username];
-        b.status = b.status === "blocked" ? "active" : "blocked";
-        pushBuyerFirebase(); renderAdminBuyers(); showCustomAlert("ተስተካክሏል", "የገዥው መረጃ ሁኔታ ተቀይሯል።");
-    }
 };
-
-function toggleTenantStatus(user) { 
-    let t = localDB.tenants[user]; t.status = t.status === "active" ? "blocked" : "active";
-    pushTenantFirebase(); renderAdminPanel();
-}
-
-function deleteTenant(user) { 
-    showCustomConfirm("ተከራይ ማጥፊያ", "ይህንን ተከራይ ሙሉ በሙሉ ለማጥፋት እርግጠኛ ኖት?", () => { delete localDB.tenants[user]; pushTenantFirebase(); renderAdminPanel(); });
-}
