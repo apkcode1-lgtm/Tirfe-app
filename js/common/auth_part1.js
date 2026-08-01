@@ -154,10 +154,13 @@ async function handleUnifiedLogin() {
             if(tSnap.exists()) {
                 let t = tSnap.val();
                 if(String(t.gmail || "").toLowerCase() === email.toLowerCase()) {
+                    if(t.status === "blocked") {
+                        err.innerText = "❌ አካውንትዎ ታግዷል (Blocked)! እባክዎ ዋናውን አስተዳዳሪ (Admin) ያነጋግሩ።";
+                        if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
+                    }
                     if(typeof isTenantExpired === 'function' && isTenantExpired(t, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
                     currentUserRole = "owner";
                     if(localDB.tenants) localDB.tenants[user] = t; 
-                    if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
                     pushTenantFirebase();
                     document.cookie = "userRole=shop; path=/; max-age=86400;";
@@ -177,7 +180,6 @@ async function handleUnifiedLogin() {
                     }
                     currentBuyer = b;
                     if(localDB.buyers) localDB.buyers[user] = b;
-                    if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: user }));
                     pushBuyerFirebase();
                     document.cookie = "userRole=buyer; path=/; max-age=86400;";
@@ -221,7 +223,6 @@ async function handleUnifiedLogin() {
                     currentMotor = m;
                     currentUserRole = "motor";
                     if(localDB.motors) localDB.motors[user] = m;
-                    if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'motor', loginMode: 'motor', username: user }));
                     pushMotorFirebase();
                     document.cookie = "userRole=delivery; path=/; max-age=86400;";
@@ -238,10 +239,13 @@ async function handleUnifiedLogin() {
                     let ptSnap = await db.ref(`tirfe_system/tenants/${s.tenantUsername}`).once('value');
                     if(ptSnap.exists()) {
                         let parentTenant = ptSnap.val();
+                        if(parentTenant.status === "blocked") {
+                            err.innerText = "❌ የሱቁ አካውንት ታግዷል (Blocked)! እባክዎ ዋናውን አስተዳዳሪ (Admin) ያነጋግሩ።";
+                            if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
+                        }
                         if(typeof isTenantExpired === 'function' && isTenantExpired(parentTenant, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
                         currentUserRole = "staff";
                         if(localDB.tenants) localDB.tenants[s.tenantUsername] = parentTenant;
-                        if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                         localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: parentTenant.username }));
                         pushTenantFirebase();
                         document.cookie = "userRole=staff; path=/; max-age=86400;";
@@ -266,6 +270,4 @@ async function handleUnifiedLogin() {
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
     }
 }
-
-
 
