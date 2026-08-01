@@ -75,20 +75,27 @@ function checkAutomaticLogin() {
             }
         } 
         else if ((session.role === 'owner' || session.role === 'staff') && localDB.tenants && localDB.tenants[session.username]) {
-            let t = localDB.tenants[session.username]; //[span_24](start_span)[span_24](end_span)
-            currentTenant = t; //[span_25](start_span)[span_25](end_span)
-            currentUserRole = session.role; //[span_26](start_span)[span_26](end_span)
+            let t = localDB.tenants[session.username];
             
-            if(isLoginPage) {
-                let roleStr = session.role === 'owner' ? 'shop' : 'staff';
-                document.cookie = `userRole=${roleStr}; path=/; max-age=86400;`;
-                window.location.href = "/api/router";
+            // አዲስ የተጨመረ - ተከራዩ ብሎክ ከሆነ አውቶማቲክ ሎግ-ኢን እንዳያደርግ መከልከል
+            if(t.status === "blocked") {
+                localStorage.removeItem('tirfe_active_session');
+                if(!isLoginPage) window.location.href = "/index.html";
             } else {
-                if(typeof launchApp === "function") {
-                    launchApp(currentTenant); //[span_27](start_span)[span_27](end_span)
+                currentTenant = t; 
+                currentUserRole = session.role; 
+                
+                if(isLoginPage) {
+                    let roleStr = session.role === 'owner' ? 'shop' : 'staff';
+                    document.cookie = `userRole=${roleStr}; path=/; max-age=86400;`;
+                    window.location.href = "/api/router";
+                } else {
+                    if(typeof launchApp === "function") {
+                        launchApp(currentTenant); 
+                    }
                 }
             }
-        }
+        } 
     } else {
         if(!isLoginPage) {
             window.location.href = "/index.html"; //[span_28](start_span)[span_28](end_span)
