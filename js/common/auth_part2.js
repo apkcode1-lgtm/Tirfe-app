@@ -37,10 +37,11 @@ async function triggerUnifiedRegistration() {
                 if(!res.newPass) { showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); return; }
     
                 try {
-                    await auth.createUserWithEmailAndPassword(pendingRegistrationData.email, res.newPass);
+                    let userCredential = await auth.createUserWithEmailAndPassword(pendingRegistrationData.email, res.newPass);
                     
                     if(!localDB.buyers) localDB.buyers = {};
                     localDB.buyers[pendingRegistrationData.user] = { 
+                        uid: userCredential.user.uid, // ለወደፊት አድሚን ሲያጠፋ Auth ላይም እንዲጠፋ እንዲረዳ
                         username: pendingRegistrationData.user, phone: pendingRegistrationData.phone, 
                         name: pendingRegistrationData.name, email: pendingRegistrationData.email,
                         joinDate: new Date().getTime(), receipts: [], 
@@ -112,15 +113,15 @@ async function triggerUnifiedRegistration() {
                 if(!res.newPass) { showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); return; }
        
                 try {
-                    await auth.createUserWithEmailAndPassword(newEmail, res.newPass);
+                    let userCredential = await auth.createUserWithEmailAndPassword(newEmail, res.newPass);
 
                     let proceedReg = function(shopLogoBase64) {
                         let timestampNow = new Date().getTime();
                         localDB.tenants[user] = { 
+                            uid: userCredential.user.uid, // ለወደፊት አድሚን ሲያጠፋ Auth ላይም እንዲጠፋ እንዲረዳ
                             shopName: shop, fullName: fullName, phone: phone, telegram: telegram || "-", address: address || "-",
                             businessType: businessType, googleMapsLink: mapsLink || "", shopLogo: shopLogoBase64 || "", gmail: newEmail,
                             region: region, zone: zone, woreda: woreda, kebele: kebele, houseNo: houseNo, tinNumber: tinNum, tradeRegistration: tradeReg,
-                            locationKey: `${region}_${zone}_${woreda}`, // 🆕 ገቢዎች ባለስልጣን በክልል+ዞን+ወረዳ ተጣምሮ Firebase ላይ Query (ማጣራት) እንዲያደርግ የሚያስችል መለያ
                             username: user, codeCreatedAt: timestampNow, // ❌ Password እና activationCode ተሰርዟል
                             isActivated: true, contractType: contractType, expiryDate: expiryDate, registrationFee: registrationFee,
                             status: "active", theme: "theme-deepblue", staffAccounts: [],
@@ -213,14 +214,14 @@ try {
             if(!res.newPass) { showCustomAlert("ስህተት", "ፓስዎርድ አልፈጠሩም!"); return; }
 
             try {
-                await auth.createUserWithEmailAndPassword(email, res.newPass);
+                let userCredential = await auth.createUserWithEmailAndPassword(email, res.newPass);
 
                 if(!localDB.motors) localDB.motors = {};
                 localDB.motors[user] = {
+                    uid: userCredential.user.uid, // ለወደፊት አድሚን ሲያጠፋ Auth ላይም እንዲጠፋ እንዲረዳ
                     firstName: firstName, lastName: lastName, phone: phone, email: email,
                     username: user, telegramToken: tgToken, plateNumber: plateNumber,
                     region: region, zone: zone, woreda: woreda,
-                    locationKey: `${region}_${zone}_${woreda}`, // 🆕 ገቢዎች ባለስልጣን በክልል+ዞን+ወረዳ ተጣምሮ ሞተረኞችን Query (ማጣራት እና መቁጠር) እንዲያደርግ የሚያስችል መለያ
                     // ❌ Base64 ተሰርዟል፣ ✅ አሁን ከ Storage የተገኘው የፎቶ ሊንክ (URL) ብቻ ዳታቤዝ ላይ ይቀመጣል
                     idCardImage: idCardUrl, 
                     licenseImage: licenseUrl,
@@ -334,5 +335,4 @@ function verifyEmailCodeSubmit() {
     } else { 
         showCustomAlert("❌ ስህተት", "ያስገቡት ማረጋገጫ ኮድ የተሳሳተ ነው!");
     }
-}
-
+  }
