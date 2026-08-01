@@ -159,6 +159,7 @@ async function handleUnifiedLogin() {
                         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
                     }
                     if(typeof isTenantExpired === 'function' && isTenantExpired(t, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
+                    currentTenant = t;
                     currentUserRole = "owner";
                     if(localDB.tenants) localDB.tenants[user] = t; 
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
