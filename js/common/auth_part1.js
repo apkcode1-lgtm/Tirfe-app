@@ -159,10 +159,14 @@ async function handleUnifiedLogin() {
                         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
                     }
                     if(typeof isTenantExpired === 'function' && isTenantExpired(t, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
+                    // ✅ FIX: currentTenant ግሎባል ተለዋዋጭ (variable) ከዚህ በፊት ጨርሶ አይቀመጥም ነበር።
+                    // pushTenantFirebase() እና ሌሎች ኮዶች ሁሉ currentTenant ን ስለሚፈልጉ፣
+                    // ይህ ከሌለ ዳታው ወደ localStorage/Firebase አይቀመጥም ነበር፣ ገጹም እንዳይከፈት ያደርግ ነበር።
                     currentTenant = t;
                     currentUserRole = "owner";
                     if(localDB.tenants) localDB.tenants[user] = t; 
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
+                    if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                     pushTenantFirebase();
                     document.cookie = "userRole=shop; path=/; max-age=86400;";
                     window.location.href = "/api/router";
@@ -182,6 +186,7 @@ async function handleUnifiedLogin() {
                     currentBuyer = b;
                     if(localDB.buyers) localDB.buyers[user] = b;
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: user }));
+                    if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                     pushBuyerFirebase();
                     document.cookie = "userRole=buyer; path=/; max-age=86400;";
                     window.location.href = "/api/router";
@@ -225,6 +230,7 @@ async function handleUnifiedLogin() {
                     currentUserRole = "motor";
                     if(localDB.motors) localDB.motors[user] = m;
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'motor', loginMode: 'motor', username: user }));
+                    if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                     pushMotorFirebase();
                     document.cookie = "userRole=delivery; path=/; max-age=86400;";
                     window.location.href = "/api/router";
@@ -245,9 +251,12 @@ async function handleUnifiedLogin() {
                             if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return;
                         }
                         if(typeof isTenantExpired === 'function' && isTenantExpired(parentTenant, err)) { if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; } return; }
+                        // ✅ FIX: staff ሲገባም currentTenant የወላጅ ሱቁ ዳታ ሊይዝ ይገባል (ከዚህ በፊት አልነበረም)
+                        currentTenant = parentTenant;
                         currentUserRole = "staff";
                         if(localDB.tenants) localDB.tenants[s.tenantUsername] = parentTenant;
                         localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: parentTenant.username }));
+                        if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                         pushTenantFirebase();
                         document.cookie = "userRole=staff; path=/; max-age=86400;";
                         window.location.href = "/api/router";
@@ -270,6 +279,4 @@ async function handleUnifiedLogin() {
         err.innerText = "❌ ስህተት አጋጥሟል! " + (error.message || "ያልታወቀ የውስጥ ስህተት");
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
     }
-  }
 }
-
