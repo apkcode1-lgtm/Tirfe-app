@@ -202,7 +202,7 @@ window.openRevenueRegistrationModal = function() {
                 status: "active"
             };
 
-            pushRevenueFirebase();
+            pushAdminRecordUpdate('revenueAuthorities', user, localDB.revenueAuthorities[user]);
             
             if(typeof updateAllLocationDropdowns === 'function') {
                 updateAllLocationDropdowns();
