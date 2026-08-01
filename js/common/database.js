@@ -313,7 +313,8 @@ if(typeof db !== 'undefined') {
             const adminNodes = [
                 { fbNode: 'admin_tenant_summary', localKey: 'tenants' }, 
                 { fbNode: 'buyers', localKey: 'buyers' }, 
-                { fbNode: 'motors', localKey: 'motors' }
+                { fbNode: 'motors', localKey: 'motors' },
+                { fbNode: 'revenueAuthorities', localKey: 'revenueAuthorities' }
             ];
             adminNodes.forEach(nodeObj => {
                 let fbPath = nodeObj.fbNode;
@@ -374,7 +375,6 @@ if(typeof db !== 'undefined') {
                         if(shouldUpdateLocal(inData, localDB.tenants[tUser], 'tenants', tUser)) {
 
                             localDB.tenants[tUser] = Object.assign({}, localDB.tenants[tUser] || {}, inData);
-
                             hasUpdates = true;
 
                         }
@@ -480,6 +480,7 @@ if(typeof db !== 'undefined') {
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
+
         // 4. የሞተረኛ (Motor) የብሎክ እና ሪፍሬሽ ቼክ
         if(typeof currentMotor !== 'undefined' && currentMotor) {
             let checkMotor = localDB.motors[currentMotor.username];
@@ -499,4 +500,4 @@ if(typeof db !== 'undefined') {
             if(typeof renderAdminBuyers === 'function') renderAdminBuyers();
         }
     }
-   }
+}
