@@ -186,7 +186,6 @@ window.openRevenueRegistrationModal = function() {
         if(!localDB.revenueAuthorities) localDB.revenueAuthorities = {};
         if(localDB.revenueAuthorities[user]) { showCustomAlert("ስህተት", "ይህ ዩዘርኔም አስቀድሞ ተይዟል!");
             return; }
-
         try {
             let userCredential = await auth.createUserWithEmailAndPassword(email, pass);
             localDB.revenueAuthorities[user] = {
@@ -266,7 +265,7 @@ window.deleteRevenueAuth = function(key) {
         }
         
         delete localDB.revenueAuthorities[key];
-        pushRevenueFirebase();
+        pushAdminRecordDelete('revenueAuthorities', key);
         
         if(typeof updateAllLocationDropdowns === 'function') {
             updateAllLocationDropdowns();
@@ -366,7 +365,7 @@ window.toggleMotorStatus = function(username) {
             m.status = "blocked";
         }
         
-        pushMotorFirebase(); 
+        pushAdminRecordUpdate('motors', username, m); 
         renderAdminMotors();
         showCustomAlert("ተስተካክሏል", "የሞተረኛው ሁኔታ በተሳካ ሁኔታ ተቀይሯል።");
     }
@@ -390,7 +389,7 @@ window.deleteMotor = function(username) {
         }
 
         delete localDB.motors[username];
-        pushMotorFirebase();
+        pushAdminRecordDelete('motors', username);
         renderAdminMotors(); 
         showCustomAlert("ተሳክቷል", "ሞተረኛው ሙሉ በሙሉ ተሰርዟል።");
     });
@@ -501,11 +500,10 @@ window.renderAdminPanel = function() {
     if(typeof renderAdminMotors === "function") renderAdminMotors();
     if(needsPush) pushToFirebase();
 };
-
 window.toggleTenantStatus = function(user) { 
     let t = localDB.tenants[user]; 
     t.status = t.status === "active" ? "blocked" : "active";
-    pushTenantFirebase(); 
+    pushAdminTenantUpdate(user, t); 
     renderAdminPanel();
 };
 
@@ -529,7 +527,7 @@ window.deleteTenant = function(user) {
         }
         
         delete localDB.tenants[user]; 
-        pushTenantFirebase(); 
+        pushAdminTenantDelete(user); 
         renderAdminPanel(); 
         showCustomAlert("ተሳክቷል", "ተከራዩ ሙሉ በሙሉ ጠፍቷል።");
     });
