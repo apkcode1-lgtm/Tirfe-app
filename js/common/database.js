@@ -416,36 +416,54 @@ if(typeof db !== 'undefined') {
     function triggerUIRefresh() {
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
         if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
+
+        // 1. የተከራይ (Tenant) የብሎክ እና ሪፍሬሽ ቼክ
         if(typeof currentTenant !== 'undefined' && currentTenant) {
             let checkTenant = localDB.tenants[currentTenant.username];
-
+            // logout() የነበረውን ወደ forceLogout() ቀይረነዋል
             if(!checkTenant || checkTenant.status === "blocked") { 
-                if(typeof logout === 'function') logout();
+                alert("አካውንትዎ በአድሚን ታግዷል!"); // ተጠቃሚው ለምን እንደወጣ እንዲያውቅ
+                if(typeof forceLogout === 'function') forceLogout();
                 return; 
             }
             currentTenant = checkTenant;
             if(typeof renderApp === 'function') renderApp();
             if(typeof renderTenantTaxReceipts === 'function') renderTenantTaxReceipts();
         }
+     
+        // 2. የገዢ (Buyer) ሪፍሬሽ ቼክ
         if(typeof currentBuyer !== 'undefined' && currentBuyer) {
             let checkBuyer = localDB.buyers[currentBuyer.username];
-          if(checkBuyer) currentBuyer = checkBuyer;
+            if(!checkBuyer || checkBuyer.status === "blocked") {
+                if(typeof forceLogout === 'function') forceLogout();
+                return;
+            }
+            currentBuyer = checkBuyer;
         }
         if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
+
+        // 3. የገቢዎች (Revenue) ሪፍሬሽ ቼክ
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
+
+        // 4. የሞተረኛ (Motor) የብሎክ እና ሪፍሬሽ ቼክ
         if(typeof currentMotor !== 'undefined' && currentMotor) {
-          let checkMotor = localDB.motors[currentMotor.username];
-            if(checkMotor) {
-                currentMotor = checkMotor;
-                if(typeof renderMotorPage === 'function') renderMotorPage();
+            let checkMotor = localDB.motors[currentMotor.username];
+            if(!checkMotor || checkMotor.status === "blocked") {
+                alert("የሞተረኛ አካውንትዎ ታግዷል!");
+                if(typeof forceLogout === 'function') forceLogout();
+                return;
             }
+            currentMotor = checkMotor;
+            if(typeof renderMotorPage === 'function') renderMotorPage();
         }
-         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
+        
+        // 5. የአድሚን ሪፍሬሽ
+        if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
             if(typeof renderAdminPanel === 'function') renderAdminPanel();
             if(typeof renderAdminMotors === 'function') renderAdminMotors();
             if(typeof renderAdminBuyers === 'function') renderAdminBuyers();
         }
     }
-}
+
