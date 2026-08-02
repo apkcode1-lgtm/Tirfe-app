@@ -447,6 +447,8 @@ if(typeof db !== 'undefined') {
         }
     };
     setupSecureUserListeners();
+    processActionQueue();
+    
     function triggerUIRefresh() {
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
         if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
