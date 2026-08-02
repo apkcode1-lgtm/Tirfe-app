@@ -54,42 +54,23 @@ window.populateAllBizTypeDropdowns = function() {
 // =====================================================================
 // ዳይናሚክ የክልል፣ ዞን እና ወረዳ ሎጂክ (Cascading Dropdowns from Revenue Data)
 // =====================================================================
-
 function getAvailableLocations() {
     let locations = { regions: [], zonesByRegion: {}, woredasByZone: {} };
-    if (!localDB || !localDB.revenueAuthorities) return locations;
+    if (!localDB || !localDB.public_locations) return locations;   // 🆕
 
-    // የገቢዎች ባለስልጣን ከተመዘገበበት ዳታ ላይ ክልል፣ ዞን እና ወረዳዎችን ማውጣት
-    for (let key in localDB.revenueAuthorities) {
-        let rev = localDB.revenueAuthorities[key];
-        // የገቢዎች ዳታ ላይ ያሉት የክልል ስሞች authRegion, authZone, authWoreda ስለሆኑ ይህንን አስተካክለናል
-        let rRegion = rev.authRegion || rev.region; 
-        let rZone = rev.authZone || rev.zone;
-        let rWoreda = rev.authWoreda || rev.woreda;
+    for (let key in localDB.public_locations) {   // 🆕
+        let loc = localDB.public_locations[key];   // 🆕
+        let rRegion = loc.region;   // 🆕 
+        let rZone = loc.zone;
+        let rWoreda = loc.woreda;
 
         if (rRegion && rZone && rWoreda) {
-            
-            // ክልል መጨመር
-            if (!locations.regions.includes(rRegion)) {
-                locations.regions.push(rRegion);
-            }
-            
-            // ዞን በክልል ስር መጨመር
-            if (!locations.zonesByRegion[rRegion]) {
-                locations.zonesByRegion[rRegion] = [];
-            }
-            if (!locations.zonesByRegion[rRegion].includes(rZone)) {
-                locations.zonesByRegion[rRegion].push(rZone);
-            }
-
-            // ወረዳ በዞን ስር መጨመር (Region_Zone እንደ ቁልፍ በመጠቀም)
+            if (!locations.regions.includes(rRegion)) locations.regions.push(rRegion);
+            if (!locations.zonesByRegion[rRegion]) locations.zonesByRegion[rRegion] = [];
+            if (!locations.zonesByRegion[rRegion].includes(rZone)) locations.zonesByRegion[rRegion].push(rZone);
             let zoneKey = rRegion + "_" + rZone;
-            if (!locations.woredasByZone[zoneKey]) {
-                locations.woredasByZone[zoneKey] = [];
-            }
-            if (!locations.woredasByZone[zoneKey].includes(rWoreda)) {
-                locations.woredasByZone[zoneKey].push(rWoreda);
-            }
+            if (!locations.woredasByZone[zoneKey]) locations.woredasByZone[zoneKey] = [];
+            if (!locations.woredasByZone[zoneKey].includes(rWoreda)) locations.woredasByZone[zoneKey].push(rWoreda);
         }
     }
     return locations;
