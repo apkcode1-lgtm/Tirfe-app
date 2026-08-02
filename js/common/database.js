@@ -286,7 +286,7 @@ function sendMotorTelegramAlert(username, message) {
 }
 if(typeof db !== 'undefined') {
     const fetchStaticData = function() {
-      const staticNodes = ['tariffs', 'businessTypes', 'adminSettings'];
+      const staticNodes = ['tariffs', 'businessTypes', 'adminSettings', 'public_locations'];
         staticNodes.forEach(node => {
             db.ref(`tirfe_system/${node}`).once('value').then((snapshot) => {
                 if(snapshot.exists()) {
