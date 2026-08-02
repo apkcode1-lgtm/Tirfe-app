@@ -45,6 +45,7 @@ function loadLocalStorageBackup() {
         if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas; 
         if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
         if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
+        if(parsedBackup.public_locations) localDB.public_locations = parsedBackup.public_locations;
         if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
         if(parsedBackup.adminSettings) {
             localDB.adminSettings = parsedBackup.adminSettings;
