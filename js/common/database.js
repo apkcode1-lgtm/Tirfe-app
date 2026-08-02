@@ -74,6 +74,12 @@ function queueAction(actionType, collection, docId, data) {
     };
     actionQueue.push(newAction);
    localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
+
+   // 🆕 FIX: እያንዳንዱ አዲስ ትዕዛዝ ገፁ ሳይታደስ ወዲያውኑ ወደ Firebase እንዲላክ (ከዚህ በፊት እዚህ ውስጥ
+   // ምንም የመላኪያ ጥሪ ስላልነበረ፣ ዳታው ገፁ እስኪታደስ ወይም ኢንተርኔት off/on እስኪደረግ ድረስ ተጣብቆ ይቀር ነበር)
+   if (isOnline && typeof db !== 'undefined') {
+       processActionQueue();
+   }
 }
 let isProcessingQueue = false;
 function processActionQueue() {
@@ -506,3 +512,4 @@ if(typeof db !== 'undefined') {
         }
     }
 }
+
