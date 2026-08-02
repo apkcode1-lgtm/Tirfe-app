@@ -214,23 +214,22 @@ function pushMotorFirebase() {
 }
 // --------------------------------------------------------
 // 🛠️ አዲስ የተጨመሩ - ከአድሚን ገፅ ላይ ማንኛውንም ተጠቃሚ (ተከራይ/ሞተረኛ/ገቢዎች) በቀጥታ
-// ወደ Firebase የመቀየሪያ/የማጥፊያ ፋንክሽኖች (ከዚህ በፊት pushTenantFirebase/pushMotorFirebase
-// የአድሚኑን ራሱን session ብቻ ስለሚያዩ ("currentTenant"/"currentMotor" ለአድሚን ባዶ ስለሆነ)
-// ከአድሚን ገፅ ተጠርተው ምንም ወደ Firebase አይልኩም ነበር። ስለዚህ ዴሌት/ብሎክ "ተሳክቷል" ይል ነበር
-// እንጂ በ Firebase ላይ ምንም አይቀየርም ነበር።
 // --------------------------------------------------------
+
 function pushAdminRecordUpdate(collection, docId, data) {
     let cleaned = cleanData(data);
     if(!cleaned || !docId) return;
     cleaned.lastUpdated = Date.now();
     queueAction('UPDATE', collection, docId, cleaned);
+    saveToLocalStorage();
+    processActionQueue();   
 }
 function pushAdminRecordDelete(collection, docId) {
     if(!docId) return;
     queueAction('DELETE', collection, docId, null);
+    saveToLocalStorage();
+    processActionQueue();
 }
-// ተከራይ (ሱቅ) ልዩ ስለሆነ (3 የተለያዩ Firebase መስመሮች ላይ ስለሚቀመጥ፦ tenants, public_tenants,
-// admin_tenant_summary) ስታስቀይረው/ስታጠፋው ሁሉንም አብረው ማዘመን/ማጥፋት አለብን
 function pushAdminTenantUpdate(username, tenantData) {
     let cleaned = cleanData(tenantData);
     if(!cleaned || !username) return;
@@ -239,12 +238,16 @@ function pushAdminTenantUpdate(username, tenantData) {
     let summary = Object.assign({}, cleaned);
     delete summary.items; delete summary.products; delete summary.catalog; delete summary.taxReceipts;
     queueAction('UPDATE', 'admin_tenant_summary', username, summary);
+    saveToLocalStorage();
+    processActionQueue();
 }
 function pushAdminTenantDelete(username) {
     if(!username) return;
     queueAction('DELETE', 'tenants', username, null);
     queueAction('DELETE', 'public_tenants', username, null);
     queueAction('DELETE', 'admin_tenant_summary', username, null);
+    saveToLocalStorage();
+    processActionQueue();
 }
 function pushToFirebase() { 
     saveToLocalStorage();
