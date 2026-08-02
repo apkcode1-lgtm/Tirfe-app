@@ -249,7 +249,8 @@ window.renderAdminRevenueList = function() {
 
 window.deleteRevenueAuth = function(key) {
     showCustomConfirm("ገቢ ማጥፊያ", "ይህንን የገቢ ባለስልጣን አካውንት ሙሉ በሙሉ ማጥፋት ይፈልጋሉ?", async () => {
-        let authUid = localDB.revenueAuthorities[key].uid;
+        let revRecord = localDB.revenueAuthorities[key];
+        let authUid = revRecord.uid;
         
         if (authUid) {
             try {
@@ -264,8 +265,18 @@ window.deleteRevenueAuth = function(key) {
             }
         }
         
+        // 🆕 ሌላ ገቢዎች ተመሳሳይ ቦታ ላይ ከሌለ ብቻ public_locations ያጥፋ
+        let locKey = `${revRecord.authRegion}_${revRecord.authZone}_${revRecord.authWoreda}`;
         delete localDB.revenueAuthorities[key];
         pushAdminRecordDelete('revenueAuthorities', key);
+        
+        let stillUsedByOthers = Object.values(localDB.revenueAuthorities).some(r =>
+            `${r.authRegion}_${r.authZone}_${r.authWoreda}` === locKey
+        );
+        if(!stillUsedByOthers) {
+            delete localDB.public_locations[locKey];
+            pushAdminRecordDelete('public_locations', locKey);
+        }
         
         if(typeof updateAllLocationDropdowns === 'function') {
             updateAllLocationDropdowns();
