@@ -203,6 +203,15 @@ window.openRevenueRegistrationModal = function() {
             };
 
             pushAdminRecordUpdate('revenueAuthorities', user, localDB.revenueAuthorities[user]);
+// 🆕 ደህንነቱ የተጠበቀ የ location-only ኮፒ ለ dropdown እንዲያገለግል
+let locKey = `${(res.revRegion || "").trim()}_${(res.revZone || "").trim()}_${(res.revWoreda || "").trim()}`;
+if(!localDB.public_locations) localDB.public_locations = {};
+localDB.public_locations[locKey] = {
+    region: (res.revRegion || "").trim(),
+    zone: (res.revZone || "").trim(),
+    woreda: (res.revWoreda || "").trim()
+};
+pushAdminRecordUpdate('public_locations', locKey, localDB.public_locations[locKey]);
             
             if(typeof updateAllLocationDropdowns === 'function') {
                 updateAllLocationDropdowns();
