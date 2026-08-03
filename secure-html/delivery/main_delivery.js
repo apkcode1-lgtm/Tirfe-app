@@ -684,5 +684,4 @@ window.clearMotorData = function() {
 
     alert("✅ የሞተረኛ ዳታዎ በተሳካ ሁኔታ ፀድቶ አዲስ ጀምሯል!");
     renderMotorPage();
-   
-                                                     }
+     }
