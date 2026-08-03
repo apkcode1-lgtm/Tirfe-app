@@ -239,7 +239,8 @@ try {
                     uid: userCredential.user.uid,// ለወደፊት አድሚን ሲያጠፋ Auth ላይም እንዲጠፋ እንዲረዳ
                     role: 'motor',
                     firstName: firstName, lastName: lastName, phone: phone, email: email,
-                    username: user, telegramToken: tgToken, plateNumber: plateNumber,
+                    username: user, telegramToken: tgToken, tgToken: tgToken,
+                    plateNumber: plateNumber,
                     region: region, zone: zone, woreda: woreda,
                     // ❌ Base64 ተሰርዟል፣ ✅ አሁን ከ Storage የተገኘው የፎቶ ሊንክ (URL) ብቻ ዳታቤዝ ላይ ይቀመጣል
                     idCardImage: idCardUrl, 
