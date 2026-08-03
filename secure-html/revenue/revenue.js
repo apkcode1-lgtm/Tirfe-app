@@ -123,22 +123,18 @@ window.changeRevenueEmail = function() {
 };
 // አዲሱ የሞተረኛ ጣሪያ ማስተካከያ (Quota Limit)
 window.setMotorQuotaLimit = function() {
-
     if(!currentRevenueOfficer) return;
-
     let limitVal = document.getElementById('revMotorLimitInput').value;
-
     if(limitVal === '' || limitVal < 0) {
-
-        showCustomAlert("ስህተት", "እባክዎ ትክክለኛ የሞተረኛ ብዛት (ቁጥር) ያስገቡ");
-
-        return;
+    showCustomAlert("ስህተት", "እባክዎ ትክክለኛ የሞተረኛ ብዛት (ቁጥር) ያስገቡ");
+      return;
     }
     // ለዚህ ገቢዎች ምድብ (ክልል_ዞን_ወረዳ) የተለየ መለያ (Key) መስራት
 
     let locKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
     if(!localDB.motorQuotas) localDB.motorQuotas = {};
     localDB.motorQuotas[locKey] = parseInt(limitVal); // ወደ ዳታቤዝ ማስገባት
+    saveToLocalStorage();
     pushRevenueFirebase();
     renderRevenuePanel();
     showCustomAlert("ተሳክቷል", `በእርስዎ ምድብ የሚፈቀደው ከፍተኛ የሞተረኛ ብዛት ጣሪያ ወደ ${limitVal} በተሳካ ሁኔታ ተወስኗል!`);
