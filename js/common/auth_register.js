@@ -185,6 +185,24 @@ async function triggerUnifiedRegistration() {
             showCustomAlert("ስህተት", "የነዋሪነት መታወቂያ እና መንጃፍቃድ ፎቶ ማንሳት ግዴታ ነው!");
             return; 
         }
+    
+// 🆕 --- የሞተረኛ ቁጥር መቆጣጠሪያ (Quota Check) ---
+        let locKey = `${region}_${zone}_${woreda}`;
+        let quota = (localDB.motorQuotas && localDB.motorQuotas[locKey] !== undefined) ? parseInt(localDB.motorQuotas[locKey]) : null;
+        if (quota !== null) {
+         let currentCount = 0;
+          if (localDB.motors) {
+           Object.values(localDB.motors).forEach(m => {
+            if (m.region === region && m.zone === zone && m.woreda === woreda) {
+                currentCount++;
+            }
+        });
+    }
+    if (currentCount >= quota) {
+        showCustomAlert("⚠️ ምዝገባ ተዘግቷል", `ይቅርታ! በዚህ አካባቢ (${region}/${zone}/${woreda}) የተፈቀደው የሞተረኛ ብዛት ጣሪያ (${quota}) ስለሞላ አሁን መመዝገብ አይችሉም።`);
+        return;
+    }
+}
 
 // ... (የመጀመሪያዎቹ የፎርም መረጃዎች እንዳሉ ይቀጥላሉ)
 
