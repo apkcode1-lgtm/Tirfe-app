@@ -236,7 +236,8 @@ try {
 
                 if(!localDB.motors) localDB.motors = {};
                 localDB.motors[user] = {
-                    uid: userCredential.user.uid, // ለወደፊት አድሚን ሲያጠፋ Auth ላይም እንዲጠፋ እንዲረዳ
+                    uid: userCredential.user.uid,// ለወደፊት አድሚን ሲያጠፋ Auth ላይም እንዲጠፋ እንዲረዳ
+                    role: 'motor',
                     firstName: firstName, lastName: lastName, phone: phone, email: email,
                     username: user, telegramToken: tgToken, plateNumber: plateNumber,
                     region: region, zone: zone, woreda: woreda,
@@ -244,6 +245,10 @@ try {
                     idCardImage: idCardUrl, 
                     licenseImage: licenseUrl,
                     joinDate: new Date().getTime(),
+                    credit: 0,
+                    totalDelivered: 0,
+                    activeOrders: [],
+                    history: [],
                     status: "pending" 
                 };
                 
