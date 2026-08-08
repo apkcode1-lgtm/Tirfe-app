@@ -221,12 +221,6 @@ try {
     let licenseUrl = null;
 
     if(regSubmitBtn) { regSubmitBtn.innerText = "OTP በመላክ ላይ..."; }
-<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-performance-compat.js"></script>
-
-
     pendingRegType = 'motor';
     triggerOTPFlow(email);
     
