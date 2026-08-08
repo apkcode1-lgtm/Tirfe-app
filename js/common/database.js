@@ -1,5 +1,5 @@
 // ==========================================
-// 📁 database.js - ሙሉው የተስተካከለ ኮድ
+// 📁 database.js - ወደ IndexedDB የተቀየረ ኮድ
 // ==========================================
 let localDB = { 
     tenants: {}, 
@@ -14,11 +14,89 @@ let localDB = {
     businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"]
 };
 let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
-// 1. የ Action Queue ማከማቻ
-let actionQueue = JSON.parse(localStorage.getItem('tirfe_action_queue')) || [];
+// 1. የ Action Queue ማከማቻ (አሁን ባዶ ይጀምርና ከ IndexedDB ወዲያውኑ ይሞላል - ከታች ይመልከቱ)
+let actionQueue = [];
+// --------------------------------------------------------
+// 🗄️ 0. IndexedDB ረዳት ፋንክሺኖች (ዝቅተኛ ደረጃ wrapper - ምንም library አያስፈልገውም)
+// --------------------------------------------------------
+const IDB_NAME = 'tirfe_indexeddb';
+const IDB_VERSION = 1;
+const IDB_STORE = 'kv_store';
+const LOCAL_DB_KEY = 'tirfe_local_db';
+const ACTION_QUEUE_KEY = 'tirfe_action_queue';
+
+let _idbConnectionPromise = null;
+function idbOpen() {
+    if (_idbConnectionPromise) return _idbConnectionPromise;
+    _idbConnectionPromise = new Promise((resolve, reject) => {
+        if (!window.indexedDB) { reject(new Error('IndexedDB not supported')); return; }
+        const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+        req.onupgradeneeded = (e) => {
+            const dbConn = e.target.result;
+            if (!dbConn.objectStoreNames.contains(IDB_STORE)) {
+                dbConn.createObjectStore(IDB_STORE, { keyPath: 'key' });
+            }
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+    });
+    return _idbConnectionPromise;
+}
+function idbGet(key) {
+    return idbOpen().then(dbConn => new Promise((resolve, reject) => {
+        try {
+            const tx = dbConn.transaction(IDB_STORE, 'readonly');
+            const store = tx.objectStore(IDB_STORE);
+            const req = store.get(key);
+            req.onsuccess = () => resolve(req.result ? req.result.value : undefined);
+            req.onerror = (e) => reject(e.target.error);
+        } catch (err) { reject(err); }
+    }));
+}
+function idbSet(key, value) {
+    return idbOpen().then(dbConn => new Promise((resolve, reject) => {
+        try {
+            const tx = dbConn.transaction(IDB_STORE, 'readwrite');
+            const store = tx.objectStore(IDB_STORE);
+            const req = store.put({ key: key, value: value });
+            req.onsuccess = () => resolve(true);
+            req.onerror = (e) => reject(e.target.error);
+        } catch (err) { reject(err); }
+    }));
+}
+
+// አሮጌ localStorage ውስጥ ዳታ ካለ አንድ ጊዜ ብቻ ወደ IndexedDB ማዛወሪያ (Migration)
+function migrateFromLocalStorageIfNeeded() {
+    return idbGet(LOCAL_DB_KEY).then(existing => {
+        if (existing !== undefined) return; // ቀደም ብሎ ተዛውሯል - ድጋሚ አያስፈልግም
+        let tasks = [];
+        try {
+            let oldBackup = localStorage.getItem(LOCAL_DB_KEY);
+            if (oldBackup) tasks.push(idbSet(LOCAL_DB_KEY, JSON.parse(oldBackup)));
+        } catch (e) { console.error('Old localStorage DB parse failed:', e); }
+        try {
+            let oldQueue = localStorage.getItem(ACTION_QUEUE_KEY);
+            if (oldQueue) tasks.push(idbSet(ACTION_QUEUE_KEY, JSON.parse(oldQueue)));
+        } catch (e) { console.error('Old localStorage queue parse failed:', e); }
+        return Promise.all(tasks);
+    }).catch(err => {
+        console.error('Migration check failed:', err);
+    });
+}
+
 window.addEventListener('online', handleOnlineStatus);
 window.addEventListener('offline', handleOnlineStatus);
-loadLocalStorageBackup();
+
+// 🆕 ሌሎች ፋይሎች (login check, renderApp, ወዘተ) ገፁ ገና ሲከፈት ከ localDB/actionQueue
+// ጋር የሚሰሩ ከሆነ፣ IndexedDB ንባቡ እስኪጠናቀቅ ድረስ ይህንን Promise መጠበቅ አለባቸው፡
+//   window.dbReadyPromise.then(() => { ... })
+window.dbReadyPromise = migrateFromLocalStorageIfNeeded()
+    .then(loadLocalStorageBackup)
+    .catch(err => {
+        console.error('IndexedDB init/read error, ወደ localStorage fallback ተመልሷል:', err);
+        loadLocalStorageBackupLegacySync();
+    });
+
 function handleOnlineStatus() {
     isOnline = navigator.onLine;
     const tag = document.getElementById('syncIndicator');
@@ -35,31 +113,64 @@ function handleOnlineStatus() {
         pushToFirebase();
     }
 }
-function loadLocalStorageBackup() {
-    let backup = localStorage.getItem('tirfe_local_db');
+// 🆕 IndexedDB ስራ ላይ ካልዋለ (ለምሳሌ የድሮ browser) ብቻ የሚያገለግል ጥንቅቅ ያለ localStorage fallback
+function loadLocalStorageBackupLegacySync() {
+    let backup = localStorage.getItem(LOCAL_DB_KEY);
+    let queue = localStorage.getItem(ACTION_QUEUE_KEY);
+    if (queue) { try { actionQueue = JSON.parse(queue) || []; } catch(e){} }
     if(backup) {
         let parsedBackup = JSON.parse(backup);
-        if(parsedBackup.tenants) localDB.tenants = parsedBackup.tenants;
-        if(parsedBackup.buyers) localDB.buyers = parsedBackup.buyers;
-        if(parsedBackup.revenueAuthorities) localDB.revenueAuthorities = parsedBackup.revenueAuthorities;
-        if(parsedBackup.motors) localDB.motors = parsedBackup.motors;
-        if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas; 
-        if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
-        if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
-        if(parsedBackup.public_locations) localDB.public_locations = parsedBackup.public_locations;
-        if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
-        if(parsedBackup.adminSettings) {
-            localDB.adminSettings = parsedBackup.adminSettings;
-            if (localDB.adminSettings.deliveryCommissionRate === undefined) {
-                localDB.adminSettings.deliveryCommissionRate = 10;
-            }
+        applyBackupToLocalDB(parsedBackup);
+    }
+    if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
+    if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
+}
+function applyBackupToLocalDB(parsedBackup) {
+    if(!parsedBackup) return;
+    if(parsedBackup.tenants) localDB.tenants = parsedBackup.tenants;
+    if(parsedBackup.buyers) localDB.buyers = parsedBackup.buyers;
+    if(parsedBackup.revenueAuthorities) localDB.revenueAuthorities = parsedBackup.revenueAuthorities;
+    if(parsedBackup.motors) localDB.motors = parsedBackup.motors;
+    if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas; 
+    if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
+    if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
+    if(parsedBackup.public_locations) localDB.public_locations = parsedBackup.public_locations;
+    if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
+    if(parsedBackup.adminSettings) {
+        localDB.adminSettings = parsedBackup.adminSettings;
+        if (localDB.adminSettings.deliveryCommissionRate === undefined) {
+            localDB.adminSettings.deliveryCommissionRate = 10;
         }
+    }
+}
+// 🆕 አሁን async ሆኗል፣ ግን ስሙ እና ጥሪው (loadLocalStorageBackup()) ልክ እንደ ቀድሞው ነው
+async function loadLocalStorageBackup() {
+    try {
+        let parsedQueue = await idbGet(ACTION_QUEUE_KEY);
+        // actionQueue ገና ካልተነካካ (ተጠቃሚው በዚህ መሃል action ካልጨመረ) ብቻ ከ IDB ይሙላ
+        if (parsedQueue && actionQueue.length === 0) actionQueue = parsedQueue;
+
+        let parsedBackup = await idbGet(LOCAL_DB_KEY);
+        applyBackupToLocalDB(parsedBackup);
+
         if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
         if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
+    } catch (err) {
+        console.error('IndexedDB read error, ወደ localStorage fallback ተመልሷል:', err);
+        loadLocalStorageBackupLegacySync();
     }
 }
 function saveToLocalStorage() {
-    localStorage.setItem('tirfe_local_db', JSON.stringify(localDB));
+    idbSet(LOCAL_DB_KEY, localDB).catch(err => {
+        console.error('IndexedDB write failed, ወደ localStorage fallback ተመልሷል:', err);
+        try { localStorage.setItem(LOCAL_DB_KEY, JSON.stringify(localDB)); } catch(e){}
+    });
+}
+function saveActionQueue() {
+    idbSet(ACTION_QUEUE_KEY, actionQueue).catch(err => {
+        console.error('IndexedDB queue write failed, ወደ localStorage fallback ተመልሷል:', err);
+        try { localStorage.setItem(ACTION_QUEUE_KEY, JSON.stringify(actionQueue)); } catch(e){}
+    });
 }
 // --------------------------------------------------------
 // 🛠️ 2. የተስተካከለ የ Action Queue አስተዳዳሪ (የዳታ መጥፋት እንዳይከሰት የተስተካከለ)
@@ -75,7 +186,7 @@ function queueAction(actionType, collection, docId, data) {
         retryCount: 0
     };
     actionQueue.push(newAction);
-   localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
+   saveActionQueue();
 
    // 🆕 FIX: እያንዳንዱ አዲስ ትዕዛዝ ገፁ ሳይታደስ ወዲያውኑ ወደ Firebase እንዲላክ (ከዚህ በፊት እዚህ ውስጥ
    // ምንም የመላኪያ ጥሪ ስላልነበረ፣ ዳታው ገፁ እስኪታደስ ወይም ኢንተርኔት off/on እስኪደረግ ድረስ ተጣብቆ ይቀር ነበር)
@@ -104,14 +215,14 @@ function processActionQueue() {
         fbRequest.then(() => {
             // በስኬት ከተላከ ብቻ ከ Queue ማስወጣት
             actionQueue.shift(); 
-            localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
+            saveActionQueue();
             isProcessingQueue = false;
             if (actionQueue.length > 0) processActionQueue(); 
         }).catch(err => {
             console.error("Firebase Sync Error:", err);
             currentAction.retryCount += 1;           
             // ❌ ዳታው እንዳይጠፋ ከ Queue ውስጥ አይሰረዝም!
-            localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
+            saveActionQueue();
             isProcessingQueue = false;
             // ከ 3 ጊዜ በላይ ከተሳሳተ 10 ሰከንድ፣ አለበለዚያ 2 ሰከንድ አርፎ እንደገና ይሞክራል (Exponential Backoff)
             if (isOnline) {
@@ -122,7 +233,7 @@ function processActionQueue() {
         });
     } else {
         actionQueue.shift();
-        localStorage.setItem('tirfe_action_queue', JSON.stringify(actionQueue));
+        saveActionQueue();
         isProcessingQueue = false;
         if (actionQueue.length > 0) processActionQueue();
     }
@@ -307,7 +418,7 @@ if(typeof db !== 'undefined') {
       function shouldUpdateLocal(incomingData, localData, collection, docId) {
             // ✅ ተስተካክሏል: ገና ያልተላከ ዳታ በ Queue ውስጥ ካለ የምናግድበት ለዚያው collection/docId ብቻ ነው
             // (ከዚህ በፊት ማንኛውም unrelated pending action ካለ ሁሉንም incoming data ላይመታ ይከለክል ነበር)
-            let pendingQueue = actionQueue || JSON.parse(localStorage.getItem('tirfe_action_queue')) || [];
+            let pendingQueue = actionQueue || [];
             if (collection) {
                 let hasPendingForThis = pendingQueue.some(a =>
                     a.collection === collection && (!docId || a.docId === docId)
@@ -387,7 +498,6 @@ if(typeof db !== 'undefined') {
 
                             localDB.tenants[tUser] = Object.assign({}, localDB.tenants[tUser] || {}, inData);
                             hasUpdates = true;
-
                         }
                     }
                     if(hasUpdates) {
@@ -514,4 +624,3 @@ if(typeof db !== 'undefined') {
         }
     }
 }
-
