@@ -198,11 +198,11 @@ async function triggerUnifiedRegistration() {
             }
         });
     }
-    if (currentCount >= quota) {
-        showCustomAlert("⚠️ ምዝገባ ተዘግቷል", `ይቅርታ! በዚህ አካባቢ (${region}/${zone}/${woreda}) የተፈቀደው የሞተረኛ ብዛት ጣሪያ (${quota}) ስለሞላ አሁን መመዝገብ አይችሉም።`);
-        return;
-    }
-}
+    // if (currentCount >= quota) {
+        // showCustomAlert("⚠️ ምዝገባ ተዘግቷል", `ይቅርታ! በዚህ አካባቢ (${region}/${zone}/${woreda}) የተፈቀደው የሞተረኛ ብዛት ጣሪያ (${quota}) ስለሞላ አሁን መመዝገብ አይችሉም።`);
+       // return;
+  //  }
+// }
 
 // ... (የመጀመሪያዎቹ የፎርም መረጃዎች እንዳሉ ይቀጥላሉ)
 
@@ -216,11 +216,16 @@ if (checkUser) {
 }
 
 try {
-    // 1. ፎቶዎቹን በቀጥታ ወደ Firebase Storage መጫን
-    let idCardUrl = await uploadImageToStorage(idCardInput.files[0], "idCard", user);
-    let licenseUrl = await uploadImageToStorage(licenseInput.files[0], "license", user);
+    // 🕒 ጊዜያዊ - Storage እስኪዘጋጅ ድረስ ፎቶ ሳንጭን እንቀጥላለን (ባዶ/null እንተዋለን)
+    let idCardUrl = null;
+    let licenseUrl = null;
 
     if(regSubmitBtn) { regSubmitBtn.innerText = "OTP በመላክ ላይ..."; }
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-performance-compat.js"></script>
+
 
     pendingRegType = 'motor';
     triggerOTPFlow(email);
