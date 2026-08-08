@@ -128,7 +128,16 @@ function checkAutomaticLogin() {
 }
 
 // ገጹ ልክ ሲከፈት ሴሽኑን በራሱ ጊዜ እንዲያጣራ ይህን ከታች ይጨምሩ
-window.addEventListener('DOMContentLoaded', checkAutomaticLogin);
+// 🆕 database.js አሁን localDB ን ከ IndexedDB async ስለሚጭን፣ checkAutomaticLogin ከመጠራቱ በፊት
+// ዳታው ሙሉ በሙሉ እስኪጫን (window.dbReadyPromise) መጠበቅ አለበት፣ አለበለዚያ localDB.tenants/motors/ወዘተ ባዶ ሆኖ ሊገኝ ይችላል
+window.addEventListener('DOMContentLoaded', () => {
+    if (window.dbReadyPromise && typeof window.dbReadyPromise.then === 'function') {
+        window.dbReadyPromise.then(checkAutomaticLogin);
+    } else {
+        // database.js ገና ካልጫነ ወይም dbReadyPromise ካልተገኘ ደህንነት ስንል በቀጥታ ይሞክር
+        checkAutomaticLogin();
+    }
+});
 
 function checkTimeLock() {
     if(!currentTenant || !currentTenant.data || currentUserRole === "staff") return;
