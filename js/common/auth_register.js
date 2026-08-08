@@ -202,7 +202,7 @@ async function triggerUnifiedRegistration() {
         // showCustomAlert("⚠️ ምዝገባ ተዘግቷል", `ይቅርታ! በዚህ አካባቢ (${region}/${zone}/${woreda}) የተፈቀደው የሞተረኛ ብዛት ጣሪያ (${quota}) ስለሞላ አሁን መመዝገብ አይችሉም።`);
        // return;
   //  }
-// }
+ }
 
 // ... (የመጀመሪያዎቹ የፎርም መረጃዎች እንዳሉ ይቀጥላሉ)
 
