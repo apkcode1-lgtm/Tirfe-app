@@ -415,16 +415,16 @@ if(typeof db !== 'undefined') {
     const fetchStaticData = function() {
      const staticNodes = ['tariffs', 'businessTypes', 'adminSettings', 'public_locations', 'motorQuotas'];
         staticNodes.forEach(node => {
-            db.ref(`tirfe_system/${node}`).once('value').then((snapshot) => {
-                if(snapshot.exists()) {
+            db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
+                 if(snapshot.exists()) {
                     localDB[node] = snapshot.val();
-                    saveToLocalStorage();
-                    triggerUIRefresh();
-                }
-            }).catch(error => {
-                console.log(`Firebase Error on ${node}, running offline mode.`);
-                isOnline = false; handleOnlineStatus();
-            });
+                     saveToLocalStorage();
+                     triggerUIRefresh();
+                     }
+ }, (error) => {
+               console.log(`Firebase Error on ${node}, running offline mode.`);
+               isOnline = false; handleOnlineStatus();
+          });
         });
     }
     fetchStaticData();
