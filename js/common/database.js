@@ -239,6 +239,15 @@ function processActionQueue() {
     }
 }
 const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
+// 🆕 FIX: የገቢዎች ገፅ (revenue) ላይ ያለው real-time listener
+// (`tirfe_system/tenants` orderByChild('locationKey')) ውጤት እንዲያገኝ፣ ማንኛውም
+// ተከራይ/ሞተረኛ ዳታ ወደ Firebase ሲላክ locationKey የሚባል ፊልድ ከ region/zone/woreda
+// ተሰልቶ አብሮ መላክ አለበት። ይህ ፊልድ ከዚህ በፊት በጭራሽ አልተላከም ነበር፣ ስለዚህ ያ Query ምንም
+// ውጤት አያገኝም ነበር (ቫት ሲሰበሰብ ገቢዎች ገፅ ላይ ቀጥታ የማይታየው በዚህ ምክንያት ነው)።
+function computeLocationKey(record) {
+    if(!record) return undefined;
+    return `${record.region || ''}_${record.zone || ''}_${record.woreda || ''}`;
+}
 // --------------------------------------------------------
 // ☁️ 3. ፋይሎችን ወደ Firebase Storage የመጫኛ ረዳት ፋንክሽን
 // --------------------------------------------------------
@@ -278,6 +287,7 @@ function pushTenantFirebase() {
         let tenantData = cleanData(localDB.tenants[currentTenant.username]);
         if(tenantData) {
             tenantData.lastUpdated = currentTime;
+            tenantData.locationKey = computeLocationKey(tenantData);
             queueAction('UPDATE', 'tenants', currentTenant.username, tenantData);
             let publicTenantData = {
               shopName: tenantData.shopName,
@@ -327,6 +337,7 @@ function pushMotorFirebase() {
         let motorData = cleanData(localDB.motors[currentMotor.username]);
         if(motorData) {
             motorData.lastUpdated = currentTime;
+            motorData.locationKey = computeLocationKey(motorData);
             queueAction('UPDATE', 'motors', currentMotor.username, motorData);
         }
     }
@@ -339,6 +350,9 @@ function pushAdminRecordUpdate(collection, docId, data) {
     let cleaned = cleanData(data);
     if(!cleaned || !docId) return;
     cleaned.lastUpdated = Date.now();
+    if(collection === 'tenants' || collection === 'motors') {
+        cleaned.locationKey = computeLocationKey(cleaned);
+    }
     queueAction('UPDATE', collection, docId, cleaned);
     saveToLocalStorage();
     processActionQueue();   
@@ -353,6 +367,7 @@ function pushAdminTenantUpdate(username, tenantData) {
     let cleaned = cleanData(tenantData);
     if(!cleaned || !username) return;
     cleaned.lastUpdated = Date.now();
+    cleaned.locationKey = computeLocationKey(cleaned);
     queueAction('UPDATE', 'tenants', username, cleaned);
     let summary = Object.assign({}, cleaned);
     delete summary.items; delete summary.products; delete summary.catalog; delete summary.taxReceipts;
