@@ -430,6 +430,10 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
         if(displayBuyerName && localDB.buyers && localDB.buyers[displayBuyerName]) {
             if(!localDB.buyers[displayBuyerName].receipts) localDB.buyers[displayBuyerName].receipts = [];
             localDB.buyers[displayBuyerName].receipts.push(recObj);
+            // 🆕 FIX: ሙሉውን የገዥ node ስንተካ (.set) lastUpdated ካልቀየርነው ገዥው ገፅ ላይ ያለው
+            // real-time listener (shouldUpdateLocal) ዳታውን ውድቅ ያደርገዋል - አዲሱ ደረሰኝ
+            // ገፁ ሪፍሬሽ እስኪደረግ ድረስ ገዥው ገፅ ላይ ላይታይ ይችላል።
+            localDB.buyers[displayBuyerName].lastUpdated = Date.now();
             if (typeof db !== 'undefined' && typeof isOnline !== 'undefined' && isOnline) {
                 db.ref(`tirfe_system/buyers/${displayBuyerName}`).set(JSON.parse(JSON.stringify(localDB.buyers[displayBuyerName]))).catch(err => console.error(err));
             }
@@ -597,4 +601,4 @@ if (window.dbReadyPromise && typeof window.dbReadyPromise.then === 'function') {
     loadLocalStorageBackup();
     checkAutomaticLogin();
     handleOnlineStatus();
-    }
+        }
