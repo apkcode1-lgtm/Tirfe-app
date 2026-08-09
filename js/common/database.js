@@ -521,6 +521,36 @@ if(typeof db !== 'undefined') {
                     }
                 }
             });
+            function scrubTenantForBuyer(t) {
+                if(!t) return t;
+                delete t.password; delete t.activationCode; delete t.staffAccounts;
+                delete t.telegramToken; delete t.bankAccount;
+                return t;
+            }
+            let buyerTenantsRef = db.ref('tirfe_system/tenants');
+            buyerTenantsRef.on('child_added', (snapshot) => {
+                let incomingData = scrubTenantForBuyer(snapshot.val());
+                let tKey = snapshot.key;
+                if(shouldUpdateLocal(incomingData, localDB.tenants[tKey], 'tenants', tKey)) {
+                    localDB.tenants[tKey] = incomingData;
+                    saveToLocalStorage();
+                    if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
+                }
+            });
+            buyerTenantsRef.on('child_changed', (snapshot) => {
+                let incomingData = scrubTenantForBuyer(snapshot.val());
+                let tKey = snapshot.key;
+                if(shouldUpdateLocal(incomingData, localDB.tenants[tKey], 'tenants', tKey)) {
+                    localDB.tenants[tKey] = incomingData;
+                    saveToLocalStorage();
+                    if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
+                }
+            });
+            buyerTenantsRef.on('child_removed', (snapshot) => {
+                delete localDB.tenants[snapshot.key];
+                saveToLocalStorage();
+                if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
+            });
         }
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer && !window.revenueListenerAttached) {
             window.revenueListenerAttached = true;
