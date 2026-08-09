@@ -96,7 +96,14 @@ window.acceptDelivery = function(idx) {
                         if(!Array.isArray(liveOrders)) { liveOrders = Object.values(liveOrders); }
                         liveOrders.push(newOrderObj);
                         
-                        db.ref(`tirfe_system/motors/${mUser}/activeOrders`).set(liveOrders).catch(err => console.error(err));
+                        // 🆕 FIX: activeOrders ብቻ መጻፍ በቂ አልነበረም - የሞተረኛው real-time
+                        // listener (shouldUpdateLocal) ዳታውን የሚቀበለው motor root ላይ ያለው
+                        // lastUpdated ሲቀየር ብቻ ስለሆነ፣ ካልቀየርነው ሞተረኛው ገፅ ላይ አዲሱ ትዕዛዝ
+                        // ገፁ ሪፍሬሽ እስኪደረግ ድረስ ምንም ምልክት ሳይታይ ይቀር ነበር።
+                        let motorMultiUpdate = {};
+                        motorMultiUpdate[`tirfe_system/motors/${mUser}/activeOrders`] = liveOrders;
+                        motorMultiUpdate[`tirfe_system/motors/${mUser}/lastUpdated`] = Date.now();
+                        db.ref().update(motorMultiUpdate).catch(err => console.error(err));
                         
                         if (typeof sendMotorTelegramAlert === 'function') {
                             sendMotorTelegramAlert(mUser, `🔔 አዲስ የዴሊቨሪ ትዕዛዝ!\n\nሱቅ: ${currentTenant.shopName}\nአድራሻ: ${currentTenant.region} / ${currentTenant.zone} / ${currentTenant.woreda}\nዕቃ: ${ord.itemName} (ብዛት: ${ord.qty})\n\nእባክዎ ሲስተም ውስጥ ገብተው ትዕዛዙን ይቀበሉ።`);
