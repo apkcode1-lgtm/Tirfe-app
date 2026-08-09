@@ -40,7 +40,6 @@ html, body {
     font-size: calc(12px + 0.4vw); -webkit-text-size-adjust: 100%;
 }
 
-
 /* ==========================================================================
    አጠቃላይ መገልገያዎች (Utilities & Text Colors) 
    ========================================================================== */
@@ -81,7 +80,6 @@ html, body {
     align-items: center; gap: 12px; transition: all 0.2s;
 }
 .gateway-btn:hover { background-color: var(--accent-color); color: #000; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(56, 189, 248, 0.3); }
-
 
 /* ==========================================================================
    ፎርም፣ መሙያ ሳጥኖች እና ምርጫዎች (Inputs & Selects)
@@ -186,7 +184,6 @@ tr:hover td { background-color: var(--hover-color) !important; }
 .badge-danger { background: var(--danger-color); color: #000; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
 .badge-success { background: var(--success-color); color: #000; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
 .badge-warning { background: var(--warning-color); color: #000; padding: 2px 5px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-
 
 /* ==========================================================================
    የፕሮፋይል መረጃ እና ሌሎች አቀማመጦች (Profile Data & Grid Layouts)
@@ -317,6 +314,49 @@ img.goog-te-gadget-icon {
     display: none !important;
 }
 
+
+/* ==========================================================================
+   የናቪጌሽን ትሮች (Bottom Navigation Tabs) - በሞባይል ከታች፣ በኮምፒዩተር ከላይ
+   ========================================================================== */
+.tab-page { display: none; }
+.tab-page.active-tab { display: block; }
+
+main.container { padding-bottom: 78px; }
+
+.bottom-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 600;
+    display: flex; justify-content: space-around; align-items: stretch;
+    background-color: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+    padding: 4px 2px calc(4px + env(safe-area-inset-bottom)) 2px;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.35);
+}
+.nav-btn {
+    flex: 1 1 0; min-width: 0; background: none; border: none;
+    color: #94a3b8; cursor: pointer; font-family: inherit;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; padding: 6px 2px; border-radius: 8px; transition: color 0.2s, background-color 0.2s;
+}
+.nav-btn .nav-icon { font-size: 1.25rem; line-height: 1; }
+.nav-btn .nav-label { font-size: 0.62rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.nav-btn.active { color: var(--accent-color); }
+.nav-btn:active { background-color: var(--hover-color); }
+
+/* ከ900px በላይ በሆነ ስክሪን (ኮምፒዩተር/ታብሌት) ናቪጌሽኑ ወደ ላይ ይሄዳል */
+@media (min-width: 900px) {
+    main.container { padding-bottom: 20px; }
+    .bottom-nav {
+        position: sticky; top: 0; bottom: auto;
+        justify-content: center; gap: 8px;
+        border-top: none; border-bottom: 1px solid var(--border-color);
+        padding: 10px; margin-bottom: 15px; border-radius: 12px;
+    }
+    .nav-btn { flex-direction: row; flex: 0 0 auto; font-size: 0.9rem; gap: 8px; padding: 9px 18px; }
+    .nav-btn .nav-label { font-size: 0.85rem; }
+    .nav-btn:hover { background-color: var(--hover-color); }
+    .nav-btn.active { background-color: var(--hover-color); }
+}
+
     </style>
     <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -360,7 +400,19 @@ img.goog-te-gadget-icon {
 <main class="container">
 
     <section id="appPage" class="hidden">
-        <header class="welcome-header">
+
+    <nav class="bottom-nav" id="appBottomNav">
+        <button type="button" class="nav-btn active" id="navbtn-home" onclick="switchAppTab('home')"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></button>
+        <button type="button" class="nav-btn" id="navbtn-actions" onclick="switchAppTab('actions')"><span class="nav-icon">⚡</span><span class="nav-label">ተግባራት</span></button>
+        <button type="button" class="nav-btn" id="navbtn-items" onclick="switchAppTab('items')"><span class="nav-icon">📦</span><span class="nav-label">ዕቃዎች</span></button>
+        <button type="button" class="nav-btn" id="navbtn-orders" onclick="switchAppTab('orders')"><span class="nav-icon">🚚</span><span class="nav-label">ትዕዛዞች</span></button>
+        <button type="button" class="nav-btn" id="navbtn-accounts" onclick="switchAppTab('accounts')"><span class="nav-icon">💳</span><span class="nav-label">ሂሳብ</span></button>
+        <button type="button" class="nav-btn" id="navbtn-history" onclick="switchAppTab('history')"><span class="nav-icon">📅</span><span class="nav-label">ታሪክ</span></button>
+        <button type="button" class="nav-btn" id="navbtn-settings" onclick="switchAppTab('settings')"><span class="nav-icon">⚙️</span><span class="nav-label">ሴቲንግ</span></button>
+    </nav>
+
+    <div id="tab-home" class="tab-page active-tab">
+<header class="welcome-header">
             <h1 id="shopTitle">እንኳን ደህና መጡ ወደ " ትርፌ " መቆጣጠሪያ መተግበሪያ</h1>
             <p id="roleSubTitle">ቀልጣፋ፣ ዘመናዊ እና አስተማማኝ የሱቅዎ የሂሳብ ረዳት</p>
             <div id="google_translate_element" style="margin-bottom: 15px;"></div>
@@ -434,7 +486,10 @@ img.goog-te-gadget-icon {
             <canvas id="businessChart"></canvas>
         </div>
 
-        <nav class="actions">
+            </div>
+
+    <div id="tab-actions" class="tab-page">
+<nav class="actions">
             <button class="btn-add" id="btn_add_item" onclick="openItemRegistrationChoice()">📦 አዲስ ዕቃ መዝግብ</button>
             <button class="btn-sell" id="btn_main_sell" onclick="openSellChoiceModal()" style="font-size: 1.05rem; box-shadow: 0 0 10px rgba(74, 222, 128, 0.4);">🛒 ሸጥ (ወደ Cart ሂድ)</button>
             <button class="btn-draw" id="btn_vat_receipt_panel" style="background-color: #ef4444; color: white; font-weight: bold;" onclick="toggleVatReceiptPanel()">🧾 የቫት ደረሰኝ</button>
@@ -479,27 +534,10 @@ img.goog-te-gadget-icon {
                 <button id="btnQuickVatSubmit" class="btn-sell btn-block" style="margin-top: 12px; background-color: #ef4444;" onclick="generateStandaloneVatReceipt()">👉 የቫት ደረሰኝ አውጣ</button>
             </div>
         </section>
-        <section class="section-box" id="remoteCartSection">
-            <h2 style="color:var(--warning-color);">🛒 የገዥዎች Cart (Online Orders)</h2>
-            <div class="table-responsive">
-                <table>
-                    <thead><tr><th>ገዥ (Username)</th><th>የታዘዙ ዕቃዎች (አይነት፣ ሞዴል፣ ብዛት)</th><th>የሚጠበቅ ሂሳብ</th><th>እርምጃ</th></tr></thead>
-                    <tbody id="sellerRemoteCartsBody"></tbody>
-                </table>
             </div>
-        </section>
 
-        <section class="section-box" id="deliverySection">
-             <h2>🚚 የዴሊቨሪ ትዕዛዞች (Delivery Orders)</h2>
-             <div class="table-responsive">
-                <table>
-                    <thead><tr><th>ገዥ (ስልክ)</th><th>አድራሻ/ማፕ</th><th>የታዘዘ ዕቃ (ሞዴል እና ብዛት)</th><th>የታሰበ ሂሳብ</th><th>ሁኔታ</th><th>እርምጃ</th></tr></thead>
-                    <tbody id="sellerDeliveryBody"></tbody>
-                </table>
-            </div>
-        </section>
-
-        <section class="section-box">
+    <div id="tab-items" class="tab-page">
+<section class="section-box">
             <h2>📦 የዕቃዎች ዝርዝር እና ክምችት</h2>
             <div id="owner_add_box" style="background: rgba(255, 255, 255, 0.02); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
@@ -543,7 +581,49 @@ img.goog-te-gadget-icon {
             </div>
         </section>
 
-        <section class="section-box">
+            </div>
+    <div id="tab-orders" class="tab-page">
+<section class="section-box" id="remoteCartSection">
+            <h2 style="color:var(--warning-color);">🛒 የገዥዎች Cart (Online Orders)</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>ገዥ (Username)</th><th>የታዘዙ ዕቃዎች (አይነት፣ ሞዴል፣ ብዛት)</th><th>የሚጠበቅ ሂሳብ</th><th>እርምጃ</th></tr></thead>
+                    <tbody id="sellerRemoteCartsBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section-box" id="deliverySection">
+             <h2>🚚 የዴሊቨሪ ትዕዛዞች (Delivery Orders)</h2>
+             <div class="table-responsive">
+                <table>
+                    <thead><tr><th>ገዥ (ስልክ)</th><th>አድራሻ/ማፕ</th><th>የታዘዘ ዕቃ (ሞዴል እና ብዛት)</th><th>የታሰበ ሂሳብ</th><th>ሁኔታ</th><th>እርምጃ</th></tr></thead>
+                    <tbody id="sellerDeliveryBody"></tbody>
+                </table>
+            </div>
+        </section>
+            </div>
+
+    <div id="tab-accounts" class="tab-page">
+<section class="section-box">
+                <h2>💳 የዕዳ መዝገብ</h2>
+                <div class="table-responsive">
+                    <table>
+                        <tbody id="creditBody"></tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="section-box">
+                <h2>💸 ከሳጥን የተነሳ ገንዘብ / መልስ</h2>
+                <div class="table-responsive">
+                    <table>
+                        <tbody id="drawBody"></tbody>
+                    </table>
+                </div>
+            </section>
+                </div>
+    <div id="tab-history" class="tab-page">
+<section class="section-box">
             <h2>🧾 የደረሰኞች ማህደር (Receipt History)</h2>
             <div style="margin-bottom:15px; display: flex; gap: 10px; align-items: center; max-width: 400px;">
                 <label style="font-size:0.9rem; color:var(--accent-color); white-space: nowrap;">📅 የደረሰኝ መፈለጊያ ቀን፦</label>
@@ -591,24 +671,7 @@ img.goog-te-gadget-icon {
                 </table>
             </div>
         </section>
-        <div class="grid-3">
-            <section class="section-box">
-                <h2>💳 የዕዳ መዝገብ</h2>
-                <div class="table-responsive">
-                    <table>
-                        <tbody id="creditBody"></tbody>
-                    </table>
-                </div>
-            </section>
-            <section class="section-box">
-                <h2>💸 ከሳጥን የተነሳ ገንዘብ / መልስ</h2>
-                <div class="table-responsive">
-                    <table>
-                        <tbody id="drawBody"></tbody>
-                    </table>
-                </div>
-            </section>
-            <section class="section-box" id="historySection">
+        <section class="section-box" id="historySection">
                 <h2>📅 የቀደሙ ቀናት ታሪክ እና ማህደር</h2>
                 <div style="margin-bottom:10px;">
                     <label style="font-size:0.8rem; color:var(--accent-color);">ቀን መምረጫ (Filter by Date)፦</label>
@@ -620,9 +683,9 @@ img.goog-te-gadget-icon {
                     </table>
                 </div>
             </section>
-        </div>
-
-        <section class="section-box">
+    </div>
+    <div id="tab-settings" class="tab-page">
+<section class="section-box">
             <h2>⚙️ መቼቶች እና ሲስተም መውጫ</h2>
             <div class="profile-data">
                 <label>የመተግበሪያ ገጽታ (Theme)፦</label> 
@@ -635,8 +698,23 @@ img.goog-te-gadget-icon {
             </div>
             <button class="btn-expense btn-block" style="margin-top: 20px; padding: 15px;" onclick="forceLogout()">🚪 ከአፑ በሰላም ውጣ (Logout)</button>
         </section>
-    </section>
+    </div>
+</section>
 </main>
+
+<script>
+function switchAppTab(tabName) {
+    document.querySelectorAll('.tab-page').forEach(function(el){ el.classList.remove('active-tab'); });
+    var target = document.getElementById('tab-' + tabName);
+    if (target) target.classList.add('active-tab');
+    document.querySelectorAll('.nav-btn').forEach(function(btn){ btn.classList.remove('active'); });
+    var activeBtn = document.getElementById('navbtn-' + tabName);
+    if (activeBtn) activeBtn.classList.add('active');
+    var main = document.querySelector('main.container');
+    if (main) main.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+</script>
+
 
 <div id="modalOverlay" class="modal-overlay hidden">
     
@@ -668,7 +746,6 @@ img.goog-te-gadget-icon {
             <button class="btn-expense btn-block" onclick="closeActiveModal()">ዝጋ</button>
         </div>
     </div>
-
 
     <div id="staffManageModal" class="modal-card hidden">
         <div class="modal-header"><h3 class="text-success">👥 ሰራተኛ መመዝገቢያ</h3></div>
@@ -775,7 +852,6 @@ img.goog-te-gadget-icon {
 
 <script defer src="js/common/firebase-config.js"></script>
 <script defer src="js/common/database.js"></script>
-<script defer src="js/common1/telegramNotifier.js"></script>
 <script defer src="js/common/utils.js"></script>
 <script defer src="js/common/globals.js"></script>
 <script defer src="js/common/session_security.js"></script>
@@ -791,6 +867,5 @@ img.goog-te-gadget-icon {
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
  </body>
-</html>
-
-
+ </html>
+ 
