@@ -4,14 +4,14 @@ function saveAndRefresh() { localDB.tenants[currentTenant.username] = currentTen
 function collectDebt(idx) {
     let debt = currentTenant.data.debts[idx]; let remaining = debt.amount - debt.paid;
     showFormModal(`${debt.customer} እዳ ክፍያ መቀበያ`, [
-        { id: "amount", label: `የተከፈለው ገንዘብ (ቀሪ ዕዳ፡ ${remaining} ETB)`, type: "number", placeholder: "0.00", defaultValue: remaining }
+        { id: "amount", label: `የተከፈለው ገንዘብ (ቀሪ ዕዳ፡ ${formatMoney(remaining)} ETB)`, type: "number", placeholder: "0.00", defaultValue: remaining }
     ], (res) => {
         let amt = parseFloat(res.amount) || 0;
         if(amt <= 0 || amt > remaining) { showCustomAlert("ስህተት", "የክፍያ መጠን ልክ አይደለም!"); return; }
         debt.paid += amt; currentTenant.data.collectedCreditToday = (parseFloat(currentTenant.data.collectedCreditToday) || 0) + amt;
         saveAndRefresh();
      
-        sendTelegramAlert(`💵 የዕዳ ክፍያ ተሰበሰበ (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nከ ${debt.customer} ላይ ${amt} ETB ተቀብለዋል።`);
+        sendTelegramAlert(`💵 የዕዳ ክፍያ ተሰበሰበ (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nከ ${debt.customer} ላይ ${formatMoney(amt)} ETB ተቀብለዋል።`);
         showCustomAlert("ክፍያ ተፈጽሟል", `${debt.customer} እዳ ከፍሏል!`);
     });
 }
@@ -232,7 +232,7 @@ window.handleRemoteCartCheckout = function(buyerUser) {
 
         generateAdvancedReceipt(receiptItems, grandTotal, currentSeller, null, true, null, null, buyerUser, bPhone, collectedVat);
         saveAndRefresh();
-        sendTelegramAlert(`🛍️ የኦንላይን ሽያጭ (Remote Cart Checkout)፦\nየገዢ ስም: ${buyerUser}\nጠቅላላ ሂሳብ፡ ${grandTotal} ETB`);
+        sendTelegramAlert(`🛍️ የኦንላይን ሽያጭ (Remote Cart Checkout)፦\nየገዢ ስም: ${buyerUser}\nጠቅላላ ሂሳብ፡ ${formatMoney(grandTotal)} ETB`);
     });
 };
 window.renderTenantTaxReceipts = function() {
@@ -258,7 +258,7 @@ window.renderTenantTaxReceipts = function() {
         tbody.innerHTML += `<tr>
             <td><b>#${rec.recId}</b><br><small style="color: #94a3b8;">${rec.date}</small></td>
             <td>${rec.reason}</td>
-            <td style="color:var(--success-color); font-weight:bold;">${parseFloat(rec.amount).toFixed(2)} ETB</td>
+            <td style="color:var(--success-color); font-weight:bold;">${formatMoney(rec.amount)} ETB</td>
             <td>${rec.officerName}<br><small style="color: #94a3b8;">📞 ${rec.officerPhone}</small></td>
             <td><button class="btn-config btn-sm" onclick="viewTaxReceiptDetail(${originalIdx})">👁️ ሙሉ ደረሰኝ እይ</button></td>
    
@@ -277,7 +277,7 @@ window.viewTaxReceiptDetail = function(idx) {
         <table style="width: 100%; border-collapse: collapse; color: #000; font-size: 0.95rem;">
             <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>የደረሰኝ ቁጥር:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd; font-weight:bold;">#${rec.recId}</td></tr>
             <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>ቀን:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.date}</td></tr>
-            <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>የተከፈለ መጠን:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd; color: #10b981; font-weight: bold; font-size: 1.1rem;">${parseFloat(rec.amount).toFixed(2)} ETB</td></tr>
+            <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>የተከፈለ መጠን:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd; color: #10b981; font-weight: bold; font-size: 1.1rem;">${formatMoney(rec.amount)} ETB</td></tr>
             <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>የክፍያ ምክንያት:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.reason}</td></tr>
             <tr><td colspan="2" style="background: rgba(0,0,0,0.05); padding: 8px; font-weight: bold; text-align: center; margin-top: 10px;">የግብር ከፋይ (ተከራይ) መረጃ</td></tr>
             <tr><td style="padding: 5px; border-bottom: 1px solid #ddd;"><b>የከፋይ ስም:</b></td> <td style="padding: 5px; border-bottom: 1px solid #ddd;">${rec.tenantName}</td></tr>
