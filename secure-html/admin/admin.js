@@ -291,7 +291,6 @@ window.deleteRevenueAuth = function(key) {
         if(typeof updateAllLocationDropdowns === 'function') {
             updateAllLocationDropdowns();
         }
-
         renderAdminRevenueList();
         showCustomAlert("ተሳክቷል", "የገቢዎች ባለስልጣን አካውንት ሙሉ በሙሉ ጠፍቷል።");
     });
@@ -333,7 +332,6 @@ window.renderAdminMotors = function() {
         let m = localDB.motors[key];
         if (query !== "" && !m.username.toLowerCase().includes(query)) return;
         hasData = true;
-
         let mName = `${m.firstName} ${m.lastName}`;
         let mContact = `📞 ${m.phone}<br>📧 ${m.email}`;
         let mLocation = `<b>ሰሌዳ:</b> ${m.plateNumber}<br>📍 ${m.region}/${m.zone}/${m.woreda}`;
@@ -343,11 +341,15 @@ window.renderAdminMotors = function() {
         let actionText = "";
         let actionClass = "";
 
-        if (m.status === "pending") {
+        // 🛠️ ማስተካከያ: accountStatus (አድሚን የሚቆጣጠረው) ተለይቷል ከ onlineStatus (ሞተረኛ የሚቆጣጠረው)
+        // የቆየ ዳታ accountStatus ገና ከሌለው fallback: status "online"/"offline" ማለት ሞተረኛው ንቁ ነው ማለት ስለሆነ "active" ይቆጠራል
+        let mAccountStatus = m.accountStatus || (m.status === "pending" ? "pending" : (m.status === "blocked" ? "blocked" : "active"));
+
+        if (mAccountStatus === "pending") {
             statusBadge = `<span class="badge-warning">Pending (በጥበቃ)</span>`;
             actionText = "✅ አጽድቅ (Approve)";
             actionClass = "btn-success";
-        } else if (m.status === "active") {
+        } else if (mAccountStatus === "active") {
             statusBadge = `<span class="badge-success">Active (ይሰራል)</span>`;
             actionText = "🚫 አግድ (Block)";
             actionClass = "btn-warning";
@@ -371,7 +373,6 @@ window.renderAdminMotors = function() {
             </td>
         </tr>`;
     });
-
     if(!hasData) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8;">ምንም የተመዘገበ ሞተረኛ የለም።</td></tr>`;
     }
@@ -379,10 +380,12 @@ window.renderAdminMotors = function() {
 window.toggleMotorStatus = function(username) {
     if(localDB.motors && localDB.motors[username]) {
         let m = localDB.motors[username];
-        if (m.status === "pending" || m.status === "blocked") {
-            m.status = "active";
+        // 🛠️ ማስተካከያ: accountStatus ብቻ ነው የሚነካው፤ onlineStatus (ኦንላይን/ኦፍላይን) አይነካም
+        let mAccountStatus = m.accountStatus || (m.status === "pending" ? "pending" : (m.status === "blocked" ? "blocked" : "active"));
+        if (mAccountStatus === "pending" || mAccountStatus === "blocked") {
+            m.accountStatus = "active";
         } else {
-            m.status = "blocked";
+            m.accountStatus = "blocked";
         }
         m.creditBlocked = false; // አድሚን በእጅ ስለነካው፣ ክሬዲት-ብሎክ ምልክቱ ይጽዳ
         pushAdminRecordUpdate('motors', username, m); 
@@ -390,7 +393,6 @@ window.toggleMotorStatus = function(username) {
         showCustomAlert("ተስተካክሏል", "የሞተረኛው ሁኔታ በተሳካ ሁኔታ ተቀይሯል።");
     }
 };
-
 window.deleteMotor = function(username) {
     showCustomConfirm("ሞተረኛ ማጥፊያ", "ይህንን ሞተረኛ ሙሉ በሙሉ ለማጥፋት እርግጠኛ ኖት?", async () => { 
         let authUid = localDB.motors[username].uid;
