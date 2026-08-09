@@ -234,6 +234,9 @@ window.submitDeliveryFee = function(shopKey, orderId) {
             let motorAssigned = false;
             if (ord.motorUser && localDB.motors[ord.motorUser]) {
                 localDB.motors[ord.motorUser].incomingFee = fee;
+                // 🆕 FIX: ሙሉውን motor node ስንተካ (.set) lastUpdated ካልቀየርነው ያ ሞተረኛ
+                // ገፁ ላይ ክፍያው ላይቭ አይታይም ነበር (shouldUpdateLocal ውድቅ ያደርገዋል)።
+                localDB.motors[ord.motorUser].lastUpdated = Date.now();
                 if (typeof db !== 'undefined' && navigator.onLine) {
                     db.ref(`tirfe_system/motors/${ord.motorUser}`).set(localDB.motors[ord.motorUser]);
                 }
@@ -247,6 +250,9 @@ window.submitDeliveryFee = function(shopKey, orderId) {
                         let matched = m.activeOrders.find(mo => mo.orderId == orderId || mo.buyerPhone == ord.buyerPhone);
                         if (matched && matched.status === 'accepted') {
                             m.incomingFee = fee;
+                            // 🆕 FIX: እዚህም እንዲሁ lastUpdated ካልታደሰ ያ ሞተረኛ ገፅ ላይ ክፍያው
+                            // ላይቭ ስለማይታይ እንጨምረዋለን
+                            m.lastUpdated = Date.now();
                             if (typeof db !== 'undefined' && navigator.onLine) {
                                 db.ref(`tirfe_system/motors/${m.username}`).set(m);
                             }
@@ -266,7 +272,12 @@ window.submitDeliveryFee = function(shopKey, orderId) {
             localDB.tenants[shopKey] = t;
             pushBuyerFirebase();
             if (typeof db !== 'undefined' && navigator.onLine) {
-                db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(t.data.deliveryOrders);
+                // 🆕 FIX: deliveryOrders ብቻ ስንጽፍ ሻጩ ገፅ ላይ ላይቭ ስለማይታይ (tenant root
+                // lastUpdated ስላልተቀየረ)፣ ሁለቱንም በ atomic multi-path update አብረን እንጽፋለን
+                let feeMultiUpdate = {};
+                feeMultiUpdate[`tirfe_system/tenants/${shopKey}/data/deliveryOrders`] = t.data.deliveryOrders;
+                feeMultiUpdate[`tirfe_system/tenants/${shopKey}/lastUpdated`] = Date.now();
+                db.ref().update(feeMultiUpdate);
             }
 
             showCustomAlert("✅ ተሳክቷል", "የዴሊቨሪ ክፍያ መጠን በተሳካ ሁኔታ ገብቷል! መረጃው በቀጥታ ለሞተረኛው ተልኳል።");
@@ -332,6 +343,7 @@ window.checkoutBuyerCart = function(orderType) {
         itemNamesArr.push(`${c.itemName} (x${c.qty})`);
     });
     let combinedItems = itemNamesArr.join("፣ ");
+
     if(orderType === 'shop') {
         showCustomConfirm("🛒 ሱቅ ሄጄ እወስዳለሁ", "ሁሉንም የቅርጫት ትዕዛዞች 'ሱቅ ሄጄ እወስዳለሁ' በሚል ወደ ሱቁ መላክ ይፈልጋሉ?", () => {
             let newCartItems = [];
@@ -341,21 +353,31 @@ window.checkoutBuyerCart = function(orderType) {
                     itemName: item.itemName, qty: item.qty, price: item.price, total: item.total
                 });
             });
-
             // Overwrite fix: Fetch latest remoteCarts from Firebase before pushing
             if (typeof db !== 'undefined' && navigator.onLine) {
                 db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`).once('value').then(snap => {
                     let latestCart = snap.exists() ? snap.val() : [];
                     newCartItems.forEach(ci => latestCart.push(ci));
-                    db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`).set(latestCart);
+                    // 🆕 FIX: ብቻ remoteCarts ን መጻፍ በቂ አልነበረም - የሻጩ real-time listener
+                    // (shouldUpdateLocal) አዲሱን ዳታ የሚቀበለው tenant root ላይ ያለው lastUpdated
+                    // ሲቀየር ብቻ ስለሆነ፣ ያንን ካላሻሻልነው ሻጩ ገፅ ላይ ምንም ምልክት ሳይታይ ይቀራል።
+                    let multiUpdate = {};
+                    multiUpdate[`tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`] = latestCart;
+                    multiUpdate[`tirfe_system/tenants/${shopKey}/lastUpdated`] = Date.now();
+                    db.ref().update(multiUpdate);
                 });
             } else {
                 if(!t.data) t.data = {};
                 if(!t.data.remoteCarts) t.data.remoteCarts = {};
                 if(!t.data.remoteCarts[currentBuyer.username]) t.data.remoteCarts[currentBuyer.username] = [];
                 newCartItems.forEach(ci => t.data.remoteCarts[currentBuyer.username].push(ci));
+                t.lastUpdated = Date.now();
                 localDB.tenants[shopKey] = t;
-                pushBuyerFirebase();
+                saveToLocalStorage();
+                // 🆕 FIX: pushBuyerFirebase() የገዢውን ራሱን ዳታ ብቻ ስለሚልክ (የሻጩን tenant ዳታ
+                // አይደለም)፣ ኦፍላይን ሆኖ ትዕዛዝ ሲላክ ወደ ሻጩ በጭራሽ አይደርስም ነበር። አሁን የሻጩን ዳታ
+                // (አዲሱን remoteCart ጨምሮ) በቀጥታ ወደ actionQueue በመጨመር ሲመለስ እንዲላክ ተደርጓል።
+                queueAction('UPDATE', 'tenants', shopKey, cleanData(t));
             }
 
             window.buyerCartData = [];
@@ -404,15 +426,28 @@ window.checkoutBuyerCart = function(orderType) {
                         // Check to prevent double-click duplicates
                         if(!latestOrders.find(o => o.orderId === orderId)) {
                             latestOrders.push(newOrder);
-                            db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).set(latestOrders);
+                            // 🆕 FIX: deliveryOrders ብቻ መጻፍ በቂ አልነበረም - የሻጩ real-time
+                            // listener (shouldUpdateLocal) ዳታውን የሚቀበለው tenant root ላይ
+                            // ያለው lastUpdated ሲቀየር ብቻ ስለሆነ፣ ካልቀየርነው ሻጩ ገፅ ላይ ትዕዛዙ
+                            // ምንም ምልክት ሳይታይ ይቀራል (real-time ብቻ ሳይሆን፣ ቀጣይ የገፅ ጭነትም ላይ)።
+                            let multiUpdate = {};
+                            multiUpdate[`tirfe_system/tenants/${shopKey}/data/deliveryOrders`] = latestOrders;
+                            multiUpdate[`tirfe_system/tenants/${shopKey}/lastUpdated`] = Date.now();
+                            db.ref().update(multiUpdate);
                         }
                     });
                 } else {
                     if(!t.data) t.data = {};
                     if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
                     t.data.deliveryOrders.push(newOrder);
+                    t.lastUpdated = Date.now();
                     localDB.tenants[shopKey] = t;
-                    pushBuyerFirebase();
+                    saveToLocalStorage();
+                    // 🆕 FIX: pushBuyerFirebase() የገዢውን ራሱን ዳታ ብቻ ስለሚልክ (የሻጩን tenant
+                    // ዳታ አይደለም)፣ ኦፍላይን ሆኖ ትዕዛዝ ሲላክ ወደ ሻጩ በጭራሽ አይደርስም ነበር። አሁን የሻጩን
+                    // ዳታ (አዲሱን deliveryOrder ጨምሮ) በቀጥታ ወደ actionQueue በመጨመር ኢንተርኔት
+                    // ሲመለስ ወደ ሻጩ Firebase መዝገብ ትክክለኛ እንዲላክ ተደርጓል።
+                    queueAction('UPDATE', 'tenants', shopKey, cleanData(t));
                 }
 
                 window.buyerCartData = [];
