@@ -22,6 +22,7 @@ function renderMotorPage() {
     // ክሬዲቱ ከ25 ብር በታች ከሆነ እና ታግዷል (blocked) ካልተባለ፣ እገዳውን በራስ-ሰር ጀምር
     if (credit <= 25 && currentMotor.status !== 'blocked') {
         currentMotor.status = 'blocked';
+        currentMotor.creditBlocked = true;
         localDB.motors[currentMotor.username] = currentMotor;
         if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
         if (typeof pushToFirebase === 'function') pushMotorFirebase();
