@@ -322,11 +322,11 @@ function submitMotorCredit() {
     
     currentMotor.credit += amount;
     // ክሬዲቱ ከ25 ብር በላይ ከሆነ አውቶማቲካሊ ብሎኩን ያነሳዋል
-    let wasBlocked = currentMotor.status === 'blocked';
+    let wasBlocked = currentMotor.status === 'blocked' && currentMotor.creditBlocked;
     if (wasBlocked && currentMotor.credit > 25) {
         currentMotor.status = 'offline';
+        currentMotor.creditBlocked = false;
     }
-
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') pushMotorFirebase();        pushAdminFirebase();
