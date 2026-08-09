@@ -19,9 +19,13 @@ function renderMotorPage() {
     let commDisplay = document.getElementById('motorCommissionRateDisplay');
     if (commDisplay) commDisplay.innerText = commRate + '%';
     const credit = currentMotor.credit || 0;
+    // 🛠️ ማስተካከያ: accountStatus (አድሚን/ክሬዲት የሚቆጣጠረው) ተለይቷል ከ onlineStatus (ሞተረኛ የሚቆጣጠረው)
+    if (!currentMotor.accountStatus) currentMotor.accountStatus = (currentMotor.status === 'blocked') ? 'blocked' : 'active';
+    if (!currentMotor.onlineStatus) currentMotor.onlineStatus = (currentMotor.status === 'online') ? 'online' : 'offline';
+
     // ክሬዲቱ ከ25 ብር በታች ከሆነ እና ታግዷል (blocked) ካልተባለ፣ እገዳውን በራስ-ሰር ጀምር
-    if (credit <= 25 && currentMotor.status !== 'blocked') {
-        currentMotor.status = 'blocked';
+    if (credit <= 25 && currentMotor.accountStatus !== 'blocked') {
+        currentMotor.accountStatus = 'blocked';
         currentMotor.creditBlocked = true;
         localDB.motors[currentMotor.username] = currentMotor;
         if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -32,7 +36,7 @@ function renderMotorPage() {
     let mainContent = document.getElementById('motorMainContent');
     let statusToggle = document.getElementById('motorStatusToggle');
     let statusText = document.getElementById('motorStatusText');
-    if (currentMotor.status === 'blocked') {
+    if (currentMotor.accountStatus === 'blocked') {
         if (overlay) overlay.classList.remove('hidden');
         if (mainContent) mainContent.classList.add('hidden');
         if (statusToggle) { statusToggle.checked = false; statusToggle.disabled = true; }
@@ -50,7 +54,7 @@ function renderMotorPage() {
             statusToggle.disabled = hasActiveAcceptedJob;
         }
 
-        let isOnline = currentMotor.status === 'online';
+        let isOnline = currentMotor.onlineStatus === 'online';
         if (statusToggle) statusToggle.checked = isOnline;
         
         if (statusText) {
@@ -119,7 +123,6 @@ function renderMotorPage() {
     renderMotorOrders();
     renderMotorHistory();
 }
-
 // 2. የፕሮፋይል ሲቲንግ መክፈቻና መዝጊያ
 function toggleMotorSettings() {
     const settingsSection = document.getElementById('motorSettingsSection');
@@ -266,7 +269,7 @@ function changeMotorEmail() {
 // 4. ኦንላይን/ኦፍላይን መቀየሪያ
 function toggleMotorOnlineStatus() {
     if (typeof currentMotor === 'undefined' || !currentMotor) return;
-    if (currentMotor.status === 'blocked') return; // ታግዶ ከሆነ እንዳይቀይር
+    if (currentMotor.accountStatus === 'blocked') return; // ታግዶ ከሆነ እንዳይቀይር
 
     // በእጁ ላይ ያልተጠናቀቀ ትዕዛዝ ካለ ኦፍላይን እንዳያደርግ መከልከያ
     let hasActiveAcceptedJob = (currentMotor.activeOrders || []).some(o => o.status === 'accepted');
@@ -279,7 +282,7 @@ function toggleMotorOnlineStatus() {
 
     const isChecked = document.getElementById('motorStatusToggle').checked;
     
-    currentMotor.status = isChecked ? 'online' : 'offline';
+    currentMotor.onlineStatus = isChecked ? 'online' : 'offline';
     localDB.motors[currentMotor.username] = currentMotor;
     
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -287,7 +290,6 @@ function toggleMotorOnlineStatus() {
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, `🔄 የስራ ሁኔታዎ ወደ ${isChecked ? 'ኦንላይን (Online)' : 'ኦፍላይን (Offline)'} ተቀይሯል።`);
     }
-
     renderMotorPage();
 }
 // 5. ክሬዲት ሞዳል መክፈቻ
@@ -323,9 +325,10 @@ function submitMotorCredit() {
     
     currentMotor.credit += amount;
     // ክሬዲቱ ከ25 ብር በላይ ከሆነ አውቶማቲካሊ ብሎኩን ያነሳዋል
-    let wasBlocked = currentMotor.status === 'blocked' && currentMotor.creditBlocked;
+    let wasBlocked = currentMotor.accountStatus === 'blocked' && currentMotor.creditBlocked;
     if (wasBlocked && currentMotor.credit > 25) {
-        currentMotor.status = 'offline';
+        currentMotor.accountStatus = 'active';
+        currentMotor.onlineStatus = 'offline'; // ደህንነት ስንል ራሱ በእጅ እንዲያበራው እናደርጋለን
         currentMotor.creditBlocked = false;
     }
     localDB.motors[currentMotor.username] = currentMotor;
@@ -583,7 +586,8 @@ window.clearIncomingFee = function() {
     
     // ክሬዲቱ 25 እና ከዚያ በታች ከሆነ አካውንቱን እገደው (Block)
     if (currentMotor.credit <= 25) {
-        currentMotor.status = 'blocked';
+        currentMotor.accountStatus = 'blocked';
+        currentMotor.creditBlocked = true; // 🛠️ ማስተካከያ: ይህ ባይኖር renderMotorPage ላይ ያለው fallback ተሳስቶ ነበር ያልፈው
     }
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -591,12 +595,12 @@ window.clearIncomingFee = function() {
     pushMotorFirebase();
     pushAdminFirebase();
         if (typeof sendMotorTelegramAlert === 'function') {
-        let blockMsg = currentMotor.status === 'blocked' ?
+        let blockMsg = currentMotor.accountStatus === 'blocked' ?
         "\n\n⚠️ ክሬዲትዎ 25 ብር ስለደረሰ አካውንትዎ ታግዷል! እባክዎ ክሬዲት ይሙሉ።" : "\n\nአሁን አዲስ ትዕዛዝ መቀበል ይችላሉ!";
         sendMotorTelegramAlert(currentMotor.username, `✅ ክፍያ ተረጋግጧል!\n\nገዥው የከፈለው: ${feeCollected} ETB\nየተቆረጠ ኮሚሽን: ${commissionAmount} ETB` + blockMsg);
     }
     
-    if (currentMotor.status === 'blocked') {
+    if (currentMotor.accountStatus === 'blocked') {
         alert(`✅ ክፍያው ተረጋግጧል! (ኮሚሽን ${commissionAmount} ETB ተቆርጧል)።\n⚠️ ክሬዲትዎ 25 ብር እና ከዚያ በታች ስለሆነ ሲስተሙ አካውንትዎን አግዶታል። እባክዎ ክሬዲት ይሙሉ።`);
     } else {
         alert(`✅ ክፍያው ተረጋግጧል! ማሳያው ወደ 0.00 ተመልሷል። (ኮሚሽን ${commissionAmount} ETB ተቆርጧል)። አሁን አዲስ ትዕዛዝ መቀበል ይችላሉ።`);
@@ -684,7 +688,6 @@ function completeMotorOrder(index) {
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, `✅ ትዕዛዝ በተሳካ ሁኔታ አድረሷል!\n\n🏢 ሱቅ: ${order.shopName}\n👤 ደንበኛ: ${order.buyerName}\n💵 ያገኙት ክፍያ: ${actualFee} ETB`);
     }
-
     alert("ትዕዛዙን በተሳካ ሁኔታ ስላደረሱ እናመሰግናለን! አሁን ከዳሽቦርድዎ ላይ '✅ ክፍያ ተቀብያለሁ (ወደ 0.00 መልስ)' የሚለውን በመጫን ኮሚሽን አወራርደው አዲስ ስራ መቀበል ይችላሉ።");
     renderMotorPage();
 }
