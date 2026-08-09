@@ -1,6 +1,18 @@
+window.formatMoney = window.formatMoney || function(num, decimals) {
+    let n = parseFloat(num) || 0;
+    if (decimals === undefined || decimals === null) {
+        let parts = n.toString().split(".");
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return parts.join(".");
+    }
+    let parts = n.toFixed(decimals).split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return parts.join(".");
+};
+
 function renderApp() {
     let d = currentTenant.data || {}; let session = d.sessionData || {};
-    if(d.sessionActive) { document.getElementById('sessionDisplay').innerText = `📅 ${session.date} | 👤 አስገቢ፡ ${session.employee} | 💰 መነሻ ካዝና፡ ${session.initialFloat} ETB`; }
+    if(d.sessionActive) { document.getElementById('sessionDisplay').innerText = `📅 ${session.date} | 👤 አስገቢ፡ ${session.employee} | 💰 መነሻ ካዝና፡ ${formatMoney(session.initialFloat)} ETB`; }
     
     let headerRow = document.getElementById('inventoryTableHeader');
     if (currentUserRole === "staff") { headerRow.innerHTML = `<th>የዕቃ ስም</th><th>ሞዴል</th><th>መሸጫ ዋጋ</th><th>የተሸጠው</th><th>ቀሪ ክምችት</th><th>ድርጊት (Cart)</th>`; } 
@@ -27,8 +39,8 @@ function renderApp() {
         let rowClass = remaining <= 3 ? 'low-stock-row' : '';
         let stockBadge = remaining <= 3 ? '<span class="low-stock-badge">⚠️</span>' : '';
         let itemModelText = item.model || "-";
-        let wholesaleText = item.wholesalePrice ? ` / ${item.wholesalePrice}` : '';
-        let priceDisplay = `${item.price}${wholesaleText}`;
+        let wholesaleText = item.wholesalePrice ? ` / ${formatMoney(item.wholesalePrice)}` : '';
+        let priceDisplay = `${formatMoney(item.price)}${wholesaleText}`;
         
         let sellAction = `
             <div style="display:flex; gap:5px; align-items:center;">
@@ -50,13 +62,13 @@ function renderApp() {
         if (currentUserRole === "staff") {
  
             tbody.innerHTML += `<tr class="${rowClass}">
-                <td><strong>${item.name}</strong> ${stockBadge}</td><td>${itemModelText}</td><td>${item.price} ETB</td>
+                <td><strong>${item.name}</strong> ${stockBadge}</td><td>${itemModelText}</td><td>${formatMoney(item.price)} ETB</td>
                 <td><b>${displaySold}</b></td><td style="${remaining <= 3 ? 'color:#f87171;font-weight:bold;' : ''}">${displayRem}</td><td>${sellAction}</td>
             </tr>`;
         } else {
             tbody.innerHTML += `<tr class="${rowClass}">
-                <td><strong>${item.name}</strong> ${stockBadge}</td><td>${itemModelText}</td><td>${item.cost}</td>
-                <td>${priceDisplay}</td><td>${displayQty}</td><td><b>${displaySold}</b></td><td>${displayRem}</td><td>${profit}</td><td>${sellAction}</td>
+                <td><strong>${item.name}</strong> ${stockBadge}</td><td>${itemModelText}</td><td>${formatMoney(item.cost)}</td>
+                <td>${priceDisplay}</td><td>${displayQty}</td><td><b>${displaySold}</b></td><td>${displayRem}</td><td>${formatMoney(profit)}</td><td>${sellAction}</td>
             </tr>`;
         }
     });
@@ -68,24 +80,24 @@ function renderApp() {
     let finalCashInHand = ((parseFloat(session.initialFloat) || 0) + tSales) - creditSalesToday - todayExpensesTotal - tDraw;
     if (d.shiftClosed) { todayProfit = 0; finalCashInHand = 0; }
 
-    document.getElementById('totalInCash').innerText = finalCashInHand.toFixed(1) + " ETB";
+    document.getElementById('totalInCash').innerText = formatMoney(finalCashInHand, 1) + " ETB";
     let sellerTotalBuyersEl = document.getElementById('sellerTotalBuyers');
     if(sellerTotalBuyersEl) sellerTotalBuyersEl.innerText = localDB.buyers ? Object.keys(localDB.buyers).length : 0;
     
     let accVatDisplay = document.getElementById('tenantAccumulatedVatDisplay');
     if(accVatDisplay) {
         let accVat = (d.accumulatedVat) ? parseFloat(d.accumulatedVat) : 0;
-        accVatDisplay.innerText = accVat.toFixed(2) + " ETB";
+        accVatDisplay.innerText = formatMoney(accVat) + " ETB";
     }
 
     if (currentUserRole === "owner") {
         let monthlyProfit = todayProfit - todayExpensesTotal;
         let historyList = d.history || []; historyList.forEach(h => { if(!h.isMonthlyArchive) monthlyProfit += parseFloat(h.profit) || 0; });
-        document.getElementById('totalCapital').innerText = currentTotalCapital.toFixed(1) + " ETB";
-        document.getElementById('todayNetProfit').innerText = (todayProfit - todayExpensesTotal).toFixed(1) + " ETB";
-        document.getElementById('monthlyNetProfit').innerText = monthlyProfit.toFixed(1) + " ETB";
-        document.getElementById('monthlyExpenses').innerText = tExp.toFixed(1) + " ETB";
-        document.getElementById('totalDraws').innerText = tDraw.toFixed(1) + " ETB";
+        document.getElementById('totalCapital').innerText = formatMoney(currentTotalCapital, 1) + " ETB";
+        document.getElementById('todayNetProfit').innerText = formatMoney(todayProfit - todayExpensesTotal, 1) + " ETB";
+        document.getElementById('monthlyNetProfit').innerText = formatMoney(monthlyProfit, 1) + " ETB";
+        document.getElementById('monthlyExpenses').innerText = formatMoney(tExp, 1) + " ETB";
+        document.getElementById('totalDraws').innerText = formatMoney(tDraw, 1) + " ETB";
         if (window.myChart) { window.myChart.data.datasets[0].data = [currentTotalCapital, tSales, todayProfit - todayExpensesTotal]; window.myChart.update(); }
         renderHistoryTable();
     }
@@ -105,7 +117,7 @@ function renderApp() {
                 });
                
                 remoteBody.innerHTML += `<tr>
-                    <td>👤 ${bUser}</td><td>${detailsHTML}</td><td><b style="color:var(--success-color)">${totalSum} ETB</b></td>
+                    <td>👤 ${bUser}</td><td>${detailsHTML}</td><td><b style="color:var(--success-color)">${formatMoney(totalSum)} ETB</b></td>
                     <td><button class="btn-sell btn-sm" onclick="handleRemoteCartCheckout('${bUser}')">✅ ክፍያ ተቀበል (Checkout)</button></td>
                 </tr>`;
             }
@@ -138,7 +150,7 @@ function renderApp() {
                 <td>👤 ${ord.buyerUser}<br>📞 ${ord.buyerPhone}${transportBadge}</td>
                 <td>📍 ${ord.address} <br> ${ord.mapLink ? `<a href="${ord.mapLink}" target="_blank" style="color:var(--accent-color);">Map Link</a>` : ''}</td>
                 <td>📦 <b style="color:var(--accent-color);">${ord.itemName}</b> <br> ${modelTxt} <br> ብዛት: ${ord.qty}</td>
-                <td>${ord.total} ETB</td><td>${statusBadge}</td><td>${actions}</td>
+                <td>${formatMoney(ord.total)} ETB</td><td>${statusBadge}</td><td>${actions}</td>
             </tr>`;
         });
         if(!hasDel) delBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8;">በአሁኑ ሰዓት ምንም አዲስ የዴሊቨሪ ትዕዛዝ የለም።</td></tr>`;
@@ -155,8 +167,8 @@ function renderApp() {
                 let itemDisplay = debt.itemName ? `${debt.itemName} (${debt.qty || 1} ፍሬ)` : "-";
                 creditBody.innerHTML += `<tr>
                     <td><b>${debt.customer}</b><br><small style="color:#94a3b8">${debt.phone}</small><br><small style="color:var(--warning-color)">📅 ${debt.date || ''}</small></td>
-                    <td>${itemDisplay}</td><td>${debt.amount} ETB</td>
-                    <td style="color:var(--danger-color)"><b>${remaining} ETB</b></td>
+                    <td>${itemDisplay}</td><td>${formatMoney(debt.amount)} ETB</td>
+                    <td style="color:var(--danger-color)"><b>${formatMoney(remaining)} ETB</b></td>
                     <td><button class="btn-sell btn-sm" onclick="collectDebt(${idx})">ክፍያ</button></td>
                 </tr>`;
             }
@@ -168,13 +180,12 @@ function renderApp() {
     if(drawsList.length === 0) { drawBody.innerHTML += '<tr><td colspan="3" style="text-align:center; color:#94a3b8;">ምንም የተነሳ ገንዘብ የለም</td></tr>';
     } else {
         drawsList.forEach(dr => {
-            let isReturn = dr.amount < 0; let displayAmt = isReturn ? Math.abs(dr.amount) + " ETB (መለሰ)" : dr.amount + " ETB";
+            let isReturn = dr.amount < 0; let displayAmt = isReturn ? formatMoney(Math.abs(dr.amount)) + " ETB (መለሰ)" : formatMoney(dr.amount) + " ETB";
             let displayColor = isReturn ? "var(--success-color)" : "var(--purple-color)";
             let tbodyColor = `style="color:${displayColor}; font-weight:bold;"`;
             drawBody.innerHTML += `<tr><td>${dr.reason}</td><td ${tbodyColor}>${displayAmt}</td><td>${dr.time}</td></tr>`;
         });
     }
-
     let receiptHistoryBody = document.getElementById('receiptHistoryTableBody');
     receiptHistoryBody.innerHTML = '';
     let pastReceipts = d.receipts || [];
@@ -190,7 +201,7 @@ function renderApp() {
                 if (rec.date === receiptFilterDate) {
                     receiptHistoryBody.innerHTML += `<tr>
                         <td><b>#${rec.recId}</b></td><td>${rec.date}</td><td>${rec.itemName}</td><td>${rec.count}</td>
-                        <td class="text-success"><b>${rec.totalVal} ETB</b></td><td><span class="text-warning">${rec.seller}</span></td>
+                        <td class="text-success"><b>${formatMoney(rec.totalVal)} ETB</b></td><td><span class="text-warning">${rec.seller}</span></td>
                         <td><button class="btn-config btn-sm" onclick="viewPastReceipt(${actualIdx})">👁️ ድጋሚ እይ / Print</button></td>
                     </tr>`;
                 }
@@ -247,7 +258,7 @@ window.renderMainCart = function() {
         grandTotal += c.total;
         html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
             <td style="padding:8px 0; color:var(--text-color);">${c.name}</td><td style="color:var(--text-color);">${c.qty}</td>
-            <td style="color:var(--text-color);">${c.price} ETB</td><td style="color:var(--success-color);"><b>${c.total} ETB</b></td>
+            <td style="color:var(--text-color);">${formatMoney(c.price)} ETB</td><td style="color:var(--success-color);"><b>${formatMoney(c.total)} ETB</b></td>
             <td style="text-align:right;"><button class="btn-expense btn-sm" onclick="removeMainCartItem(${i})">❌</button></td>
         </tr>`;
     });
@@ -258,13 +269,13 @@ window.renderMainCart = function() {
     let finalTotal = grandTotal + vatAmount;
     let summaryHtml = `
         <div style="text-align: right; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-top: 10px;">
-            <div style="color: #bbb; font-size: 0.9rem;">Subtotal / ሂሳብ: <b>${grandTotal.toFixed(2)} ETB</b></div>
-            ${vatRate > 0 ? `<div style="color: var(--warning-color); font-size: 0.9rem;">VAT / ቫት (${vatRate}%): <b>+${vatAmount.toFixed(2)} ETB</b></div>` : ''}
-            <div style="font-size: 1.2rem; color: var(--success-color); margin-top: 5px; font-weight: bold;">Grand Total / ድምር: <b>${finalTotal.toFixed(2)} ETB</b></div>
+            <div style="color: #bbb; font-size: 0.9rem;">Subtotal / ሂሳብ: <b>${formatMoney(grandTotal)} ETB</b></div>
+            ${vatRate > 0 ? `<div style="color: var(--warning-color); font-size: 0.9rem;">VAT / ቫት (${vatRate}%): <b>+${formatMoney(vatAmount)} ETB</b></div>` : ''}
+            <div style="font-size: 1.2rem; color: var(--success-color); margin-top: 5px; font-weight: bold;">Grand Total / ድምር: <b>${formatMoney(finalTotal)} ETB</b></div>
         </div>
     `;
     container.innerHTML = html + summaryHtml; 
-    if(totalEl) totalEl.innerText = finalTotal.toFixed(2);
+    if(totalEl) totalEl.innerText = formatMoney(finalTotal);
 };
 
 window.removeMainCartItem = function(i) { mainCart.splice(i, 1); renderMainCart(); };
@@ -286,7 +297,7 @@ window.checkoutMainCart = function() {
         currentTenant.data.accumulatedVat += collectedVat;
     }
     let finalTotal = grandTotal + collectedVat;
-    sendTelegramAlert(`🛍️ የሽያጭ ማስታወቂያ (${currentSeller})፦\nየሱቅ ስም: ${currentTenant.shopName}\nየተሸጡ ዕቃዎች፡ ${receiptItems.length} አይነት\nጠቅላላ ሂሳብ፡ ${finalTotal.toFixed(2)} ETB`);
+    sendTelegramAlert(`🛍️ የሽያጭ ማስታወቂያ (${currentSeller})፦\nየሱቅ ስም: ${currentTenant.shopName}\nየተሸጡ ዕቃዎች፡ ${receiptItems.length} አይነት\nጠቅላላ ሂሳብ፡ ${formatMoney(finalTotal)} ETB`);
     mainCart = []; saveAndRefresh(); renderMainCart();
     generateAdvancedReceipt(receiptItems, grandTotal, currentSeller, null, true, null, null, null, null, collectedVat);
 };
@@ -375,13 +386,13 @@ window.generateStandaloneVatReceipt = function() {
     tbody.innerHTML = `<tr>
         <td style="padding: 4px 0; border-bottom: 1px dashed #ccc;">${iName} <br><small>ሞዴል: ${iModel}</small></td>
         <td style="padding: 4px 0; text-align: center; border-bottom: 1px dashed #ccc;">${iQty}</td>
-        <td style="padding: 4px 0; text-align: right; border-bottom: 1px dashed #ccc;">${iPrice.toFixed(2)}</td>
-        <td style="padding: 4px 0; text-align: right; border-bottom: 1px dashed #ccc;">${subTotal.toFixed(2)}</td>
+        <td style="padding: 4px 0; text-align: right; border-bottom: 1px dashed #ccc;">${formatMoney(iPrice)}</td>
+        <td style="padding: 4px 0; text-align: right; border-bottom: 1px dashed #ccc;">${formatMoney(subTotal)}</td>
     </tr>`;
-    document.getElementById('recPrintSubTotal').innerText = subTotal.toFixed(2);
+    document.getElementById('recPrintSubTotal').innerText = formatMoney(subTotal);
     document.getElementById('recPrintVatPercent').innerText = vatRate;
-    document.getElementById('recPrintVatAmount').innerText = vatAmount.toFixed(2);
-    document.getElementById('recPrintGrandTotal').innerText = grandTotal.toFixed(2);
+    document.getElementById('recPrintVatAmount').innerText = formatMoney(vatAmount);
+    document.getElementById('recPrintGrandTotal').innerText = formatMoney(grandTotal);
     
     document.getElementById('specialVatCustomerName').value = "";
     document.getElementById('specialVatItemName').value = "";
@@ -409,13 +420,13 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
     let rawTextForShare = `======= ${shopName.toUpperCase()} =======\nየንግድ ዘርፍ: ${bType}\nደረሰኝ ቁጥር: #${recId}\nየሸጠው ሰው: ${currentSeller}\nቀን: ${dateStr}\n---------------------------\n`;
     let tableRows = "";
     itemsArray.forEach(itm => {
-        rawTextForShare += `ዕቃ: ${itm.name} | ብዛት: ${itm.count} | ዋጋ: ${itm.total} ETB\n`;
-        tableRows += `<tr><td style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;"><b>${itm.name}</b></td><td style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">${itm.count}</td><td style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">${itm.unitPrice.toFixed(1)}</td><td style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;"><b>${itm.total} ETB</b></td></tr>`;
+        rawTextForShare += `ዕቃ: ${itm.name} | ብዛት: ${itm.count} | ዋጋ: ${formatMoney(itm.total)} ETB\n`;
+        tableRows += `<tr><td style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;"><b>${itm.name}</b></td><td style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">${itm.count}</td><td style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;">${formatMoney(itm.unitPrice, 1)}</td><td style="color:#000!important; border-bottom: 1px dashed #ddd; padding: 5px;"><b>${formatMoney(itm.total)} ETB</b></td></tr>`;
     });
     rawTextForShare += `---------------------------\n`;
-    rawTextForShare += `Subtotal (ያለ ቫት): ${subTotal.toFixed(2)} ETB\n`;
-    if(vatAmt > 0) rawTextForShare += `VAT / ቫት: +${vatAmt.toFixed(2)} ETB\n`;
-    rawTextForShare += `ጠቅላላ ሂሳብ (Grand Total): ${finalGrandTotal.toFixed(2)} ETB\n`;
+    rawTextForShare += `Subtotal (ያለ ቫት): ${formatMoney(subTotal)} ETB\n`;
+    if(vatAmt > 0) rawTextForShare += `VAT / ቫት: +${formatMoney(vatAmt)} ETB\n`;
+    rawTextForShare += `ጠቅላላ ሂሳብ (Grand Total): ${formatMoney(finalGrandTotal)} ETB\n`;
 
     if (displayBuyerName) { rawTextForShare += `ገዥ: ${displayBuyerName} | ስልክ: ${displayBuyerPhone || ''}\n`; }
     rawTextForShare += `እናመሰግናለን!`;
@@ -448,10 +459,10 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
 
     let vatHtml = vatAmt > 0 ?
         `<div style="display:flex; justify-content:space-between; margin-top:5px; font-size: 0.9rem; color: #555;">
-            <span>Subtotal (ያለ ቫት):</span> <span>${subTotal.toFixed(2)} ETB</span>
+            <span>Subtotal (ያለ ቫት):</span> <span>${formatMoney(subTotal)} ETB</span>
         </div>
         <div style="display:flex; justify-content:space-between; margin-top:5px; font-size: 0.9rem; color: #555;">
-            <span>VAT / ቫት:</span> <span>+${vatAmt.toFixed(2)} ETB</span>
+            <span>VAT / ቫት:</span> <span>+${formatMoney(vatAmt)} ETB</span>
         </div>` : "";
     let receiptHTML = `
     <div class="receipt-container" id="printableReceiptArea" style="background:#fff; color:#000; padding:15px; width:100%; max-width:350px; margin:0 auto;">
@@ -476,7 +487,7 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
         <div class="receipt-summary" style="margin-top: 15px; border-top: 2px dashed #333; padding-top: 8px; text-align: right; font-size: 0.95rem; font-weight: bold; color: #111;">
             ${vatHtml}
             <div style="display:flex; justify-content:space-between; margin-top:5px; font-size: 1.1rem; font-weight: 900;">
-                <span>Grand Total (አጠቃላይ):</span> <span>${finalGrandTotal.toFixed(2)} ETB</span>
+                <span>Grand Total (አጠቃላይ):</span> <span>${formatMoney(finalGrandTotal)} ETB</span>
             </div>
         </div>
         ${buyerSection}
@@ -523,13 +534,11 @@ function launchApp(tenant) {
     document.getElementById('profGmail').innerText = tenant.gmail || "-";
     document.getElementById('profExpiry').innerText = tenant.expiryDate ? `${tenant.expiryDate} (${tenant.contractType})` : "ያልተገደበ";
     let rentDisplay = document.getElementById('tenantRentDisplay');
-    if(rentDisplay) { rentDisplay.innerText = (tenant.registrationFee || 0) + " ETB"; }
+    if(rentDisplay) { rentDisplay.innerText = formatMoney(tenant.registrationFee || 0) + " ETB"; }
 
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
-    let rentAmount = parseFloat(tenant.registrationFee) || 0;
-    let calculatedVat = (rentAmount * vatRate) / 100;
     let vatDisplay = document.getElementById('tenantVatDisplay');
-    if(vatDisplay) { vatDisplay.innerText = calculatedVat.toFixed(2) + " ETB (" + vatRate + "%)"; }
+    if(vatDisplay) { vatDisplay.innerText = vatRate + "%"; }
 
     document.getElementById('receiptDateFilter').value = getTodayFormatted();
     let activeTheme = tenant.theme || 'theme-deepblue';
@@ -601,4 +610,4 @@ if (window.dbReadyPromise && typeof window.dbReadyPromise.then === 'function') {
     loadLocalStorageBackup();
     checkAutomaticLogin();
     handleOnlineStatus();
-        }
+    }
