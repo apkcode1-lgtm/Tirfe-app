@@ -81,7 +81,6 @@ function openExpenseModal() {
         currentTenant.data = d; saveAndRefresh();
     });
 }
-
 function openDebtModal() {
     let inv = currentTenant.data.inventory || [];
     if (inv.length === 0) { 
@@ -89,7 +88,7 @@ function openDebtModal() {
         return;
     }
 
-    let itemOptions = inv.map((item, index) => { return { value: index, label: `${item.name} (${item.price} ETB)` }; });
+    let itemOptions = inv.map((item, index) => { return { value: index, label: `${item.name} (${formatMoney(item.price)} ETB)` }; });
     showFormModal("አዲስ የዕዳ መዝገብ", [
         { id: "customer", label: "የባለዕዳ ሙሉ ስም", type: "text", placeholder: "የሰውየው ስም..." },
         { id: "phone", label: "ስልክ ቁጥር", type: "text", placeholder: "09..." },
@@ -102,14 +101,13 @@ function openDebtModal() {
         let selectedDate = res.date ? res.date : getTodayFormatted();
 
         if (!customer || qty <= 0 || isNaN(itemIdx)) { showCustomAlert("ስህተት", "እባክዎ የተሟላና ትክክለኛ መረጃ ያስገቡ!"); return; }
-
         let selectedItem = inv[itemIdx]; let calculatedAmount = selectedItem.price * qty;
        
         let d = currentTenant.data || {}; if (!d.debts) d.debts = [];
         d.debts.push({ customer: customer, phone: phone || "-", itemName: selectedItem.name, qty: qty, amount: calculatedAmount, paid: 0, date: selectedDate });
         selectedItem.sold += qty; currentTenant.data = d; saveAndRefresh();
-        sendTelegramAlert(`💳 አዲስ እዳ ተመዘገበ (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nባለእዳ፦ ${customer}\nእቃ፦ ${selectedItem.name} (${qty})\nየታሰበ ሂሳብ፦ ${calculatedAmount} ETB\nቀን፦ ${selectedDate}`);
-        showCustomAlert("ተሳክቷል", `${customer} በዕዳ የወሰደው ሂሳብ በራሱ ተባዝቶ ገብቷል፦ ${calculatedAmount} ETB`);
+        sendTelegramAlert(`💳 አዲስ እዳ ተመዘገበ (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nባለእዳ፦ ${customer}\nእቃ፦ ${selectedItem.name} (${qty})\nየታሰበ ሂሳብ፦ ${formatMoney(calculatedAmount)} ETB\nቀን፦ ${selectedDate}`);
+        showCustomAlert("ተሳክቷል", `${customer} በዕዳ የወሰደው ሂሳብ በራሱ ተባዝቶ ገብቷል፦ ${formatMoney(calculatedAmount)} ETB`);
     });
 }
 
@@ -126,7 +124,7 @@ function openDrawerModal() {
         let displayType = action === "withdraw" ? "ገንዘብ ተነሳ" : "ገንዘብ ተመለሰ";
         d.drawerLog.push({ reason: `${action === "withdraw" ? "⚠️ [የተነሳ] " : "✅ [የተመለሰ] "} ${reason}`, amount: finalAmount, time: new Date().toLocaleTimeString('en-GB') });
         currentTenant.data = d; saveAndRefresh();
-        sendTelegramAlert(`💸 ከሳጥን ${displayType} (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nምክንያት፡ ${reason}\nመጠን፡ ${amount} ETB`);
+        sendTelegramAlert(`💸 ከሳጥን ${displayType} (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nምክንያት፡ ${reason}\nመጠን፡ ${formatMoney(amount)} ETB`);
     });
 }
 
@@ -156,7 +154,7 @@ function openSettlementModal() {
         if(expectedBank < 0) expectedBank = 0;
         let variance = bankAmt - expectedBank;
 
-        let AmharicSummary = `======= 📊 ማወራረጃ (${periodStr}) =======\n• የተጣራ አጠቃላይ ሽያጭ፡ ${tSales.toFixed(2)} ETB\n• አጠቃላይ ወጪዎች፡ ${tExp.toFixed(2)} ETB\n• የተጣራ ትርፍ፡ ${tProfit.toFixed(2)} ETB\n• ከካዝና የተነሳ፡ ${tDraws.toFixed(2)} ETB\n• የተሰበሰበ ካሽ ሪፖርት፡ ${tReported.toFixed(2)} ETB\n----------------------------------------\n• በሱቅ ያለ ዕቃ ካፒታል፡ ${currentStockValue.toFixed(2)} ETB\n• ያልተሰበሰ ቀሪ ዕዳ፡ ${totalDebtRemaining.toFixed(2)} ETB\n----------------------------------------\n• ሲስተሙ የሚጠብቀው ገንዘብ (Expected)፦ ${expectedBank.toFixed(2)} ETB\n• እርስዎ ያስገቡት የባንክ መጠን፦ ${bankAmt.toFixed(2)} ETB\n• ልዩነት (Variance)፦ ${variance.toFixed(2)} ETB\n`;
+        let AmharicSummary = `======= 📊 ማወራረጃ (${periodStr}) =======\n• የተጣራ አጠቃላይ ሽያጭ፡ ${formatMoney(tSales)} ETB\n• አጠቃላይ ወጪዎች፡ ${formatMoney(tExp)} ETB\n• የተጣራ ትርፍ፡ ${formatMoney(tProfit)} ETB\n• ከካዝና የተነሳ፡ ${formatMoney(tDraws)} ETB\n• የተሰበሰበ ካሽ ሪፖርት፡ ${formatMoney(tReported)} ETB\n----------------------------------------\n• በሱቅ ያለ ዕቃ ካፒታል፡ ${formatMoney(currentStockValue)} ETB\n• ያልተሰበሰ ቀሪ ዕዳ፡ ${formatMoney(totalDebtRemaining)} ETB\n----------------------------------------\n• ሲስተሙ የሚጠብቀው ገንዘብ (Expected)፦ ${formatMoney(expectedBank)} ETB\n• እርስዎ ያስገቡት የባንክ መጠን፦ ${formatMoney(bankAmt)} ETB\n• ልዩነት (Variance)፦ ${formatMoney(variance)} ETB\n`;
         showCustomAlert("📊 ማወራረጃ ማጠቃለያ", AmharicSummary);
         sendTelegramAlert(`📊 ሂሳብ ማወራረጃ ሪፖርት (${periodStr})፦\n${AmharicSummary}`);
     });
@@ -316,5 +314,4 @@ function submitOrderToSupplier() {
     
     // ፎርሙን መዝጋት
     document.getElementById('supplierBuyModal').classList.add('hidden');
-}
-
+    }
