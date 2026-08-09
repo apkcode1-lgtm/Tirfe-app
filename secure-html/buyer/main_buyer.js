@@ -231,53 +231,62 @@ window.submitDeliveryFee = function(shopKey, orderId) {
         let ord = t.data.deliveryOrders.find(o => o.orderId == orderId);
         if(ord) {
             ord.deliveryFeePaid = fee;
-            let motorAssigned = false;
-            if (ord.motorUser && localDB.motors[ord.motorUser]) {
-                localDB.motors[ord.motorUser].incomingFee = fee;
-                // 🆕 FIX: ሙሉውን motor node ስንተካ (.set) lastUpdated ካልቀየርነው ያ ሞተረኛ
-                // ገፁ ላይ ክፍያው ላይቭ አይታይም ነበር (shouldUpdateLocal ውድቅ ያደርገዋል)።
-                localDB.motors[ord.motorUser].lastUpdated = Date.now();
-                if (typeof db !== 'undefined' && navigator.onLine) {
-                    db.ref(`tirfe_system/motors/${ord.motorUser}`).set(localDB.motors[ord.motorUser]);
-                }
+
+            // 🆕 FIX: ገዥው ገፅ ላይ localDB.motors ፈጽሞ ስለማይሞላ (ገዥ ለ motors ምንም
+            // fetch/listener ስለሌለው)፣ ከዚህ በፊት የነበረው "localDB.motors[ord.motorUser]"
+            // ሁልጊዜ undefined ስለሆነ ክፍያው ለሞተረኛው በጭራሽ አይደርስም ነበር (ስህተት ፀጥ ብሎ
+            // ይታለፍ ነበር)። አሁን የሞተረኛውን ሙሉ ዳታ በገዥ በኩል ማወቅ ሳያስፈልገን በቀጥታ Firebase
+            // ላይ የተወሰነውን ፊልድ (targeted multi-path update) ብቻ እንጽፋለን።
+            function pushFeeToMotor(motorUsername) {
+                if (typeof db === 'undefined' || !navigator.onLine || !motorUsername) return;
+                let motorFeeUpdate = {};
+                motorFeeUpdate[`tirfe_system/motors/${motorUsername}/incomingFee`] = fee;
+                motorFeeUpdate[`tirfe_system/motors/${motorUsername}/lastUpdated`] = Date.now();
+                db.ref().update(motorFeeUpdate);
                 if (typeof sendMotorTelegramAlert === 'function') {
-                    sendMotorTelegramAlert(ord.motorUser, `💸 አዲስ የዴሊቨሪ ክፍያ ተልኮልዎታል!\n\nገዥው ${fee} ETB ሲስተሙ ላይ አስገብቷል። እባክዎ ዳሽቦርድዎን ያረጋግጡ።`);
+                    sendMotorTelegramAlert(motorUsername, `💸 አዲስ የዴሊቨሪ ክፍያ ተልኮልዎታል!\n\nገዥው ${fee} ETB ሲስተሙ ላይ አስገብቷል። እባክዎ ዳሽቦርድዎን ያረጋግጡ።`);
                 }
-                motorAssigned = true;
-            } else {
-                Object.values(localDB.motors).forEach(m => {
-                    if (m.activeOrders) {
-                        let matched = m.activeOrders.find(mo => mo.orderId == orderId || mo.buyerPhone == ord.buyerPhone);
-                        if (matched && matched.status === 'accepted') {
-                            m.incomingFee = fee;
-                            // 🆕 FIX: እዚህም እንዲሁ lastUpdated ካልታደሰ ያ ሞተረኛ ገፅ ላይ ክፍያው
-                            // ላይቭ ስለማይታይ እንጨምረዋለን
-                            m.lastUpdated = Date.now();
-                            if (typeof db !== 'undefined' && navigator.onLine) {
-                                db.ref(`tirfe_system/motors/${m.username}`).set(m);
-                            }
-                            ord.motorUser = m.username; 
-                            motorAssigned = true;
-                            if (typeof sendMotorTelegramAlert === 'function') {
-                                sendMotorTelegramAlert(m.username, `💸 አዲስ የዴሊቨሪ ክፍያ ተልኮልዎታል!\n\nገዥው ${fee} ETB ሲስተሙ ላይ አስገብቷል። እባክዎ ዳሽቦርድዎን ያረጋግጡ።`);
-                            }
-                        }
-                    }
-                });
             }
-            if(!motorAssigned) {
-                console.warn("ማሳሰቢያ: ይህንን ትዕዛዝ የተቀበለ ሞተረኛ ገና አልተገኘም።");
+
+            if (ord.motorUser) {
+                // የተመደበው ሞተረኛ ስም ቀድሞውኑ በትዕዛዙ ላይ ስለሚገኝ (ሞተረኛው accept ካደረገ በኋላ) በቀጥታ እንጽፋለን
+                pushFeeToMotor(ord.motorUser);
+            } else if (typeof db !== 'undefined' && navigator.onLine) {
+                // ሞተረኛው ገና ካልታወቀ (ያልተመዘገበ ጉዳይ) Firebase ላይ በቀጥታ ፈልገን እናገኘዋለን
+                db.ref('tirfe_system/motors').once('value').then(snap => {
+                    let allMotors = snap.val() || {};
+                    Object.keys(allMotors).forEach(mUser => {
+                        let m = allMotors[mUser];
+                        let matched = (m.activeOrders || []).find(mo => mo.orderId == orderId || mo.buyerPhone == ord.buyerPhone);
+                        if (matched && matched.status === 'accepted') {
+                            ord.motorUser = mUser;
+                            pushFeeToMotor(mUser);
+                            db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).transaction((currentOrders) => {
+                                if (!currentOrders) return currentOrders;
+                                let ordersArr = Array.isArray(currentOrders) ? currentOrders : Object.values(currentOrders);
+                                let i2 = ordersArr.findIndex(o => o && o.orderId == orderId);
+                                if (i2 > -1) ordersArr[i2].motorUser = mUser;
+                                return ordersArr;
+                            }).then(() => db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now()));
+                        }
+                    });
+                }).catch(err => console.warn("ማሳሰቢያ: ሞተረኛ ፍለጋ አልተሳካም:", err));
             }
 
             localDB.tenants[shopKey] = t;
             pushBuyerFirebase();
             if (typeof db !== 'undefined' && navigator.onLine) {
-                // 🆕 FIX: deliveryOrders ብቻ ስንጽፍ ሻጩ ገፅ ላይ ላይቭ ስለማይታይ (tenant root
-                // lastUpdated ስላልተቀየረ)፣ ሁለቱንም በ atomic multi-path update አብረን እንጽፋለን
-                let feeMultiUpdate = {};
-                feeMultiUpdate[`tirfe_system/tenants/${shopKey}/data/deliveryOrders`] = t.data.deliveryOrders;
-                feeMultiUpdate[`tirfe_system/tenants/${shopKey}/lastUpdated`] = Date.now();
-                db.ref().update(feeMultiUpdate);
+                // 🆕 FIX: read→modify→write ሳይሆን transaction() ስለሆነ ከሌላ ጎን (ለምሳሌ
+                // ሻጭ በራሱ በኩል) ተመሳሳይ ደቂቃ ላይ ለውጥ ቢያደርግ ዳታ አይጠፋም/አይደገምም።
+                db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).transaction((currentOrders) => {
+                    if (!currentOrders) return currentOrders;
+                    let ordersArr = Array.isArray(currentOrders) ? currentOrders : Object.values(currentOrders);
+                    let i3 = ordersArr.findIndex(o => o && o.orderId == orderId);
+                    if (i3 > -1) ordersArr[i3].deliveryFeePaid = fee;
+                    return ordersArr;
+                }).then((result) => {
+                    if (result.committed) db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now());
+                });
             }
 
             showCustomAlert("✅ ተሳክቷል", "የዴሊቨሪ ክፍያ መጠን በተሳካ ሁኔታ ገብቷል! መረጃው በቀጥታ ለሞተረኛው ተልኳል።");
@@ -353,6 +362,7 @@ window.checkoutBuyerCart = function(orderType) {
                     itemName: item.itemName, qty: item.qty, price: item.price, total: item.total
                 });
             });
+
             // Overwrite fix: Fetch latest remoteCarts from Firebase before pushing
             if (typeof db !== 'undefined' && navigator.onLine) {
                 db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`).once('value').then(snap => {
@@ -419,21 +429,22 @@ window.checkoutBuyerCart = function(orderType) {
                     cartItems: window.buyerCartData // Preserving original array
                 };
 
-                // Overwrite fix: Fetch latest deliveryOrders from Firebase before pushing
+                // 🆕 FIX: once('value') አንብቦ .update() ብቻ ማድረግ (read → modify → write)
+                // ሌላ ተጠቃሚ (ሻጭ/ሞተረኛ) ተመሳሳይ ደቂቃ ላይ deliveryOrders ላይ ለውጥ ቢያደርግ
+                // አንዱ የሌላውን ለውጥ ስለሚደመስስ transaction() ን ተጠቀምን - Firebase ራሱ
+                // ግጭት ካለ በራስ-ሰር ደጋግሞ በትክክለኛው የቅርብ ጊዜ ዳታ ላይ ብቻ ይተገብረዋል።
                 if (typeof db !== 'undefined' && navigator.onLine) {
-                    db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).once('value').then(snap => {
-                        let latestOrders = snap.exists() ? snap.val() : [];
+                    db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).transaction((currentOrders) => {
+                        let ordersArr = currentOrders ? (Array.isArray(currentOrders) ? currentOrders : Object.values(currentOrders)) : [];
                         // Check to prevent double-click duplicates
-                        if(!latestOrders.find(o => o.orderId === orderId)) {
-                            latestOrders.push(newOrder);
-                            // 🆕 FIX: deliveryOrders ብቻ መጻፍ በቂ አልነበረም - የሻጩ real-time
-                            // listener (shouldUpdateLocal) ዳታውን የሚቀበለው tenant root ላይ
-                            // ያለው lastUpdated ሲቀየር ብቻ ስለሆነ፣ ካልቀየርነው ሻጩ ገፅ ላይ ትዕዛዙ
-                            // ምንም ምልክት ሳይታይ ይቀራል (real-time ብቻ ሳይሆን፣ ቀጣይ የገፅ ጭነትም ላይ)።
-                            let multiUpdate = {};
-                            multiUpdate[`tirfe_system/tenants/${shopKey}/data/deliveryOrders`] = latestOrders;
-                            multiUpdate[`tirfe_system/tenants/${shopKey}/lastUpdated`] = Date.now();
-                            db.ref().update(multiUpdate);
+                        if(!ordersArr.find(o => o && o.orderId === orderId)) {
+                            ordersArr.push(newOrder);
+                        }
+                        return ordersArr;
+                    }).then((result) => {
+                        if (result.committed) {
+                            // የሻጩ ገፅ real-time "አዲስ ትዕዛዝ" እንዲያሳይ tenant root lastUpdated ማዘመን
+                            db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now());
                         }
                     });
                 } else {
@@ -531,7 +542,6 @@ window.renderBuyerCatalog = async function() {
             if (t.status === "active") {
                 let tBType = t.businessType || "አጠቃላይ ንግድ";
                 if (activeCategoryFilter !== "all" && tBType !== activeCategoryFilter) return;
-
                 let isShopMatch = false;
                 if (query !== "") {
                     let uName = t.username ? t.username.toLowerCase() : tKey.toLowerCase();
