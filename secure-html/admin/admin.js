@@ -48,7 +48,7 @@ window.openTariffSettings = function() {
             });
         }
         
-        pushTenantFirebase();
+        pushAdminFirebase();
         renderAdminPanel(); 
         showCustomAlert("ተሳክቷል", `ታሪፉ ለ "${res.tariffTier}" በተሳካ ሁኔታ ወደ ${newAmount} ETB ተቀይሯል! አዲስ ሲመዘገቡ ይህ ዋጋ ይመጣል።\n\n${updatedCount > 0 ? `እንዲሁም ${updatedCount} ነባር ተከራዮች ላይ የታሪፍ ማስተካከያ ተደርጓል።` : ''}`);
     });
