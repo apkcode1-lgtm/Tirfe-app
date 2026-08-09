@@ -648,7 +648,6 @@ if(typeof db !== 'undefined') {
         if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         }
-
         // 4. የሞተረኛ (Motor) የብሎክ እና ሪፍሬሽ ቼክ
         if(typeof currentMotor !== 'undefined' && currentMotor) {
             let checkMotor = localDB.motors[currentMotor.username];
@@ -656,7 +655,9 @@ if(typeof db !== 'undefined') {
                 if(typeof forceLogout === 'function') forceLogout();
                 return;
             }
-            if(checkMotor.status === "blocked" && !checkMotor.creditBlocked) {
+            // 🛠️ ማስተካከያ: accountStatus (እውነተኛው የአድሚን/ክሬዲት ብሎክ) ብቻ ነው መታየት ያለበት፤ status "online"/"offline" ብሎክ አይደለም
+            let checkMotorAccountStatus = checkMotor.accountStatus || (checkMotor.status === "blocked" ? "blocked" : "active");
+            if(checkMotorAccountStatus === "blocked" && !checkMotor.creditBlocked) {
                 alert("የሞተረኛ አካውንትዎ በአድሚን ታግዷል!");
                 if(typeof forceLogout === 'function') forceLogout();
                 return;
@@ -671,4 +672,4 @@ if(typeof db !== 'undefined') {
             if(typeof renderAdminBuyers === 'function') renderAdminBuyers();
         }
     }
-}
+  }
