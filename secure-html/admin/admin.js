@@ -375,7 +375,6 @@ window.renderAdminMotors = function() {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8;">ምንም የተመዘገበ ሞተረኛ የለም።</td></tr>`;
     }
 };
-
 window.toggleMotorStatus = function(username) {
     if(localDB.motors && localDB.motors[username]) {
         let m = localDB.motors[username];
@@ -384,7 +383,7 @@ window.toggleMotorStatus = function(username) {
         } else {
             m.status = "blocked";
         }
-        
+        m.creditBlocked = false; // አድሚን በእጅ ስለነካው፣ ክሬዲት-ብሎክ ምልክቱ ይጽዳ
         pushAdminRecordUpdate('motors', username, m); 
         renderAdminMotors();
         showCustomAlert("ተስተካክሏል", "የሞተረኛው ሁኔታ በተሳካ ሁኔታ ተቀይሯል።");
