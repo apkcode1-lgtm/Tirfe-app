@@ -309,23 +309,6 @@ body.mode-light .modal-overlay { background: rgba(255,255,255,0.7); }
 .category-btn.active { background: var(--text-color); border-color: var(--text-color); color: var(--bg-color); font-weight: 800; }
 
 /* ==========================================================================
-   ኦፍላይን ማሳወቂያ (Offline Status UI)
-   ========================================================================== */
-.offline-tag { background: none; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; animation: blink 1.5s infinite; }
-@keyframes blink { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
-
-.critical-offline-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-color); z-index: 99999; display: flex; justify-content: center; align-items: center; padding: 20px; text-align: center; }
-.offline-status-card { background: none; border: 1px solid var(--border-color-strong); padding: 34px 24px; border-radius: var(--radius-lg); max-width: 440px; width: 100%; box-shadow: none; }
-.offline-status-card .icon-zone { font-size: 3.2rem; margin-bottom: 15px; animation: pulse-glow 2s infinite ease-in-out; }
-.offline-status-card h2 { color: var(--danger-color); font-size: 1.4rem; margin-bottom: 12px; font-weight: 800; }
-.offline-status-card p { color: var(--text-muted); font-size: 0.92rem; line-height: 1.6; margin-bottom: 22px; }
-.offline-loader { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border-color-strong); border-radius: 50%; border-top-color: var(--text-color); animation: spin-loader 0.9s linear infinite; vertical-align: middle; margin-right: 10px; }
-.offline-status-card .footer-note { font-size: 0.78rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 10px; }
-
-@keyframes spin-loader { to { transform: rotate(360deg); } }
-@keyframes pulse-glow { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }
-
-/* ==========================================================================
    ካርት (Shopping Cart)
    ========================================================================== */
 .cart-section { background: none; border: 1px solid var(--border-color-strong); border-radius: var(--radius-md); padding: 16px; margin-bottom: 15px; }
@@ -390,17 +373,7 @@ img.goog-te-gadget-icon { display: none !important; }
 <div id="imageLightbox" class="modal-overlay hidden" onclick="this.classList.add('hidden')" style="z-index: 999999 !important; cursor: zoom-out;">
     <img id="lightboxImg" src="" style="max-width: 90%; max-height: 90%; border-radius: 8px; border: 2px solid var(--accent-color); box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
 </div>
-<div id="criticalOfflineScreen" class="critical-offline-overlay hidden">
-    <div class="offline-status-card">
-        <div class="icon-zone">📡</div>
-        <h2>የመስመር ውጭ (Offline) ሁነታ</h2>
-        <p>የእርስዎ መሣሪያ በአሁኑ ሰዓት ከበይነመረብ (Internet) ጋር አልተገናኘም። የውሂብ ደህንነትን ለመጠበቅ እና ከማዕከላዊው የባንክ ሲስተም ጋር እንዳይጋጭ ጊዜያዊ እገዳ ተጥሏል።</p>
-        <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; color: #38bdf8; font-size: 0.9rem;">
-            <div class="offline-loader"></div> መስመር ላይ ለመመለስ በመሞከር ላይ...
-        </div>
-        <div class="footer-note">የኔትወርክ ግንኙነትዎ እንደተመለሰ አፕሊኬሽኑ በራሱ በራስ-ሰር ይከፈታል።</div>
-    </div>
-</div>
+
 <!-- ==========================================
      አጠቃላይ የሞዳል ማስተናገጃ (Modal Overlay)
      ========================================== -->
