@@ -316,7 +316,7 @@ window.openMotorTariffSettings = function() {
         let rate = parseFloat(res.deliveryCommissionRate) || 0;
         if(!localDB.adminSettings) localDB.adminSettings = { tgToken: '', tgChatId: '', bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 };
         localDB.adminSettings.deliveryCommissionRate = rate;
-        pushMotorFirebase();
+        pushAdminFirebase();
         showCustomAlert("ተሳክቷል", `የሞተረኛ ኮሚሽን መጠን ወደ ${rate}% በተሳካ ሁኔታ ተስተካክሏል! ይህ መጠን ሞተረኞች ክፍያ ሲቀበሉ ይቆረጣል።`);
     });
 };
