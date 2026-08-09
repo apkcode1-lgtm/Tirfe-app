@@ -587,6 +587,14 @@ function checkMorningSession() {
 setTimeout(() => { if(currentUserRole === "owner") initChart(); checkMorningSession(); }, 200);
 }
 // Startup Calls
-loadLocalStorageBackup();
-checkAutomaticLogin();
-handleOnlineStatus();
+// 🆕 database.js አሁን localDB ን ከ IndexedDB async ስለሚጭን፣ እነዚህ ጅማሬ ጥሪዎች ዳታው ሙሉ በሙሉ እስኪጫን (window.dbReadyPromise) መጠበቅ አለባቸው
+if (window.dbReadyPromise && typeof window.dbReadyPromise.then === 'function') {
+    window.dbReadyPromise.then(() => {
+        checkAutomaticLogin();
+        handleOnlineStatus();
+    });
+} else {
+    loadLocalStorageBackup();
+    checkAutomaticLogin();
+    handleOnlineStatus();
+    }
