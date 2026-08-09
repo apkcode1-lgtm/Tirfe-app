@@ -41,13 +41,14 @@ window.openTariffSettings = function() {
         let updatedCount = 0;
         if (localDB.tenants) {
             Object.keys(localDB.tenants).forEach(key => {
-                if (localDB.tenants[key].registrationFee === oldAmount) {
-                    localDB.tenants[key].registrationFee = newAmount;
-                    updatedCount++;
-                }
-            });
+        if (localDB.tenants[key].registrationFee === oldAmount) {
+            localDB.tenants[key].registrationFee = newAmount;
+            localDB.tenants[key].lastUpdated = Date.now();
+            queueAction('UPDATE', 'tenants', key, { registrationFee: newAmount, lastUpdated: Date.now() });
+            updatedCount++;
         }
-        
+    });
+        }
         pushAdminFirebase();
         renderAdminPanel(); 
         showCustomAlert("ተሳክቷል", `ታሪፉ ለ "${res.tariffTier}" በተሳካ ሁኔታ ወደ ${newAmount} ETB ተቀይሯል! አዲስ ሲመዘገቡ ይህ ዋጋ ይመጣል።\n\n${updatedCount > 0 ? `እንዲሁም ${updatedCount} ነባር ተከራዮች ላይ የታሪፍ ማስተካከያ ተደርጓል።` : ''}`);
