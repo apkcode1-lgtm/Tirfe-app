@@ -165,7 +165,6 @@ window.changeBuyerEmail = function() {
             if(!newEmail) { showCustomAlert("ስህተት", "እባክዎ አዲሱን ኢሜል ያስገቡ!"); return; }
             if(newEmail.toLowerCase() !== newEmail2.toLowerCase()) { showCustomAlert("ስህተት", "ያስገቧቸው ሁለት አዲስ ኢሜሎች አይመሳሰሉም!"); return; }
             if(newEmail.toLowerCase() === String(oldEmail || "").toLowerCase()) { showCustomAlert("ስህተት", "አዲሱ ኢሜል ካለው ኢሜል ጋር ተመሳሳይ ነው!"); return; }
-
             try {
                 await auth.currentUser.updateEmail(newEmail);
                 currentBuyer.email = newEmail;
@@ -333,7 +332,6 @@ window.checkoutBuyerCart = function(orderType) {
         itemNamesArr.push(`${c.itemName} (x${c.qty})`);
     });
     let combinedItems = itemNamesArr.join("፣ ");
-
     if(orderType === 'shop') {
         showCustomConfirm("🛒 ሱቅ ሄጄ እወስዳለሁ", "ሁሉንም የቅርጫት ትዕዛዞች 'ሱቅ ሄጄ እወስዳለሁ' በሚል ወደ ሱቁ መላክ ይፈልጋሉ?", () => {
             let newCartItems = [];
@@ -719,8 +717,12 @@ window.viewBuyerReceipt = function(recId) {
     }
 };
 // ገጹ ልክ ሲከፈት የዕቃዎችን ዝርዝር እና ዳታዎችን በራሱ ጊዜ እንዲያመጣ
+// 🆕 database.js localDB ን ከ IndexedDB async ስለሚጭን፣ Catalog ባዶ ሆኖ እንዳይታይ ዳታው ሙሉ በሙሉ እስኪጫን (window.dbReadyPromise) መጠበቅ
 window.addEventListener('DOMContentLoaded', () => {
-    if (typeof window.renderBuyerCatalog === 'function') {
-        window.renderBuyerCatalog();
+    const runCatalog = () => { if (typeof window.renderBuyerCatalog === 'function') window.renderBuyerCatalog(); };
+    if (window.dbReadyPromise && typeof window.dbReadyPromise.then === 'function') {
+        window.dbReadyPromise.then(runCatalog);
+    } else {
+        runCatalog();
     }
 });
