@@ -607,15 +607,18 @@ if(typeof db !== 'undefined') {
         // 4. የሞተረኛ (Motor) የብሎክ እና ሪፍሬሽ ቼክ
         if(typeof currentMotor !== 'undefined' && currentMotor) {
             let checkMotor = localDB.motors[currentMotor.username];
-            if(!checkMotor || checkMotor.status === "blocked") {
-                alert("የሞተረኛ አካውንትዎ ታግዷል!");
+            if(!checkMotor) {
+                if(typeof forceLogout === 'function') forceLogout();
+                return;
+            }
+            if(checkMotor.status === "blocked" && !checkMotor.creditBlocked) {
+                alert("የሞተረኛ አካውንትዎ በአድሚን ታግዷል!");
                 if(typeof forceLogout === 'function') forceLogout();
                 return;
             }
             currentMotor = checkMotor;
             if(typeof renderMotorPage === 'function') renderMotorPage();
         }
-        
         // 5. የአድሚን ሪፍሬሽ
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
             if(typeof renderAdminPanel === 'function') renderAdminPanel();
