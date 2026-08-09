@@ -453,7 +453,13 @@ window.acceptMotorOrder = function(index) {
                     let filteredOrders = otherMotorActive.filter(o => o.poolId !== poolId);
                     
                     if(otherMotorActive.length !== filteredOrders.length) {
-                        db.ref(`tirfe_system/motors/${mUser}/activeOrders`).set(filteredOrders);
+                        // 🆕 FIX: activeOrders ብቻ መጻፍ በቂ አልነበረም - ያ ሞተረኛ ገፁ ላይ real-time
+                        // ትዕዛዙ (ሌላ ሰው ስለወሰደው) እንዲጠፋለት lastUpdated ማዘመን ያስፈልጋል፣
+                        // ካልሆነ የተወሰደ ትዕዛዝ በስክሪኑ ላይ ገፁ እስኪታደስ ድረስ ይታይበታል።
+                        let otherMotorUpdate = {};
+                        otherMotorUpdate[`tirfe_system/motors/${mUser}/activeOrders`] = filteredOrders;
+                        otherMotorUpdate[`tirfe_system/motors/${mUser}/lastUpdated`] = Date.now();
+                        db.ref().update(otherMotorUpdate);
                     }
                 }
             });
@@ -470,7 +476,13 @@ window.acceptMotorOrder = function(index) {
             if (sOrd) {
                 sOrd.motorUser = currentMotor.username; // ሞተረኛውን እንመድባለን
                 sOrd.status = 'accepted'; // ስታተሱን እንቀይራለን
-                db.ref(shopPath).set(shopOrders); // መልሰን Firebase ላይ እንጭነዋለን
+                // 🆕 FIX: deliveryOrders ብቻ መጻፍ በቂ አልነበረም - የሻጩ ገፅ real-time
+                // "በመንገድ ላይ ነው" ለማሳየት tenant root ላይ ያለውን lastUpdated ማዘመን
+                // ያስፈልጋል፣ ካልሆነ ሻጩ ገፅ ላይ ትዕዛዙ ተቀባይነት ማግኘቱ ገፁ ሪፍሬሽ ካልተደረገ በቀር አይታይም።
+                let shopMultiUpdate = {};
+                shopMultiUpdate[shopPath] = shopOrders;
+                shopMultiUpdate[`tirfe_system/tenants/${shopUser}/lastUpdated`] = Date.now();
+                db.ref().update(shopMultiUpdate); // መልሰን Firebase ላይ እንጭነዋለን
             }
         }).catch(err => console.error("Error updating shop orders:", err));
     }
@@ -489,7 +501,6 @@ window.acceptMotorOrder = function(index) {
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, tgMessage);
     }
-
     // 4. ወደ ሎካል እና ፋየርቤዝ ሴቭ ማድረግ
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -531,7 +542,6 @@ window.cancelMotorOrder = function(index) {
 
     // 2. ከሞተረኛው የትዕዛዝ ዝርዝር (activeOrders) ውስጥ ማጥፋት
     currentMotor.activeOrders.splice(index, 1);
-
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') 
@@ -685,4 +695,4 @@ window.clearMotorData = function() {
 
     alert("✅ የሞተረኛ ዳታዎ በተሳካ ሁኔታ ፀድቶ አዲስ ጀምሯል!");
     renderMotorPage();
-     }
+        }
