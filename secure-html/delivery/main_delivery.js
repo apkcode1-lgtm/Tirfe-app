@@ -467,22 +467,29 @@ window.acceptMotorOrder = function(index) {
     }
 
     // 2. የሻጩን ዳታቤዝ አፕዴት ማድረግ (ኦንላይን)
+    // 🆕 FIX: ከዚህ በፊት once('value') አንብቦ ሙሉውን deliveryOrders array መልሶ
+    // .set() የሚያደርግ ነበር (read → modify → write, "race condition")። ሻጩ በራሱ
+    // በኩል (acceptDelivery/completeDelivery ወዘተ) ተመሳሳይ ወቅት ላይ የራሱን ሙሉ tenant
+    // ዳታ ቢልክ (pushTenantFirebase)፣ የትኛው ይሆን የመጨረሻ የሚደርሰው መሰረት፣ ያ ሁለተኛው
+    // ጽሁፍ ይህኛውን (የሞተረኛውን motorUser/status ለውጥ) ሙልጭ አድርጎ ስለሚጽፍበት ላይ
+    // ስለሚጽፍበት፣ ትዕዛዙ ገጹ ላይ "ልክ እንደ አዲስ ትዕዛዝ" ይመስል ነበር። transaction()
+    // ስንጠቀም ግን Firebase ራሱ ግጭት (conflict) ካለ ደጋግሞ በትክክለኛው የቅርብ ጊዜ ዳታ ላይ
+    // ብቻ ይተገብረዋል፣ ስለዚህ ምንም ዳታ አይጠፋም/አይደገምም።
     if (shopUser && typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
         let shopPath = `tirfe_system/tenants/${shopUser}/data/deliveryOrders`;
-        db.ref(shopPath).once('value').then(snap => {
-            let shopOrders = snap.val() || [];
-            let sOrd = shopOrders.find(o => o.poolId === poolId || (o.buyerPhone == acceptedOrder.buyerPhone && o.itemName == acceptedOrder.itemName));
-            
-            if (sOrd) {
-                sOrd.motorUser = currentMotor.username; // ሞተረኛውን እንመድባለን
-                sOrd.status = 'accepted'; // ስታተሱን እንቀይራለን
-                // 🆕 FIX: deliveryOrders ብቻ መጻፍ በቂ አልነበረም - የሻጩ ገፅ real-time
-                // "በመንገድ ላይ ነው" ለማሳየት tenant root ላይ ያለውን lastUpdated ማዘመን
-                // ያስፈልጋል፣ ካልሆነ ሻጩ ገፅ ላይ ትዕዛዙ ተቀባይነት ማግኘቱ ገፁ ሪፍሬሽ ካልተደረገ በቀር አይታይም።
-                let shopMultiUpdate = {};
-                shopMultiUpdate[shopPath] = shopOrders;
-                shopMultiUpdate[`tirfe_system/tenants/${shopUser}/lastUpdated`] = Date.now();
-                db.ref().update(shopMultiUpdate); // መልሰን Firebase ላይ እንጭነዋለን
+        db.ref(shopPath).transaction((currentOrders) => {
+            if (!currentOrders) return currentOrders; // ገና ምንም ከሌለ ምንም አታድርግ
+            let ordersArr = Array.isArray(currentOrders) ? currentOrders : Object.values(currentOrders);
+            let sIdx = ordersArr.findIndex(o => o && (o.poolId === poolId || (o.buyerPhone == acceptedOrder.buyerPhone && o.itemName == acceptedOrder.itemName)));
+            if (sIdx > -1) {
+                ordersArr[sIdx].motorUser = currentMotor.username; // ሞተረኛውን እንመድባለን
+                ordersArr[sIdx].status = 'accepted'; // ስታተሱን እንቀይራለን
+            }
+            return ordersArr;
+        }).then((result) => {
+            if (result.committed) {
+                // ገፁ ላይ "በመንገድ ላይ ነው" real-time እንዲታይ tenant root lastUpdated ማዘመን
+                db.ref(`tirfe_system/tenants/${shopUser}/lastUpdated`).set(Date.now());
             }
         }).catch(err => console.error("Error updating shop orders:", err));
     }
@@ -501,6 +508,7 @@ window.acceptMotorOrder = function(index) {
     if (typeof sendMotorTelegramAlert === 'function') {
         sendMotorTelegramAlert(currentMotor.username, tgMessage);
     }
+
     // 4. ወደ ሎካል እና ፋየርቤዝ ሴቭ ማድረግ
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -526,22 +534,29 @@ window.cancelMotorOrder = function(index) {
     let shopUser = canceledOrder.shopUsername;
 
     // 1. የሻጩ ዳታቤዝ ላይ የትዕዛዙን ሁኔታ ወደ 'cancelled' ቀይሮ ወደ ሻጭ መመለስ
+    // 🆕 FIX: transaction() ተጠቅመናል (ከላይ acceptMotorOrder ላይ እንዳለው ምክንያት)፣
+    // read→modify→.set() race ስለሚያስከትል የሻጩ ገፅ ላይ ያለውን ትዕዛዝ ላይ ችግር ይፈጥር ነበር።
     if (shopUser && typeof isOnline !== 'undefined' && isOnline && typeof db !== 'undefined') {
         let shopPath = `tirfe_system/tenants/${shopUser}/data/deliveryOrders`;
-        db.ref(shopPath).once('value').then(snap => {
-            let shopOrders = snap.val() || [];
-            let sOrd = shopOrders.find(o => o.poolId === poolId || (o.buyerPhone == canceledOrder.buyerPhone && o.itemName == canceledOrder.itemName));
-            
-            if (sOrd) {
-                sOrd.motorUser = null; // ሞተረኛውን ማንሳት
-                sOrd.status = 'cancelled'; // ስታተሱን ተሰርዟል ማድረግ
-                db.ref(shopPath).set(shopOrders);
+        db.ref(shopPath).transaction((currentOrders) => {
+            if (!currentOrders) return currentOrders;
+            let ordersArr = Array.isArray(currentOrders) ? currentOrders : Object.values(currentOrders);
+            let sIdx = ordersArr.findIndex(o => o && (o.poolId === poolId || (o.buyerPhone == canceledOrder.buyerPhone && o.itemName == canceledOrder.itemName)));
+            if (sIdx > -1) {
+                ordersArr[sIdx].motorUser = null; // ሞተረኛውን ማንሳት
+                ordersArr[sIdx].status = 'cancelled'; // ስታተሱን ተሰርዟል ማድረግ
+            }
+            return ordersArr;
+        }).then((result) => {
+            if (result.committed) {
+                db.ref(`tirfe_system/tenants/${shopUser}/lastUpdated`).set(Date.now());
             }
         }).catch(err => console.error("Error updating shop order cancel status:", err));
     }
 
     // 2. ከሞተረኛው የትዕዛዝ ዝርዝር (activeOrders) ውስጥ ማጥፋት
     currentMotor.activeOrders.splice(index, 1);
+
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') 
@@ -570,7 +585,6 @@ window.clearIncomingFee = function() {
     if (currentMotor.credit <= 25) {
         currentMotor.status = 'blocked';
     }
-
     localDB.motors[currentMotor.username] = currentMotor;
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
     if (typeof pushToFirebase === 'function') 
