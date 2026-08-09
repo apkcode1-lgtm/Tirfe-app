@@ -21,7 +21,7 @@ window.openVATSettings = function() {
         let vat = parseFloat(res.vatRate) || 0;
         if(!localDB.adminSettings) localDB.adminSettings = { tgToken: '', tgChatId: '', bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 };
         localDB.adminSettings.vatRate = vat;
-        pushTenantFirebase();
+        pushAdminFirebase();
         showCustomAlert("ተሳክቷል", `የቫት መጠን ወደ ${vat}% በተሳካ ሁኔታ ተስተካክሏል! ይህ መጠን በተከራዮች ገፅ ላይ ይታያል።`);
     });
 };
