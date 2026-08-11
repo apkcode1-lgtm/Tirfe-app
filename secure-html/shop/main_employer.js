@@ -1,36 +1,140 @@
 function openTenantProfileEditor() {
     if(currentUserRole === "staff") { 
-        showCustomAlert("ክልክል", "ይህን መረጃ እና የይለፍ ቃል ማስተካከል የሚችለው የሱቁ ባለቤት ብቻ ነው!");
+        showCustomAlert("ክልክል", "ይህን መረጃ ማስተካከል የሚችለው የሱቁ ባለቤት ብቻ ነው!");
         return; 
     }
 
-    showFormModal("⚙️ የሱቅ መረጃ እና ምስጢራዊ ኮድ ማስተካከያ", [
+    showFormModal("⚙️ የሱቅ መረጃ ማስተካከያ", [
         { id: "shopName", label: "የሱቅ ስም", type: "text", defaultValue: currentTenant.shopName },
         { id: "phone", label: "የሱቅ ስልክ ቁጥር", type: "text", defaultValue: currentTenant.phone },
-        { id: "gmail", label: "ኢሜል (Gmail)", type: "email", defaultValue: currentTenant.gmail || "" },
         { id: "mapsLink", label: "የጎግል ማፕ ሊንክ (Google Maps URL)", type: "text", defaultValue: currentTenant.googleMapsLink || "" },
         { id: "telegramToken", label: "የቴሌግራም ቦት ቶከን (Telegram Bot Token)", type: "text", defaultValue: currentTenant.telegramToken || "" },
         { id: "telegramChatId", label: "የቴሌግራም ቻት አይዲ (Telegram Chat ID)", type: "text", defaultValue: currentTenant.telegramChatId || "" },
-        { id: "newLogo", label: "የሱቅ ፎቶ/ሎጎ ለመቀየር (አማራጭ)", type: "file" },
-        { id: "newPassword", label: "አዲስ ምስጢራዊ ኮድ / ፓስዎርድ ለመቀየር (ባዶ ከሆነ አይቀየርም)", type: "password", placeholder: "አዲስ ነባር ኮድ" }
+        { id: "newLogo", label: "የሱቅ ፎቶ/ሎጎ ለመቀየር (አማራጭ)", type: "file" }
     ], (res, fileInput) => {
       
         let updateTenantData = function(base64Logo) {
             currentTenant.shopName = res.shopName.trim();
             currentTenant.phone = res.phone.trim();
-            currentTenant.gmail = res.gmail.trim();
             currentTenant.googleMapsLink = res.mapsLink.trim();
             currentTenant.telegramToken = res.telegramToken.trim();
             currentTenant.telegramChatId = res.telegramChatId.trim();
             
             if(base64Logo) currentTenant.shopLogo = base64Logo;
-            if (res.newPassword && res.newPassword.trim() !== "") { 
-                currentTenant.password = res.newPassword.trim();
-            }
             saveAndRefresh();
             showCustomAlert("ተሳክቷል", "የሱቅዎ መረጃ በተሳካ ሁኔታ ተስተካክሏል!");
         };
         if(fileInput && fileInput.files[0]) { processImageUpload(fileInput.files[0], updateTenantData); } else { updateTenantData(""); }
+    });
+}
+
+// ==========================================================
+// 🔑 የይለፍ ቃል ቀይር - 2-ደረጃ ፍሎው (ደረጃ1፡ ነባሩን ማረጋገጥ → ደረጃ2፡ አዲሱን ማስገባት)
+// ==========================================================
+function changeShopPassword() {
+    if(currentUserRole === "staff") {
+        showCustomAlert("ክልክል", "ፓስዎርድ ማስተካከል የሚችለው የሱቁ ባለቤት ብቻ ነው!");
+        return;
+    }
+    if (typeof currentTenant === 'undefined' || !currentTenant) return;
+    let oldEmail = currentTenant.gmail;
+
+    showFormModal("🔒 ደረጃ 1/2 - ማረጋገጫ", [
+        { id: "curPass", label: "የይለፍ ቃል ለመቀየር የአሁኑን የይለፍ ቃል ያስገቡ፦", type: "password", placeholder: "የአሁኑ ፓስዎርድ" }
+    ], async (res) => {
+        let curPass = res.curPass ? res.curPass.trim() : "";
+        if(!curPass) { showCustomAlert("ስህተት", "እባክዎ የአሁኑን ፓስዎርድ ያስገቡ!"); return; }
+
+        try {
+            let cred = firebase.auth.EmailAuthProvider.credential(oldEmail, curPass);
+            await auth.currentUser.reauthenticateWithCredential(cred);
+        } catch(error) {
+            console.error("Shop Password Reauth Error:", error);
+            let errMsg = "ማረጋገጫው አልተሳካም! " + (error.message || "");
+            if(error.code === 'auth/wrong-password') errMsg = "❌ ያስገቡት የአሁኑ ፓስዎርድ ትክክል አይደለም!";
+            if(error.code === 'auth/too-many-requests') errMsg = "❌ በጣም ብዙ ጊዜ ተሞክሯል፣ እባክዎ ትንሽ ቆይተው ደግመው ይሞክሩ!";
+            showCustomAlert("❌ ስህተት", errMsg);
+            return;
+        }
+
+        showFormModal("🔑 ደረጃ 2/2 - አዲስ የይለፍ ቃል", [
+            { id: "newPass", label: "አዲስ የይለፍ ቃል፦", type: "password", placeholder: "ቢያንስ 6 ፊደል/ቁጥር" },
+            { id: "newPass2", label: "አዲሱን የይለፍ ቃል ደግመው ያስገቡ፦", type: "password", placeholder: "አዲስ የይለፍ ቃል ያረጋግጡ" }
+        ], async (res2) => {
+            let newPass = res2.newPass ? res2.newPass.trim() : "";
+            let newPass2 = res2.newPass2 ? res2.newPass2.trim() : "";
+            if(!newPass || newPass.length < 6) { showCustomAlert("ስህተት", "አዲሱ የይለፍ ቃል ቢያንስ 6 ፊደል/ቁጥር ሊኖረው ይገባል!"); return; }
+            if(newPass !== newPass2) { showCustomAlert("ስህተት", "ያስገቧቸው ሁለት አዲስ የይለፍ ቃሎች አይመሳሰሉም!"); return; }
+
+            try {
+                await auth.currentUser.updatePassword(newPass);
+                // ❌ ፓስዎርድ በጭራሽ RTDB ላይ አይቀመጥም - Firebase Auth ብቻ ነው የሚያዘው
+                if(typeof sendTelegramAlert === 'function') sendTelegramAlert("✅ የሱቅዎ የይለፍ ቃል (Password) በተሳካ ሁኔታ ተቀይሯል።");
+                showCustomAlert("ተሳክቷል", "የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል! ከዚህ በኋላ በአዲሱ የይለፍ ቃል ብቻ ሎጊን ያድርጉ።");
+            } catch(error) {
+                console.error("Shop Update Password Error:", error);
+                let errMsg = "የይለፍ ቃል ማስቀመጥ አልተቻለም! " + (error.message || "");
+                if(error.code === 'auth/requires-recent-login') errMsg = "❌ ደህንነት ችግር፡ እባክዎ Logout አድርገው እንደገና ሎጊን ካደረጉ በኋላ ይሞክሩ!";
+                if(error.code === 'auth/weak-password') errMsg = "❌ አዲሱ ፓስዎርድ ደካማ ነው (ቢያንስ 6 ፊደል/ቁጥር ያስፈልጋል)!";
+                showCustomAlert("❌ ስህተት", errMsg);
+            }
+        });
+    });
+}
+
+// ==========================================================
+// 📧 ኢሜል ቀይር - 2-ደረጃ ፍሎው (ደረጃ1፡ ነባሩን ማረጋገጥ → ደረጃ2፡ አዲሱን ማስገባት)
+// ==========================================================
+function changeShopEmail() {
+    if(currentUserRole === "staff") {
+        showCustomAlert("ክልክል", "ኢሜል ማስተካከል የሚችለው የሱቁ ባለቤት ብቻ ነው!");
+        return;
+    }
+    if (typeof currentTenant === 'undefined' || !currentTenant) return;
+    let oldEmail = currentTenant.gmail;
+
+    showFormModal("🔒 ደረጃ 1/2 - ማረጋገጫ", [
+        { id: "curPass", label: "ኢሜል ለመቀየር የአሁኑን የይለፍ ቃል ያስገቡ፦", type: "password", placeholder: "የአሁኑ ፓስዎርድ" }
+    ], async (res) => {
+        let curPass = res.curPass ? res.curPass.trim() : "";
+        if(!curPass) { showCustomAlert("ስህተት", "እባክዎ የአሁኑን ፓስዎርድ ያስገቡ!"); return; }
+
+        try {
+            let cred = firebase.auth.EmailAuthProvider.credential(oldEmail, curPass);
+            await auth.currentUser.reauthenticateWithCredential(cred);
+        } catch(error) {
+            console.error("Shop Email Reauth Error:", error);
+            let errMsg = "ማረጋገጫው አልተሳካም! " + (error.message || "");
+            if(error.code === 'auth/wrong-password') errMsg = "❌ ያስገቡት የአሁኑ ፓስዎርድ ትክክል አይደለም!";
+            if(error.code === 'auth/too-many-requests') errMsg = "❌ በጣም ብዙ ጊዜ ተሞክሯል፣ እባክዎ ትንሽ ቆይተው ደግመው ይሞክሩ!";
+            showCustomAlert("❌ ስህተት", errMsg);
+            return;
+        }
+
+        showFormModal("📧 ደረጃ 2/2 - አዲስ ኢሜል", [
+            { id: "newEmail", label: "አዲስ ኢሜል (Gmail)፦", type: "email", placeholder: "newemail@gmail.com" },
+            { id: "newEmail2", label: "አዲሱን ኢሜል ደግመው ያስገቡ፦", type: "email", placeholder: "አዲስ ኢሜል ያረጋግጡ" }
+        ], async (res2) => {
+            let newEmail = res2.newEmail ? res2.newEmail.trim() : "";
+            let newEmail2 = res2.newEmail2 ? res2.newEmail2.trim() : "";
+            if(!newEmail) { showCustomAlert("ስህተት", "እባክዎ አዲሱን ኢሜል ያስገቡ!"); return; }
+            if(newEmail.toLowerCase() !== newEmail2.toLowerCase()) { showCustomAlert("ስህተት", "ያስገቧቸው ሁለት አዲስ ኢሜሎች አይመሳሰሉም!"); return; }
+            if(newEmail.toLowerCase() === String(oldEmail || "").toLowerCase()) { showCustomAlert("ስህተት", "አዲሱ ኢሜል ካለው ኢሜል ጋር ተመሳሳይ ነው!"); return; }
+
+            try {
+                await auth.currentUser.updateEmail(newEmail);
+                currentTenant.gmail = newEmail;
+                saveAndRefresh();
+                showCustomAlert("ተሳክቷል", "ኢሜልዎ በተሳካ ሁኔታ ተቀይሯል! ከዚህ በኋላ በአዲሱ ኢሜል ብቻ ሎጊን ያድርጉ።");
+            } catch(error) {
+                console.error("Shop Update Email Error:", error);
+                let errMsg = "ኢሜል ማስቀመጥ አልተቻለም! " + (error.message || "");
+                if(error.code === 'auth/requires-recent-login') errMsg = "❌ ደህንነት ችግር፡ እባክዎ Logout አድርገው እንደገና ሎጊን ካደረጉ በኋላ ይሞክሩ!";
+                if(error.code === 'auth/email-already-in-use') errMsg = "❌ ይህ ኢሜል በሌላ አካውንት ተይዟል!";
+                if(error.code === 'auth/invalid-email') errMsg = "❌ የገቡት ኢሜል ቅርፅ ትክክል አይደለም!";
+                showCustomAlert("❌ ስህተት", errMsg);
+            }
+        });
     });
 }
 
