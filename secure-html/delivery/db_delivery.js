@@ -64,12 +64,3 @@ window.setupMotorListeners = function() {
        });
     }
 };
-
-// 🆕 SPLIT-FIX: delivery.html ራሱ ከ login በኋላ ብቻ ስለሚጫን፣ currentMotor
-// ተስተካክሎ ከሆነ በራስ-ሰር pushMotorFirebase() ይሮጣል (index.html ላይ የነበረውን
-// login-time push ጥሪ ይተካል)።
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof currentMotor !== 'undefined' && currentMotor) {
-        pushMotorFirebase();
-    }
-});
