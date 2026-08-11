@@ -1,11 +1,6 @@
 // ==========================================
 // 📁 db_modules/db_revenue.js - የገቢዎች ባለስልጣን (Revenue) ብቻ የሚጠቀምበት
 // ==========================================
-// ⚠️ db_public.js ካስፈለገ በኋላ ብቻ ስራ ላይ ይውላል። revenue.html ላይ ብቻ ይጫኑ።
-
-// --------------------------------------------------------
-// 🚀 Revenue Push
-// --------------------------------------------------------
 function pushRevenueFirebase() {
     if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
       let currentTime = Date.now();
