@@ -274,6 +274,20 @@ async function uploadImageToStorage(file, folderName, username) {
     }
 }
 // --------------------------------------------------------
+// 📜 Dynamic Script Loader - auth.js ከ login በኋላ ተገቢውን db_modules/db_X.js
+// በትክክለኛው ጊዜ (ደህንነት cookie ከተቀመጠ በኋላ) ጭኖ push ለማድረግ የሚጠቀምበት
+// --------------------------------------------------------
+function loadScriptOnce(src) {
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Script load failed: ' + src));
+        document.head.appendChild(s);
+    });
+}
+
+// --------------------------------------------------------
 // 🚀 4. Generic Push Dispatcher
 // --------------------------------------------------------
 // 🆕 SPLIT-FIX: ቀደም ሲል pushTenantFirebase/pushBuyerFirebase/pushRevenueFirebase/
@@ -370,4 +384,4 @@ if (typeof db !== 'undefined') {
         setupSecureUserListeners();
         processActionQueue();
     });
-}
+                                          }
