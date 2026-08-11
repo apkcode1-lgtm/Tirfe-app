@@ -40,6 +40,11 @@ function checkAutomaticLogin() {
         else if (session.role === 'revenue' && localDB.revenueAuthorities && localDB.revenueAuthorities[session.username]) {
             currentRevenueOfficer = localDB.revenueAuthorities[session.username];
             currentUserRole = 'revenue';
+            // 🆕 SPLIT-FIX: db_public.js's own DOMContentLoaded call to setupSecureUserListeners()
+            // ከዚህ currentRevenueOfficer ከመመስረቱ በፊት ሊደርስ ይችላል (dbReadyPromise async ስለሆነ)።
+            // idempotent ስለሆነ (window.revenueListenerAttached ጥበቃ) እዚህ ድጋሚ መጥራት ደህንነቱ የተጠበቀ
+            // ነው እናም listener በእርግጠኝነት እንዲያያዝ ያደርጋል።
+            if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
             
             if(isLoginPage) {
                 document.cookie = "userRole=revenue; path=/; max-age=86400;";
@@ -55,6 +60,8 @@ function checkAutomaticLogin() {
             } else {
                 currentMotor = localDB.motors[session.username];
                 currentUserRole = 'motor';
+                // 🆕 SPLIT-FIX: idempotent listener re-attach (ከላይ ያለውን revenue ማብራሪያ ይመልከቱ)
+                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 if(isLoginPage) {
                     document.cookie = "userRole=delivery; path=/; max-age=86400;";
                     window.location.href = "/api/router";
@@ -68,6 +75,8 @@ function checkAutomaticLogin() {
             } else {
                 currentBuyer = localDB.buyers[session.username];
                 currentUserRole = 'buyer';
+                // 🆕 SPLIT-FIX: idempotent listener re-attach (ከላይ ያለውን revenue ማብራሪያ ይመልከቱ)
+                if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                 if(isLoginPage) {
                     document.cookie = "userRole=buyer; path=/; max-age=86400;";
                     window.location.href = "/api/router";
@@ -87,6 +96,8 @@ function checkAutomaticLogin() {
                 } else {
                     currentTenant = t;
                     currentUserRole = session.role;
+                    // 🆕 SPLIT-FIX: idempotent listener re-attach (ከላይ ያለውን revenue ማብራሪያ ይመልከቱ)
+                    if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
                     
                     if(isLoginPage) {
                         let roleStr = session.role === 'owner' ? 'shop' : 'staff';
@@ -175,7 +186,6 @@ function enableAllActions() {
      btns.forEach(id => { let b = document.getElementById(id); if(b) {b.disabled = false;} });
 }
 setInterval(() => { checkTimeLock(); }, 60000);
-
 // ---------------------------------------------------------------------
 // SECURE LOGOUT LOGIC - FIXED FOR ROUTER
 // ---------------------------------------------------------------------
