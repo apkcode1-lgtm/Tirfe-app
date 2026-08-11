@@ -1,13 +1,6 @@
 // ==========================================
-// 📁 db_modules/db_admin.js - አድሚን ብቻ የሚጠቀምበት
+// 📁 db_modules/db_admin.js
 // ==========================================
-// ⚠️ ይህ ፋይል db_public.js ካስፈለገ በኋላ ብቻ ስራ ላይ ይውላል (localDB, cleanData,
-// computeLocationKey, queueAction, saveToLocalStorage, shouldUpdateLocal, ወዘተ
-// ከዛ ፋይል ይመጣሉ)። admin.html ላይ ብቻ ይጫኑ።
-
-// --------------------------------------------------------
-// 🚀 Admin Push
-// --------------------------------------------------------
 function pushAdminFirebase() {
     let adminUpdates = {};
     if(localDB.motorQuotas) adminUpdates['motorQuotas'] = cleanData(localDB.motorQuotas);
