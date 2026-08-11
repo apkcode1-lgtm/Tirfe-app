@@ -1,11 +1,6 @@
 // ==========================================
 // 📁 db_modules/db_buyer.js - ገዢ (Buyer) ብቻ የሚጠቀምበት
 // ==========================================
-// ⚠️ db_public.js ካስፈለገ በኋላ ብቻ ስራ ላይ ይውላል። buyer.html ላይ ብቻ ይጫኑ።
-
-// --------------------------------------------------------
-// 🚀 Buyer Push
-// --------------------------------------------------------
 function pushBuyerFirebase() {
     if(typeof currentBuyer !== 'undefined' && currentBuyer) {
         let currentTime = Date.now();
