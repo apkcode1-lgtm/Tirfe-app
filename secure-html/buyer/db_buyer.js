@@ -98,12 +98,3 @@ window.setupBuyerListeners = function() {
         });
     }
 };
-
-// 🆕 SPLIT-FIX: buyer.html ራሱ ከ login በኋላ ብቻ ስለሚጫን፣ currentBuyer
-// ተስተካክሎ ከሆነ በራስ-ሰር pushBuyerFirebase() ይሮጣል (index.html ላይ የነበረውን
-// login-time push ጥሪ ይተካል)።
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof currentBuyer !== 'undefined' && currentBuyer) {
-        pushBuyerFirebase();
-    }
-});
