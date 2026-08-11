@@ -1,21 +1,28 @@
 // ==========================================
-// 📁 database.js - ወደ IndexedDB የተቀየረ ኮድ
+// 📁 db_public.js - የጋራ ዋና ክፍል (ሁሉም ገፆች የሚጫኑት)
 // ==========================================
-let localDB = { 
-    tenants: {}, 
-    buyers: {}, 
-    revenueAuthorities: {}, 
-    motors: {}, 
+// ⚠️ ማሳሰቢያ: ይህ ፋይል ከ database.js ስንከፋፍል የተፈጠረ ነው።
+// ማንኛውም ገፅ (login ቢሆንም ባይሆንም) ያስፈልገዋል፡ localDB, IndexedDB,
+// offline queue, generic push dispatcher, static data fetch።
+// role-specific ኮድ (admin/shop/buyer/delivery/revenue) በ
+// js/db_modules/ ውስጥ ይገኛል፣ ከ login በኋላ ብቻ በሚጫነው ገፅ ላይ።
+
+let localDB = {
+    tenants: {},
+    buyers: {},
+    revenueAuthorities: {},
+    motors: {},
     motorQuotas: {},
     public_locations: {},
-    taxReceipts: [], 
-    adminSettings: { bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 }, 
-    tariffs: { low: 500, medium: 1000, high: 2000 }, 
+    taxReceipts: [],
+    adminSettings: { bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 },
+    tariffs: { low: 500, medium: 1000, high: 2000 },
     businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"]
 };
 let isOnline = navigator.onLine !== undefined ? navigator.onLine : true;
 // 1. የ Action Queue ማከማቻ (አሁን ባዶ ይጀምርና ከ IndexedDB ወዲያውኑ ይሞላል - ከታች ይመልከቱ)
 let actionQueue = [];
+
 // --------------------------------------------------------
 // 🗄️ 0. IndexedDB ረዳት ፋንክሺኖች (ዝቅተኛ ደረጃ wrapper - ምንም library አያስፈልገውም)
 // --------------------------------------------------------
@@ -131,7 +138,7 @@ function applyBackupToLocalDB(parsedBackup) {
     if(parsedBackup.buyers) localDB.buyers = parsedBackup.buyers;
     if(parsedBackup.revenueAuthorities) localDB.revenueAuthorities = parsedBackup.revenueAuthorities;
     if(parsedBackup.motors) localDB.motors = parsedBackup.motors;
-    if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas; 
+    if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas;
     if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
     if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
     if(parsedBackup.public_locations) localDB.public_locations = parsedBackup.public_locations;
@@ -178,10 +185,10 @@ function saveActionQueue() {
 function queueAction(actionType, collection, docId, data) {
     const newAction = {
         id: Date.now().toString() + "_" + Math.random().toString(36).substr(2, 4),
-        actionType: actionType, 
-        collection: collection, 
-        docId: docId, 
-       payload: data, 
+        actionType: actionType,
+        collection: collection,
+        docId: docId,
+       payload: data,
         timestamp: Date.now(),
         retryCount: 0
     };
@@ -200,8 +207,8 @@ function processActionQueue() {
     isProcessingQueue = true;
     let currentAction = actionQueue[0];
     if (!currentAction.retryCount) currentAction.retryCount = 0;
-    let refPath = currentAction.docId 
-        ? `tirfe_system/${currentAction.collection}/${currentAction.docId}` 
+    let refPath = currentAction.docId
+        ? `tirfe_system/${currentAction.collection}/${currentAction.docId}`
         : `tirfe_system/${currentAction.collection}`;
     let fbRequest;
     if (currentAction.actionType === 'UPDATE') {
@@ -214,13 +221,13 @@ function processActionQueue() {
     if (fbRequest) {
         fbRequest.then(() => {
             // በስኬት ከተላከ ብቻ ከ Queue ማስወጣት
-            actionQueue.shift(); 
+            actionQueue.shift();
             saveActionQueue();
             isProcessingQueue = false;
-            if (actionQueue.length > 0) processActionQueue(); 
+            if (actionQueue.length > 0) processActionQueue();
         }).catch(err => {
             console.error("Firebase Sync Error:", err);
-            currentAction.retryCount += 1;           
+            currentAction.retryCount += 1;
             // ❌ ዳታው እንዳይጠፋ ከ Queue ውስጥ አይሰረዝም!
             saveActionQueue();
             isProcessingQueue = false;
@@ -267,407 +274,100 @@ async function uploadImageToStorage(file, folderName, username) {
     }
 }
 // --------------------------------------------------------
-// 🚀 4. ሚናን መሰረት ያደረጉ የማመሳሰያ ፋንክሽኖች (ሰዓት የተስተካከለበት)
+// 🚀 4. Generic Push Dispatcher
 // --------------------------------------------------------
-function pushAdminFirebase() {
-    let adminUpdates = {};
-    if(localDB.motorQuotas) adminUpdates['motorQuotas'] = cleanData(localDB.motorQuotas);
-    if(localDB.tariffs) adminUpdates['tariffs'] = cleanData(localDB.tariffs);
-    if(localDB.businessTypes) adminUpdates['businessTypes'] = cleanData(localDB.businessTypes);
-    if(localDB.adminSettings) adminUpdates['adminSettings'] = cleanData(localDB.adminSettings);
-    if(Object.keys(adminUpdates).length > 0) {
-        queueAction('UPDATE', '', null, adminUpdates); 
-    }
-}
-function pushTenantFirebase() {
-    if(typeof currentTenant !== 'undefined' && currentTenant) {
-        // ✅ የሎካል እና የ Firebase ሰዓት አንድ አይነት እንዲሆን Date.now() እንጠቀማለን
-        let currentTime = Date.now();
-        localDB.tenants[currentTenant.username].lastUpdated = currentTime;
-        let tenantData = cleanData(localDB.tenants[currentTenant.username]);
-        if(tenantData) {
-            tenantData.lastUpdated = currentTime;
-            tenantData.locationKey = computeLocationKey(tenantData);
-            queueAction('UPDATE', 'tenants', currentTenant.username, tenantData);
-            let publicTenantData = {
-              shopName: tenantData.shopName,
-                businessType: tenantData.businessType,
-                phone: tenantData.phone,
-                address: tenantData.address,
-                googleMapsLink: tenantData.googleMapsLink,
-                shopLogo: tenantData.shopLogo,
-                lastUpdated: currentTime
-            };
-            queueAction('UPDATE', 'public_tenants', currentTenant.username, publicTenantData);
-            let adminSummary = Object.assign({}, tenantData);
-            delete adminSummary.items; 
-            delete adminSummary.products;
-            delete adminSummary.catalog;
-            delete adminSummary.taxReceipts;
-            queueAction('UPDATE', 'admin_tenant_summary', currentTenant.username, adminSummary);
-        }
-    }
-}
-function pushBuyerFirebase() {
-    if(typeof currentBuyer !== 'undefined' && currentBuyer) {
-        let currentTime = Date.now();
-        let buyerData = cleanData(localDB.buyers[currentBuyer.username]);
-        if(buyerData) {
-            buyerData.lastUpdated = currentTime;
-            queueAction('UPDATE', 'buyers', currentBuyer.username, buyerData);
-        }
-    }
-}
-function pushRevenueFirebase() {
-    if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
-      let currentTime = Date.now();
-        let revData = cleanData(localDB.revenueAuthorities[currentRevenueOfficer.username]);
-        if(revData) {
-            revData.lastUpdated = currentTime;
-            queueAction('UPDATE', 'revenueAuthorities', currentRevenueOfficer.username, revData);
-        }
-        if(localDB.motorQuotas) {
-            queueAction('UPDATE', 'motorQuotas', null, cleanData(localDB.motorQuotas));
-        }
-    }
-}
-function pushMotorFirebase() {
-    if(typeof currentMotor !== 'undefined' && currentMotor) {
-        let currentTime = Date.now();
-        let motorData = cleanData(localDB.motors[currentMotor.username]);
-        if(motorData) {
-            motorData.lastUpdated = currentTime;
-            motorData.locationKey = computeLocationKey(motorData);
-            queueAction('UPDATE', 'motors', currentMotor.username, motorData);
-        }
-    }
-}
-// --------------------------------------------------------
-// 🛠️ አዲስ የተጨመሩ - ከአድሚን ገፅ ላይ ማንኛውንም ተጠቃሚ (ተከራይ/ሞተረኛ/ገቢዎች) በቀጥታ
-// --------------------------------------------------------
-
-function pushAdminRecordUpdate(collection, docId, data) {
-    let cleaned = cleanData(data);
-    if(!cleaned || !docId) return;
-    cleaned.lastUpdated = Date.now();
-    if(collection === 'tenants' || collection === 'motors') {
-        cleaned.locationKey = computeLocationKey(cleaned);
-    }
-    queueAction('UPDATE', collection, docId, cleaned);
-    saveToLocalStorage();
-    processActionQueue();   
-}
-function pushAdminRecordDelete(collection, docId) {
-    if(!docId) return;
-    queueAction('DELETE', collection, docId, null);
-    saveToLocalStorage();
-    processActionQueue();
-}
-function pushAdminTenantUpdate(username, tenantData) {
-    let cleaned = cleanData(tenantData);
-    if(!cleaned || !username) return;
-    cleaned.lastUpdated = Date.now();
-    cleaned.locationKey = computeLocationKey(cleaned);
-    queueAction('UPDATE', 'tenants', username, cleaned);
-    let summary = Object.assign({}, cleaned);
-    delete summary.items; delete summary.products; delete summary.catalog; delete summary.taxReceipts;
-    queueAction('UPDATE', 'admin_tenant_summary', username, summary);
-    saveToLocalStorage();
-    processActionQueue();
-}
-function pushAdminTenantDelete(username) {
-    if(!username) return;
-    queueAction('DELETE', 'tenants', username, null);
-    queueAction('DELETE', 'public_tenants', username, null);
-    queueAction('DELETE', 'admin_tenant_summary', username, null);
-    saveToLocalStorage();
-    processActionQueue();
-}
-function pushToFirebase() { 
+// 🆕 SPLIT-FIX: ቀደም ሲል pushTenantFirebase/pushBuyerFirebase/pushRevenueFirebase/
+// pushMotorFirebase በቀጥታ (ያለ ጥበቃ) ይጠሩ ነበር - ሁሉም በአንድ database.js ፋይል ውስጥ ስለነበሩ
+// ችግር አልነበረውም። አሁን እያንዳንዳቸው የተለያየ db_modules/ ፋይል ውስጥ ስለሆኑ፣ ገፁ ላይ ያልተጫነውን
+// ፋንክሽን ብንጠራ ReferenceError ይሰጣል። ስለዚህ እያንዳንዱን በ typeof ጠብቀነዋል፡
+// በተጫነው ገፅ ላይ ያለው module ብቻ ይሰራል፣ የሌሉት በጸጥታ ይታለፋሉ።
+function pushToFirebase() {
     saveToLocalStorage();
     if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
-        pushAdminFirebase();
+        if (typeof pushAdminFirebase === 'function') pushAdminFirebase();
     } else {
-        pushTenantFirebase();
-        pushBuyerFirebase();
-        pushRevenueFirebase();
-        pushMotorFirebase();
+        if (typeof pushTenantFirebase === 'function') pushTenantFirebase();
+        if (typeof pushBuyerFirebase === 'function') pushBuyerFirebase();
+        if (typeof pushRevenueFirebase === 'function') pushRevenueFirebase();
+        if (typeof pushMotorFirebase === 'function') pushMotorFirebase();
     }
     processActionQueue();
 }
 // --------------------------------------------------------
-// 💬 Telegram እና Firebase Listeners
+// 🔔 UI Refresh Orchestrator - registry pattern
 // --------------------------------------------------------
-function sendAdminTelegramAlert(message) {
-    const backendAPIUrl = "/api/sendAdminTelegram";
-    let tgToken = (localDB.adminSettings && localDB.adminSettings.tgToken) ? localDB.adminSettings.tgToken : null;
-    let tgChatId = (localDB.adminSettings && localDB.adminSettings.tgChatId) ? localDB.adminSettings.tgChatId : null;
-    fetch(backendAPIUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: message, token: tgToken, chatId: tgChatId }) }).catch(err => console.log(err));
+// 🆕 SPLIT-FIX: ቀደም ሲል triggerUIRefresh() ራሱ የ tenant/buyer/revenue/motor/admin
+// block-check + render ጥሪ ሎጂክ ሁሉ በውስጡ ይዞ ነበር (ሁሉም በአንድ database.js ፋይል
+// ስለነበሩ)። ይህ ግን ልክ እንደ push functions እና listeners ተመሳሳይ የ role-specific
+// ኮድ ስለሆነ፣ አሁን እያንዳንዱ ብሎክ የየራሱ db_modules/db_X.js ፋይል ውስጥ እንደ
+// window.refreshXUI ሆኖ ይኖራል። ይህ dispatcher የተጫኑትን ብቻ ይጠራል
+// (setupSecureUserListeners ከሚከተለው ተመሳሳይ registry pattern ጋር ወጥ ነው)።
+function triggerUIRefresh() {
+    if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
+    if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
+
+    if(typeof window.refreshTenantUI === 'function') window.refreshTenantUI();
+    if(typeof window.refreshBuyerUI === 'function') window.refreshBuyerUI();
+    if(typeof window.refreshRevenueUI === 'function') window.refreshRevenueUI();
+    if(typeof window.refreshMotorUI === 'function') window.refreshMotorUI();
+    if(typeof window.refreshAdminUI === 'function') window.refreshAdminUI();
 }
-function sendTelegramAlert(message) {
-    if (typeof currentTenant === 'undefined' || !currentTenant) return;
-    fetch("/api/sendTenantTelegram", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentTenant.username, text: message }) }).catch(err => console.log(err));
+// --------------------------------------------------------
+// 🔐 shouldUpdateLocal - ሁሉም db_modules/*.js listeners የሚጠቀሙት የጋራ helper
+// (ገና ያልተላከ ዳታ በ Queue ውስጥ ካለ incoming update እንዳይተካው የሚከላከል)
+// --------------------------------------------------------
+function shouldUpdateLocal(incomingData, localData, collection, docId) {
+    let pendingQueue = actionQueue || [];
+    if (collection) {
+        let hasPendingForThis = pendingQueue.some(a =>
+            a.collection === collection && (!docId || a.docId === docId)
+        );
+        if (hasPendingForThis) return false;
+    }
+    if (!localData) return true;
+    let incomingTime = (incomingData && typeof incomingData.lastUpdated === 'number') ? incomingData.lastUpdated : 0;
+    let localTime = (localData && typeof localData.lastUpdated === 'number') ? localData.lastUpdated : 0;
+    return incomingTime > localTime;
 }
-function sendMotorTelegramAlert(username, message) {
-   fetch("/api/sendMotorTelegram", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username, text: message }) }).catch(err => console.log(err));
-}
-if(typeof db !== 'undefined') {
+// --------------------------------------------------------
+// 🎧 Listener Orchestrator - registry pattern
+// --------------------------------------------------------
+// 🆕 SPLIT-FIX: ቀደም ሲል setupSecureUserListeners() ራሱ admin/tenant/buyer/
+// revenue/motor listener ብሎኮችን በሙሉ በውስጡ ይዞ ነበር (ሁሉም በአንድ ፋይል ስለነበሩ)።
+// አሁን እያንዳንዱ ብሎክ በየራሱ db_modules/db_X.js ፋይል ውስጥ እንደ
+// window.setupXListeners ሆኖ ይኖራል። ይህ orchestrator የተጫኑትን ብቻ ይጠራል።
+if (typeof db !== 'undefined') {
     const fetchStaticData = function() {
-     const staticNodes = ['tariffs', 'businessTypes', 'adminSettings', 'public_locations', 'motorQuotas'];
+        const staticNodes = ['tariffs', 'businessTypes', 'adminSettings', 'public_locations', 'motorQuotas'];
         staticNodes.forEach(node => {
             db.ref(`tirfe_system/${node}`).on('value', (snapshot) => {
-                 if(snapshot.exists()) {
+                if(snapshot.exists()) {
                     localDB[node] = snapshot.val();
-                     saveToLocalStorage();
-                     triggerUIRefresh();
-                     }
- }, (error) => {
-               console.log(`Firebase Error on ${node}, running offline mode.`);
-               isOnline = false; handleOnlineStatus();
-          });
+                    saveToLocalStorage();
+                    triggerUIRefresh();
+                }
+            }, (error) => {
+                console.log(`Firebase Error on ${node}, running offline mode.`);
+                isOnline = false; handleOnlineStatus();
+            });
         });
-    }
-    fetchStaticData();
-    window.setupSecureUserListeners = function() {
-        // ✅ አሮጌ ዳታ አዲሱን እንዳያጠፋ የተጨመረ መከላከያ 
-      function shouldUpdateLocal(incomingData, localData, collection, docId) {
-            // ✅ ተስተካክሏል: ገና ያልተላከ ዳታ በ Queue ውስጥ ካለ የምናግድበት ለዚያው collection/docId ብቻ ነው
-            // (ከዚህ በፊት ማንኛውም unrelated pending action ካለ ሁሉንም incoming data ላይመታ ይከለክል ነበር)
-            let pendingQueue = actionQueue || [];
-            if (collection) {
-                let hasPendingForThis = pendingQueue.some(a =>
-                    a.collection === collection && (!docId || a.docId === docId)
-                );
-                if (hasPendingForThis) return false;
-            }
-            if (!localData) return true;
-            let incomingTime = (incomingData && typeof incomingData.lastUpdated === 'number') ? incomingData.lastUpdated : 0;
-            let localTime = (localData && typeof localData.lastUpdated === 'number') ? localData.lastUpdated : 0;
-            return incomingTime > localTime; 
-        }
-        if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin' && !window.adminListenerAttached) {
-            window.adminListenerAttached = true;
-            const adminNodes = [
-                { fbNode: 'admin_tenant_summary', localKey: 'tenants' }, 
-                { fbNode: 'motors', localKey: 'motors' },
-                { fbNode: 'revenueAuthorities', localKey: 'revenueAuthorities' }
-            ];
-            adminNodes.forEach(nodeObj => {
-                let fbPath = nodeObj.fbNode;
-                let localDbPath = nodeObj.localKey;
-                if (!localDB[localDbPath]) localDB[localDbPath] = {}; 
-                let ref = db.ref(`tirfe_system/${fbPath}`);
-                ref.on('child_added', (snapshot) => {
-                   let incomingData = snapshot.val();
-                    let childKey = snapshot.key;
-                    if(shouldUpdateLocal(incomingData, localDB[localDbPath][childKey], fbPath, childKey)) {
-        localDB[localDbPath][childKey] = incomingData;
-            saveToLocalStorage(); triggerUIRefresh();
-                    }
-                });
-                ref.on('child_changed', (snapshot) => {
-                    let incomingData = snapshot.val();
-                    let childKey = snapshot.key;
-                    if(shouldUpdateLocal(incomingData, localDB[localDbPath][childKey], fbPath, childKey)) {
-              localDB[localDbPath][childKey] = incomingData;
-                        saveToLocalStorage(); triggerUIRefresh();
-                    }
-                });
-                ref.on('child_removed', (snapshot) => {
-                    delete localDB[localDbPath][snapshot.key];
-                    saveToLocalStorage(); triggerUIRefresh();
-                });
-            });
-        }
-        if(typeof currentTenant !== 'undefined' && currentTenant && !window.tenantListenerAttached) {
-            window.tenantListenerAttached = true;
-            db.ref(`tirfe_system/tenants/${currentTenant.username}`).on('value', (snapshot) => {
-                if(snapshot.exists()) {
-                    let incomingData = snapshot.val();
-                    if(shouldUpdateLocal(incomingData, localDB.tenants[currentTenant.username], 'tenants', currentTenant.username)) {
-                        localDB.tenants[currentTenant.username] = incomingData;
-                        saveToLocalStorage(); triggerUIRefresh();
-                    }
-                }
-            });
-        }
-        if(typeof currentBuyer !== 'undefined' && currentBuyer && !window.buyerListenerAttached) {
-            window.buyerListenerAttached = true;
-            db.ref(`tirfe_system/buyers/${currentBuyer.username}`).on('value', (snapshot) => {
-                if(snapshot.exists()) { 
-                    let incomingData = snapshot.val();
-                    if(shouldUpdateLocal(incomingData, localDB.buyers[currentBuyer.username], 'buyers', currentBuyer.username)) {
-                        localDB.buyers[currentBuyer.username] = incomingData; 
-                        saveToLocalStorage(); triggerUIRefresh(); 
-                    }
-                }
-            });
-            db.ref(`tirfe_system/public_tenants`).on('value', (snapshot) => {
-                if(snapshot.exists()) { 
-                    let incomingTenants = snapshot.val();
-                    let hasUpdates = false;
-                    for (let tUser in incomingTenants) {
-                     let inData = incomingTenants[tUser];
-                        if(shouldUpdateLocal(inData, localDB.tenants[tUser], 'tenants', tUser)) {
-
-                            localDB.tenants[tUser] = Object.assign({}, localDB.tenants[tUser] || {}, inData);
-                            hasUpdates = true;
-                        }
-                    }
-                    if(hasUpdates) {
-                saveToLocalStorage(); 
-                        if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog(); 
-                    }
-                }
-            });
-            function scrubTenantForBuyer(t) {
-                if(!t) return t;
-                delete t.password; delete t.activationCode; delete t.staffAccounts;
-                delete t.telegramToken; delete t.bankAccount;
-                return t;
-            }
-            let buyerTenantsRef = db.ref('tirfe_system/tenants');
-            buyerTenantsRef.on('child_added', (snapshot) => {
-                let incomingData = scrubTenantForBuyer(snapshot.val());
-                let tKey = snapshot.key;
-                if(shouldUpdateLocal(incomingData, localDB.tenants[tKey], 'tenants', tKey)) {
-                    localDB.tenants[tKey] = incomingData;
-                    saveToLocalStorage();
-                    if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-                }
-            });
-            buyerTenantsRef.on('child_changed', (snapshot) => {
-                let incomingData = scrubTenantForBuyer(snapshot.val());
-                let tKey = snapshot.key;
-                if(shouldUpdateLocal(incomingData, localDB.tenants[tKey], 'tenants', tKey)) {
-                    localDB.tenants[tKey] = incomingData;
-                    saveToLocalStorage();
-                    if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-                }
-            });
-            buyerTenantsRef.on('child_removed', (snapshot) => {
-                delete localDB.tenants[snapshot.key];
-                saveToLocalStorage();
-                if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-            });
-        }
-        if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer && !window.revenueListenerAttached) {
-            window.revenueListenerAttached = true;
-            // የገቢዎች ሰራተኛውን የራሱን ዳታ ማንበብ
-            db.ref(`tirfe_system/revenueAuthorities/${currentRevenueOfficer.username}`).on('value', (snapshot) => {
-                if(snapshot.exists()) { 
-                    let incomingData = snapshot.val();
-                    if(shouldUpdateLocal(incomingData, localDB.revenueAuthorities[currentRevenueOfficer.username], 'revenueAuthorities', currentRevenueOfficer.username)) {
-                        localDB.revenueAuthorities[currentRevenueOfficer.username] = incomingData; 
-                        saveToLocalStorage(); triggerUIRefresh(); 
-                    }
-                }
-            });
-            // 🆕 የገቢዎች ሰራተኛው ክልል+ዞን+ወረዳ የተጣመረ መለያ (locationKey) - ተመሳሳይ ስም ያላቸው ወረዳዎች (ለምሳሌ በተለያዩ ዞን ያሉ) እንዳይምታቱ
-            let officerLocKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
-            // 🛠️ ማስተካከያ: ሙሉ የሀገሪቱን ነጋዴዎች ከማውረድ ይልቅ Firebase ላይ locationKey ተመሳሳይ የሆኑትን ብቻ Query ማድረግ (ደህንነትንም ፍጥነትንም ያሻሽላል)
-            db.ref(`tirfe_system/tenants`).orderByChild('locationKey').equalTo(officerLocKey).on('value', (snapshot) => {
-             let hasUpdates = false;
-                if(snapshot.exists()) {
-                    let incomingTenants = snapshot.val();
-                    for (let tUser in incomingTenants) {
-                        let tData = incomingTenants[tUser];
-                        if(shouldUpdateLocal(tData, localDB.tenants[tUser], 'tenants', tUser)) {
-                             localDB.tenants[tUser] = tData;
-                             hasUpdates = true;
-                        }
-                    }
-                }
-                saveToLocalStorage();
-                if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
-            });
-            
-            // የገቢዎች ሰራተኛው ምድብ (ክልል/ዞን/ወረዳ) ውስጥ ያሉትን ሞተረኞች ብቻ Query በማድረግ ማንበብ
-            db.ref(`tirfe_system/motors`).orderByChild('locationKey').equalTo(officerLocKey).on('value', (snapshot) => {
-                if(!localDB.motors) localDB.motors = {};
-                if(snapshot.exists()) {
-                    let incomingMotors = snapshot.val();
-                    for (let mUser in incomingMotors) {
-                        let mData = incomingMotors[mUser];
-                        if(shouldUpdateLocal(mData, localDB.motors[mUser], 'motors', mUser)) {
-                             localDB.motors[mUser] = mData;
-                        }
-                    }
-                }
-                saveToLocalStorage();
-                if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
-            });
-        } 
-        if(typeof currentMotor !== 'undefined' && currentMotor && !window.motorListenerAttached) {
-            window.motorListenerAttached = true;
-            db.ref(`tirfe_system/motors/${currentMotor.username}`).on('value', (snapshot) => {
-                if(snapshot.exists()) {
-                    let incomingData = snapshot.val();
-                    if(shouldUpdateLocal(incomingData, localDB.motors[currentMotor.username], 'motors', currentMotor.username)) {
-                        localDB.motors[currentMotor.username] = incomingData;
-                        saveToLocalStorage(); triggerUIRefresh();
-                    }
-                }
-           });
-        }
     };
-    setupSecureUserListeners();
-    processActionQueue();
-    
-    function triggerUIRefresh() {
-        if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
-        if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
 
-        // 1. የተከራይ (Tenant) የብሎክ እና ሪፍሬሽ ቼክ
-        if(typeof currentTenant !== 'undefined' && currentTenant) {
-            let checkTenant = localDB.tenants[currentTenant.username];
-            // logout() የነበረውን ወደ forceLogout() ቀይረነዋል
-            if(!checkTenant || checkTenant.status === "blocked") { 
-                alert("አካውንትዎ በአድሚን ታግዷል!"); // ተጠቃሚው ለምን እንደወጣ እንዲያውቅ
-                if(typeof forceLogout === 'function') forceLogout();
-                return; 
-            }
-            currentTenant = checkTenant;
-            if(typeof renderApp === 'function') renderApp();
-            if(typeof renderTenantTaxReceipts === 'function') renderTenantTaxReceipts();
-        }
-     
-        // 2. የገዢ (Buyer) ሪፍሬሽ ቼክ
-        if(typeof currentBuyer !== 'undefined' && currentBuyer) {
-            let checkBuyer = localDB.buyers[currentBuyer.username];
-            if(!checkBuyer || checkBuyer.status === "blocked") {
-                if(typeof forceLogout === 'function') forceLogout();
-                return;
-            }
-            currentBuyer = checkBuyer;
-        }
-        if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
+    window.setupSecureUserListeners = function() {
+        if (typeof window.setupAdminListeners === 'function') window.setupAdminListeners();
+        if (typeof window.setupTenantListeners === 'function') window.setupTenantListeners();
+        if (typeof window.setupBuyerListeners === 'function') window.setupBuyerListeners();
+        if (typeof window.setupRevenueListeners === 'function') window.setupRevenueListeners();
+        if (typeof window.setupMotorListeners === 'function') window.setupMotorListeners();
+    };
 
-        // 3. የገቢዎች (Revenue) ሪፍሬሽ ቼክ
-        if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
-            if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
-        }
-        // 4. የሞተረኛ (Motor) የብሎክ እና ሪፍሬሽ ቼክ
-        if(typeof currentMotor !== 'undefined' && currentMotor) {
-            let checkMotor = localDB.motors[currentMotor.username];
-            if(!checkMotor) {
-                if(typeof forceLogout === 'function') forceLogout();
-                return;
-            }
-            // 🛠️ ማስተካከያ: accountStatus (እውነተኛው የአድሚን/ክሬዲት ብሎክ) ብቻ ነው መታየት ያለበት፤ status "online"/"offline" ብሎክ አይደለም
-            let checkMotorAccountStatus = checkMotor.accountStatus || (checkMotor.status === "blocked" ? "blocked" : "active");
-            if(checkMotorAccountStatus === "blocked" && !checkMotor.creditBlocked) {
-                alert("የሞተረኛ አካውንትዎ በአድሚን ታግዷል!");
-                if(typeof forceLogout === 'function') forceLogout();
-                return;
-            }
-            currentMotor = checkMotor;
-            if(typeof renderMotorPage === 'function') renderMotorPage();
-        }
-        // 5. የአድሚን ሪፍሬሽ
-        if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
-            if(typeof renderAdminPanel === 'function') renderAdminPanel();
-            if(typeof renderAdminMotors === 'function') renderAdminMotors();
-        }
-    }
-  }
+    // 🆕 SPLIT-FIX: ከዚህ በፊት ይህ ጥሪ ስክሪፕቱ ልክ ሲጫን (parse-time) ወዲያውኑ ይደረግ ነበር።
+    // አሁን db_modules/*.js የተለያዩ ፋይሎች ስለሆኑ፣ የ script tags ቅደም ተከተል ምንም ይሁን
+    // ምን ሁሉም (defer) ስክሪፕቶች እስኪጫኑ ድረስ መጠበቅ አለብን - DOMContentLoaded በትክክል
+    // ይህን ያረጋግጣል (defer ስክሪፕቶች ሁሉ ከዚያ ክስተት በፊት ይጠናቀቃሉ)።
+    document.addEventListener('DOMContentLoaded', function() {
+        fetchStaticData();
+        setupSecureUserListeners();
+        processActionQueue();
+    });
+}
