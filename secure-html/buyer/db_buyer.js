@@ -24,8 +24,6 @@ window.refreshBuyerUI = function() {
         }
         currentBuyer = checkBuyer;
     }
-    // ⚠️ ከ original ኮድ ጋር ተመሳሳይ ሆኖ እንዲቆይ: renderBuyerCatalog() ከ currentBuyer
-    // ቼክ ውጪ ሆኖ ያለ ቅድመ ሁኔታ ይጠራል (ኦርጅናሉ ላይም እንደዚያው ነበር)
     if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
 };
 
