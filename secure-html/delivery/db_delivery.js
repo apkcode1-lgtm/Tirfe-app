@@ -1,11 +1,6 @@
 // ==========================================
-// 📁 db_modules/db_delivery.js - ሞተረኛ (Motor/Delivery) ብቻ የሚጠቀምበት
+// 📁 db_modules/db_delivery.js
 // ==========================================
-// ⚠️ db_public.js ካስፈለገ በኋላ ብቻ ስራ ላይ ይውላል። delivery.html ላይ ብቻ ይጫኑ።
-
-// --------------------------------------------------------
-// 🚀 Motor Push
-// --------------------------------------------------------
 function pushMotorFirebase() {
     if(typeof currentMotor !== 'undefined' && currentMotor) {
         let currentTime = Date.now();
