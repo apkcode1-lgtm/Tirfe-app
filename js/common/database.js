@@ -449,7 +449,6 @@ if(typeof db !== 'undefined') {
             window.adminListenerAttached = true;
             const adminNodes = [
                 { fbNode: 'admin_tenant_summary', localKey: 'tenants' }, 
-                { fbNode: 'buyers', localKey: 'buyers' }, 
                 { fbNode: 'motors', localKey: 'motors' },
                 { fbNode: 'revenueAuthorities', localKey: 'revenueAuthorities' }
             ];
