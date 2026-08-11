@@ -83,12 +83,3 @@ window.setupRevenueListeners = function() {
         });
     }
 };
-
-// 🆕 SPLIT-FIX: revenue.html ራሱ ከ login በኋላ ብቻ ስለሚጫን፣ currentRevenueOfficer
-// ተስተካክሎ ከሆነ በራስ-ሰር pushRevenueFirebase() ይሮጣል (index.html ላይ የነበረውን
-// login-time push ጥሪ ይተካል)።
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
-        pushRevenueFirebase();
-    }
-});
