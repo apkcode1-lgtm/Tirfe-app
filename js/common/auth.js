@@ -167,11 +167,17 @@ async function handleUnifiedLogin() {
                     if(localDB.tenants) localDB.tenants[user] = t; 
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'owner', loginMode: 'merchant', username: user }));
                     if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
-                    // 🆕 SPLIT-FIX: pushTenantFirebase() አሁን js/db_modules/db_shop.js ውስጥ ነው፣
-                    // index.html ላይ አልተጫነም። typeof ጥበቃ ጨምረናል፤ shop.html ሲከፈት
-                    // db_shop.js ራሱ በራስ-ሰር ተመሳሳይ push ያደርጋል (ከታች ማስታወሻ ይመልከቱ)።
-                    if(typeof pushTenantFirebase === 'function') pushTenantFirebase();
+                    // 🆕 SPLIT-FIX: pushTenantFirebase() አሁን router-ጥበቃ ስር ባለ db_shop.js ውስጥ
+                    // ነው (index.html ላይ አይጫንም)። cookie ቀድመን አስቀምጠን router-ውን
+                    // እንጠቀማለን፣ ፋይሉ ሙሉ ለሙሉ እስኪጫን እንጠባበቅና ከዚያ push እናደርጋለን -
+                    // ይሄ ኦርጅናሉ synchronous push ጋር ተመሳሳይ ውጤት በርግጠኝነት ይሰጣል (ምንም race የለውም)።
                     document.cookie = "userRole=shop; path=/; max-age=86400;";
+                    try {
+                        if (typeof pushTenantFirebase !== 'function') {
+                            await loadScriptOnce('/api/router?file=db_shop.js');
+                        }
+                        if (typeof pushTenantFirebase === 'function') pushTenantFirebase();
+                    } catch(e) { console.warn('db_shop.js load failed, push skipped:', e); }
                     window.location.href = "/api/router";
                     return;
                 }
@@ -191,8 +197,13 @@ async function handleUnifiedLogin() {
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: user }));
                     if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                     // 🆕 SPLIT-FIX: pushBuyerFirebase() አሁን db_modules/db_buyer.js ውስጥ ነው
-                    if(typeof pushBuyerFirebase === 'function') pushBuyerFirebase();
                     document.cookie = "userRole=buyer; path=/; max-age=86400;";
+                    try {
+                        if (typeof pushBuyerFirebase !== 'function') {
+                            await loadScriptOnce('/api/router?file=db_buyer.js');
+                        }
+                        if (typeof pushBuyerFirebase === 'function') pushBuyerFirebase();
+                    } catch(e) { console.warn('db_buyer.js load failed, push skipped:', e); }
                     window.location.href = "/api/router";
                     return;
                 }
@@ -211,8 +222,13 @@ async function handleUnifiedLogin() {
                     if(typeof saveToLocalStorage === 'function') saveToLocalStorage(); // 🔹 ገፁ ሳይቀየር ዳታው በሎካል እንዲቀመጥ ያደርጋል
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'revenue', loginMode: 'revenue', username: user }));
                     // 🆕 SPLIT-FIX: pushRevenueFirebase() አሁን db_modules/db_revenue.js ውስጥ ነው
-                    if(typeof pushRevenueFirebase === 'function') pushRevenueFirebase();
                     document.cookie = "userRole=revenue; path=/; max-age=86400;";
+                    try {
+                        if (typeof pushRevenueFirebase !== 'function') {
+                            await loadScriptOnce('/api/router?file=db_revenue.js');
+                        }
+                        if (typeof pushRevenueFirebase === 'function') pushRevenueFirebase();
+                    } catch(e) { console.warn('db_revenue.js load failed, push skipped:', e); }
                     window.location.href = "/api/router";
                     return;
                 }
@@ -237,8 +253,13 @@ async function handleUnifiedLogin() {
                     localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'motor', loginMode: 'motor', username: user }));
                     if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
                     // 🆕 SPLIT-FIX: pushMotorFirebase() አሁን db_modules/db_delivery.js ውስጥ ነው
-                    if(typeof pushMotorFirebase === 'function') pushMotorFirebase();
                     document.cookie = "userRole=delivery; path=/; max-age=86400;";
+                    try {
+                        if (typeof pushMotorFirebase !== 'function') {
+                            await loadScriptOnce('/api/router?file=db_delivery.js');
+                        }
+                        if (typeof pushMotorFirebase === 'function') pushMotorFirebase();
+                    } catch(e) { console.warn('db_delivery.js load failed, push skipped:', e); }
                     window.location.href = "/api/router";
                     return;
                 }
@@ -263,9 +284,17 @@ async function handleUnifiedLogin() {
                         if(localDB.tenants) localDB.tenants[s.tenantUsername] = parentTenant;
                         localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'staff', loginMode: 'staff', username: parentTenant.username }));
                         if(typeof saveToLocalStorage === 'function') saveToLocalStorage();
-                        // 🆕 SPLIT-FIX: pushTenantFirebase() አሁን db_modules/db_shop.js ውስጥ ነው
-                        if(typeof pushTenantFirebase === 'function') pushTenantFirebase();
+                        // 🆕 SPLIT-FIX: pushTenantFirebase() አሁን router-ጥበቃ ስር ባለ db_shop.js
+                        // ውስጥ ነው። userRole=staff cookie ስለተቀመጠ router-ው secure-html/staff/
+                        // ውስጥ ካላገኘው ወደ secure-html/_shared/db_shop.js ይመለሳል (ቀደም ብለን
+                        // router.js ላይ የጨመርነው fallback ይሄንኑ ለማገልገል ነው)።
                         document.cookie = "userRole=staff; path=/; max-age=86400;";
+                        try {
+                            if (typeof pushTenantFirebase !== 'function') {
+                                await loadScriptOnce('/api/router?file=db_shop.js');
+                            }
+                            if (typeof pushTenantFirebase === 'function') pushTenantFirebase();
+                        } catch(e) { console.warn('db_shop.js load failed, push skipped:', e); }
                         window.location.href = "/api/router";
                         return;
                     } else {
@@ -286,4 +315,4 @@ async function handleUnifiedLogin() {
         err.innerText = "❌ ስህተት አጋጥሟል! " + (error.message || "ያልታወቀ የውስጥ ስህተት");
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
     }
-   }
+            }
