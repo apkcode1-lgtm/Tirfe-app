@@ -118,13 +118,3 @@ window.setupAdminListeners = function() {
         });
     }
 };
-
-// 🆕 SPLIT-FIX: ይህ ገፅ (admin.html) የሚጫነው ከ login በኋላ ብቻ ስለሆነ፣ ገፁ ሲጫን
-// currentUserRole ቀደም ብሎ (ከ session cookie/localStorage) ተስተካክሎ ከሆነ በራስ-ሰር
-// pushAdminFirebase() ይሮጣል። ይህ ከዚህ በፊት auth.js ውስጥ index.html ላይ በቀጥታ
-// ይደረግ የነበረውን ጥሪ ይተካል (index.html ላይ ይህ ፋይል ስለማይጫን)።
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
-        pushAdminFirebase();
-    }
-});
