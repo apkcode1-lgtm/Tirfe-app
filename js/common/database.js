@@ -669,7 +669,6 @@ if(typeof db !== 'undefined') {
         if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
             if(typeof renderAdminPanel === 'function') renderAdminPanel();
             if(typeof renderAdminMotors === 'function') renderAdminMotors();
-            if(typeof renderAdminBuyers === 'function') renderAdminBuyers();
         }
     }
   }
