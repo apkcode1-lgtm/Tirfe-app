@@ -1,11 +1,6 @@
 // ==========================================
-// 📁 db_modules/db_shop.js - ነጋዴ (ተከራይ/Tenant) ብቻ የሚጠቀምበት
+// 📁 db_modules/db_shop.js
 // ==========================================
-// ⚠️ db_public.js ካስፈለገ በኋላ ብቻ ስራ ላይ ይውላል። shop.html ላይ ብቻ ይጫኑ።
-
-// --------------------------------------------------------
-// 🚀 Tenant Push
-// --------------------------------------------------------
 function pushTenantFirebase() {
     if(typeof currentTenant !== 'undefined' && currentTenant) {
         // ✅ የሎካል እና የ Firebase ሰዓት አንድ አይነት እንዲሆን Date.now() እንጠቀማለን
