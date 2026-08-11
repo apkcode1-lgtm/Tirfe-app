@@ -77,13 +77,3 @@ window.setupTenantListeners = function() {
         });
     }
 };
-
-// 🆕 SPLIT-FIX: shop.html ራሱ ከ login በኋላ ብቻ ስለሚጫን፣ ገፁ ሲከፈት (ወይም
-// ከ login ሪዳይሬክት ሲደረግ) currentTenant/currentUserRole='staff' ተስተካክሎ ከሆነ
-// በራስ-ሰር pushTenantFirebase() ይሮጣል - index.html ላይ የነበረውን login-time
-// push ጥሪ ይተካል።
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof currentTenant !== 'undefined' && currentTenant) {
-        pushTenantFirebase();
-    }
-});
