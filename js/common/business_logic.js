@@ -196,24 +196,5 @@ window.triggerShiftReport = function() {
     
     // ማሳሰቢያ፦ የሪፖርት ማቅረቢያ ዋናውን ኮድ (ሂሳብ ማስላቱን እና ሪፖርት መላኩን) እዚህ ውስጥ ይፃፉ።
 };
-window.logout = function() {
-    // 1. መውጣቱን ለተጠቃሚው ማሳወቅ (አማራጭ)
-    console.log("ከሲስተም እየወጣ ነው...");
-
-    // 2. ከፋየርቤዝ (Firebase) አገልጋይ ላይ ደህንነቱ በተጠበቀ ሁኔታ ሳይን አውት ማድረግ
-    if (typeof auth !== 'undefined' && auth.signOut) {
-        auth.signOut().then(() => {
-            // ፋየርቤዝ በተሳካ ሁኔታ ካስወጣ በኋላ ወደ ሆም ፔጅ ይመልሳል
-            window.location.replace("index.html");
-        }).catch((error) => {
-            console.error("በመውጣት ሂደት ላይ ስህተት ተፈጥሯል:", error);
-            // ስህተት ቢፈጠርም አፑ እንዳይፈዝዝ በግድ ወደ ሆም ፔጅ ይመልሳል
-            window.location.replace("index.html");
-        });
-    } else {
-        // የፋየርቤዝ ግንኙነት ከሌለ ወይም ቀጥታ ለሚሰሩ (Offline)
-        window.location.replace("index.html");
-    }
-};
 
 
