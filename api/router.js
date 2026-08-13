@@ -47,10 +47,6 @@ module.exports = async (req, res) => {
             // 1. መጀመሪያ በራሱ በ role አቃፊ ውስጥ ፈልግ (ለምሳሌ secure-html/admin/db_admin.js)
             let filePath = path.join(process.cwd(), 'secure-html', userRole, safeFileName);
 
-            // 🆕 SPLIT-FIX: db_shop.js በ shop እና staff ሁለቱም role ያስፈልገዋል
-            // (staff ገፅ ላይ ገና currentTenant/tenant ዳታ ስለሚያስተዳድር)። ስለዚህ role
-            // አቃፊ ውስጥ ካልተገኘ፣ ሁለቱም ሚናዎች ተደራሽ ወደሆነው _shared አቃፊ እንመለከታለን።
-            // ደህንነት አይጎዳም፦ ይህ ገና የሚደረገው userRole cookie ከተረጋገጠ በኋላ ብቻ ነው።
             if (!fs.existsSync(filePath)) {
                 const sharedPath = path.join(process.cwd(), 'secure-html', '_shared', safeFileName);
                 if (fs.existsSync(sharedPath)) {
