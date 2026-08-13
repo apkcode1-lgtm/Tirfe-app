@@ -4,17 +4,7 @@
 // ወደ Auth ID Token ውስጥ የሚያስገባ - Security Rules ያለ Database lookup
 // auth.token.role ብለው በቀጥታ እንዲፈትሹ የሚያስችል
 // ==========================================
-const admin = require('firebase-admin');
-
-if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-        }),
-    });
-}
+const admin = require('./_firebaseAdmin');
 
 // ራሱ-አገልግሎት (self-service) ሊሆኑ የሚችሉ roles - አዲስ ተመዝጋቢ ራሱ በቀጥታ ሊጠይቃቸው የሚችሉት ብቻ
 // 'admin' እና 'revenue' ከዚህ ውጭ ናቸው - እነዚያ የሚሰጡት በ admin ተረጋግጦ ብቻ ነው
@@ -49,7 +39,6 @@ module.exports = async function handler(req, res) {
         } else {
             return res.status(400).json({ error: 'ያልታወቀ role' });
         }
-
         // 2️⃣ Custom Claim ማስቀመጥ
         await admin.auth().setCustomUserClaims(targetUid, { role });
 
