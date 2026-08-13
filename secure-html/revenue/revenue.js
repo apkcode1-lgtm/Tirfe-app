@@ -263,6 +263,12 @@ window.payTenantVat = function(username) {
              }).then(() => {
                  // የ Public Tenant ዳታንም Update ማድረግ ካስፈለገ
                  db.ref(`tirfe_system/public_tenants/${username}/lastUpdated`).set(currentTime);
+                 // 🆕 ማስተካከያ: revenue_view ን ተመሳሳይ ደረጃ ላይ ማድረግ - አለበለዚያ ገቢዎች
+                 // ዝርዝር ላይ "0.00 ETB" ተብሎ ቢታይም revenue_view ላይ አሮጌው accumulatedVat ይቀራል
+                 db.ref(`tirfe_system/revenue_view/${username}`).update({
+                     "data/accumulatedVat": 0,
+                     lastUpdated: currentTime
+                 });
              }).catch(err => console.error(err));
         }
         saveToLocalStorage(); // ዳታውን ሎካል ላይም ማስቀመጥ
