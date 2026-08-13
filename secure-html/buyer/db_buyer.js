@@ -30,12 +30,8 @@ window.refreshBuyerUI = function() {
 // --------------------------------------------------------
 // 🎧 Firebase Listeners (buyer only)
 // --------------------------------------------------------
-function scrubTenantForBuyer(t) {
-    if(!t) return t;
-    delete t.password; delete t.activationCode; delete t.staffAccounts;
-    delete t.telegramToken; delete t.bankAccount;
-    return t;
-}
+// ❌ scrubTenantForBuyer() ሙሉ በሙሉ ተወግዷል - ከዚህ በኋላ አያስፈልግም ምክንያቱም
+// buyer_catalog ገና ከ write ጀምሮ (db_shop.js) ንፁህ ዳታ ብቻ ስለያዘ
 window.setupBuyerListeners = function() {
     if(typeof currentBuyer !== 'undefined' && currentBuyer && !window.buyerListenerAttached) {
         window.buyerListenerAttached = true;
@@ -48,26 +44,11 @@ window.setupBuyerListeners = function() {
                 }
             }
         });
-        db.ref(`tirfe_system/public_tenants`).on('value', (snapshot) => {
-            if(snapshot.exists()) {
-                let incomingTenants = snapshot.val();
-                let hasUpdates = false;
-                for (let tUser in incomingTenants) {
-                    let inData = incomingTenants[tUser];
-                    if(shouldUpdateLocal(inData, localDB.tenants[tUser], 'tenants', tUser)) {
-                        localDB.tenants[tUser] = Object.assign({}, localDB.tenants[tUser] || {}, inData);
-                        hasUpdates = true;
-                    }
-                }
-                if(hasUpdates) {
-                    saveToLocalStorage();
-                    if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-                }
-            }
-        });
-        let buyerTenantsRef = db.ref('tirfe_system/tenants');
-        buyerTenantsRef.on('child_added', (snapshot) => {
-            let incomingData = scrubTenantForBuyer(snapshot.val());
+        // 🆕 ማስተካከያ: ከ `tirfe_system/tenants` (ሙሉ ጥሬ ዳታ) ይልቅ አሁን
+        // `tirfe_system/buyer_catalog` (ገዢ የሚፈልገውን ብቻ የያዘ mirror node) ነው የሚነበበው
+        let buyerCatalogRef = db.ref('tirfe_system/buyer_catalog');
+        buyerCatalogRef.on('child_added', (snapshot) => {
+            let incomingData = snapshot.val();
             let tKey = snapshot.key;
             if(shouldUpdateLocal(incomingData, localDB.tenants[tKey], 'tenants', tKey)) {
                 localDB.tenants[tKey] = incomingData;
@@ -75,8 +56,8 @@ window.setupBuyerListeners = function() {
                 if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
             }
         });
-        buyerTenantsRef.on('child_changed', (snapshot) => {
-            let incomingData = scrubTenantForBuyer(snapshot.val());
+        buyerCatalogRef.on('child_changed', (snapshot) => {
+            let incomingData = snapshot.val();
             let tKey = snapshot.key;
             if(shouldUpdateLocal(incomingData, localDB.tenants[tKey], 'tenants', tKey)) {
                 localDB.tenants[tKey] = incomingData;
@@ -84,7 +65,7 @@ window.setupBuyerListeners = function() {
                 if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
             }
         });
-        buyerTenantsRef.on('child_removed', (snapshot) => {
+        buyerCatalogRef.on('child_removed', (snapshot) => {
             delete localDB.tenants[snapshot.key];
             saveToLocalStorage();
             if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
