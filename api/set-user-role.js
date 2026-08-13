@@ -1,13 +1,7 @@
 // ==========================================
 // 📁 api/set-user-role.js
-// Firebase Custom Claims በማድረግ የተጠቃሚን role (buyer/tenant/revenue/motor)
-// ወደ Auth ID Token ውስጥ የሚያስገባ - Security Rules ያለ Database lookup
-// auth.token.role ብለው በቀጥታ እንዲፈትሹ የሚያስችል
 // ==========================================
 const admin = require('./_firebaseAdmin');
-
-// ራሱ-አገልግሎት (self-service) ሊሆኑ የሚችሉ roles - አዲስ ተመዝጋቢ ራሱ በቀጥታ ሊጠይቃቸው የሚችሉት ብቻ
-// 'admin' እና 'revenue' ከዚህ ውጭ ናቸው - እነዚያ የሚሰጡት በ admin ተረጋግጦ ብቻ ነው
 const SELF_SERVICE_ROLES = ['buyer', 'tenant', 'motor'];
 const ADMIN_GRANTED_ROLES = ['revenue', 'admin'];
 
