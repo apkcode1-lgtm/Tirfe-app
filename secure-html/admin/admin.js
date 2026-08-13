@@ -502,8 +502,7 @@ window.renderAdminPanel = function() {
         let statusBadge = t.status === "active" ? `<span class="badge-success">Active</span>` : `<span class="badge-danger">Blocked</span>`;
         let profileInfo = `👤 <b>${t.fullName || '-'}</b><br>📞 ${t.phone || '-'}<br>📍 ${t.address || '-'}<br>✈️ ${t.telegram || '-'}`;
         
-        let staffCnt = t.staffAccounts ? t.staffAccounts.length : 0;
-        let loginInfo = `👤 አባል ስም: <code>${t.username}</code><br>🛠️ ሰራተኛ: <code>${staffCnt} የተመዘገቡ</code>`;
+        let loginInfo = `👤 አባል ስም: <code>${t.username}</code>`;
         
         let contractDisplay = `<span>${t.contractType || 'በወር'}</span><br><b class="text-warning">${t.registrationFee || 0} ETB</b>`;
         let bType = t.businessType || 'አጠቃላይ ንግድ';
