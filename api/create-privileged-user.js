@@ -1,10 +1,6 @@
 // ==========================================
 // 📁 api/create-privileged-user.js
 // አድሚን አዲስ ልዩ-ፍቃድ ያለው ተጠቃሚ (ለምሳሌ የገቢዎች ባለስልጣን) ሲፈጥር የሚጠቀምበት
-// ✅ Admin SDK ብቻ ስለሚጠቀም:
-//    1) የ admin ን session አይነካውም (client-side createUser አያስፈልግም)
-//    2) ፓስዎርድ በጭራሽ Realtime Database ላይ አይቀመጥም - Firebase Auth ብቻ ይይዘዋል
-//    3) Custom Claim (role) በተመሳሳይ ጥሪ ውስጥ ተፈጥሮ ይሰጣል
 // ==========================================
 const admin = require('./_firebaseAdmin');
 
