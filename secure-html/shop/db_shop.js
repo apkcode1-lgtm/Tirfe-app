@@ -21,11 +21,60 @@ function pushTenantFirebase() {
                 lastUpdated: currentTime
             };
             queueAction('UPDATE', 'public_tenants', currentTenant.username, publicTenantData);
+
+            // 🆕 buyer_catalog - ገዢ የሚፈልገውን ብቻ የያዘ "view" node
+            // ❌ password, tinNumber, fullName, region/zone/woreda, accumulatedVat,
+            //    taxReceipts, expenses, debts, drawerLog, staffAccounts, bankAccount ጨርሶ አይካተትም
+            // ⚠️ ማስታወሻ: deliveryOrders አሁን ላለው ተግባር ለማቆየት ብቻ ገብቷል (ገዢው የራሱን
+            //    ትዕዛዝ ለማሳየት ይጠቀምበታል) - ግን የሌላ ገዢንም ትዕዛዝ ያሳያል (የተለየ ችግር፣ ለብቻው ይስተካከል)
+            // ❌ remoteCarts ጨርሶ አልገባም - ገዢ ራሱ የማያነብበው ነው (ሻጭ ብቻ ነው የሚያነበው)፣
+            //    ቢካተት ኖሮ የሁሉንም ገዢዎች ስም/cart በአደባባይ ያጋልጣል ነበር
+            let buyerCatalogData = {
+                status: tenantData.status,
+                shopName: tenantData.shopName,
+                businessType: tenantData.businessType,
+                phone: tenantData.phone,
+                address: tenantData.address,
+                telegram: tenantData.telegram,
+                shopLogo: tenantData.shopLogo,
+                lastUpdated: currentTime,
+                data: {
+                    inventory: (tenantData.data && tenantData.data.inventory) || [],
+                    deliveryOrders: (tenantData.data && tenantData.data.deliveryOrders) || []
+                }
+            };
+            queueAction('UPDATE', 'buyer_catalog', currentTenant.username, buyerCatalogData);
+
+            // 🆕 revenue_view - ገቢዎች ባለስልጣን የሚፈልገውን ብቻ የያዘ "view" node
+            // ❌ password, inventory, deliveryOrders, remoteCarts, expenses, debts,
+            //    drawerLog, staffAccounts, bankAccount ጨርሶ አይካተትም
+            let revenueViewData = {
+                username: tenantData.username,
+                fullName: tenantData.fullName,
+                shopName: tenantData.shopName,
+                businessType: tenantData.businessType,
+                phone: tenantData.phone,
+                gmail: tenantData.gmail,
+                region: tenantData.region,
+                zone: tenantData.zone,
+                woreda: tenantData.woreda,
+                kebele: tenantData.kebele,
+                houseNo: tenantData.houseNo,
+                tinNumber: tenantData.tinNumber,
+                locationKey: tenantData.locationKey,
+                lastUpdated: currentTime,
+                data: {
+                    accumulatedVat: (tenantData.data && tenantData.data.accumulatedVat) || 0
+                }
+            };
+            queueAction('UPDATE', 'revenue_view', currentTenant.username, revenueViewData);
+
+            // 🛠️ ማስተካከያ: ከዚህ በፊት delete adminSummary.items/.products/.catalog ይደረግ
+            // ነበር - ግን እነዚያ ስሞች ጨርሶ የሉም (እውነተኛው መዋቅር data.inventory ነው)፣ ስለዚህ
+            // ምንም ሳይሰርዝ ሙሉ 'data' (inventory/expenses/debts/...) ይላክ ነበር።
+            // admin.js ደግሞ 'data' ን ጨርሶ አይጠቀምም ስለዚህ ሙሉ በሙሉ እናስወግደዋለን።
             let adminSummary = Object.assign({}, tenantData);
-            delete adminSummary.items;
-            delete adminSummary.products;
-            delete adminSummary.catalog;
-            delete adminSummary.taxReceipts;
+            delete adminSummary.data;
             queueAction('UPDATE', 'admin_tenant_summary', currentTenant.username, adminSummary);
         }
     }
