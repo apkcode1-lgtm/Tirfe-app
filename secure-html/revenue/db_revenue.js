@@ -43,9 +43,9 @@ window.setupRevenueListeners = function() {
         // 🆕 የገቢዎች ሰራተኛው ክልል+ዞን+ወረዳ የተጣመረ መለያ (locationKey) - ተመሳሳይ ስም ያላቸው ወረዳዎች
         // (ለምሳሌ በተለያዩ ዞን ያሉ) እንዳይምታቱ
         let officerLocKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
-        // 🛠️ ማስተካከያ: ሙሉ የሀገሪቱን ነጋዴዎች ከማውረድ ይልቅ Firebase ላይ locationKey ተመሳሳይ የሆኑትን
-        // ብቻ Query ማድረግ (ደህንነትንም ፍጥነትንም ያሻሽላል)
-        db.ref(`tirfe_system/tenants`).orderByChild('locationKey').equalTo(officerLocKey).on('value', (snapshot) => {
+        // 🆕 ማስተካከያ: ከ `tirfe_system/tenants` (ሙሉ ጥሬ ዳታ - password ጭምር) ይልቅ አሁን
+        // `tirfe_system/revenue_view` (ገቢዎች የሚፈልገውን ብቻ የያዘ mirror node) ነው query የሚደረገው
+        db.ref(`tirfe_system/revenue_view`).orderByChild('locationKey').equalTo(officerLocKey).on('value', (snapshot) => {
          let hasUpdates = false;
             if(snapshot.exists()) {
                 let incomingTenants = snapshot.val();
@@ -60,7 +60,6 @@ window.setupRevenueListeners = function() {
             saveToLocalStorage();
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         });
-
         // የገቢዎች ሰራተኛው ምድብ (ክልል/ዞን/ወረዳ) ውስጥ ያሉትን ሞተረኞች ብቻ Query በማድረግ ማንበብ
         db.ref(`tirfe_system/motors`).orderByChild('locationKey').equalTo(officerLocKey).on('value', (snapshot) => {
             if(!localDB.motors) localDB.motors = {};
