@@ -23,12 +23,6 @@ function pushTenantFirebase() {
             queueAction('UPDATE', 'public_tenants', currentTenant.username, publicTenantData);
 
             // 🆕 buyer_catalog - ገዢ የሚፈልገውን ብቻ የያዘ "view" node
-            // ❌ password, tinNumber, fullName, region/zone/woreda, accumulatedVat,
-            //    taxReceipts, expenses, debts, drawerLog, staffAccounts, bankAccount ጨርሶ አይካተትም
-            // ⚠️ ማስታወሻ: deliveryOrders አሁን ላለው ተግባር ለማቆየት ብቻ ገብቷል (ገዢው የራሱን
-            //    ትዕዛዝ ለማሳየት ይጠቀምበታል) - ግን የሌላ ገዢንም ትዕዛዝ ያሳያል (የተለየ ችግር፣ ለብቻው ይስተካከል)
-            // ❌ remoteCarts ጨርሶ አልገባም - ገዢ ራሱ የማያነብበው ነው (ሻጭ ብቻ ነው የሚያነበው)፣
-            //    ቢካተት ኖሮ የሁሉንም ገዢዎች ስም/cart በአደባባይ ያጋልጣል ነበር
             let buyerCatalogData = {
                 status: tenantData.status,
                 shopName: tenantData.shopName,
@@ -46,8 +40,6 @@ function pushTenantFirebase() {
             queueAction('UPDATE', 'buyer_catalog', currentTenant.username, buyerCatalogData);
 
             // 🆕 revenue_view - ገቢዎች ባለስልጣን የሚፈልገውን ብቻ የያዘ "view" node
-            // ❌ password, inventory, deliveryOrders, remoteCarts, expenses, debts,
-            //    drawerLog, staffAccounts, bankAccount ጨርሶ አይካተትም
             let revenueViewData = {
                 username: tenantData.username,
                 fullName: tenantData.fullName,
@@ -69,12 +61,25 @@ function pushTenantFirebase() {
             };
             queueAction('UPDATE', 'revenue_view', currentTenant.username, revenueViewData);
 
-            // 🛠️ ማስተካከያ: ከዚህ በፊት delete adminSummary.items/.products/.catalog ይደረግ
-            // ነበር - ግን እነዚያ ስሞች ጨርሶ የሉም (እውነተኛው መዋቅር data.inventory ነው)፣ ስለዚህ
-            // ምንም ሳይሰርዝ ሙሉ 'data' (inventory/expenses/debts/...) ይላክ ነበር።
-            // admin.js ደግሞ 'data' ን ጨርሶ አይጠቀምም ስለዚህ ሙሉ በሙሉ እናስወግደዋለን።
-            let adminSummary = Object.assign({}, tenantData);
-            delete adminSummary.data;
+            // 🛠️ 
+            let adminSummary = {
+                username: tenantData.username,
+                shopName: tenantData.shopName,
+                businessType: tenantData.businessType,
+                fullName: tenantData.fullName,
+                phone: tenantData.phone,
+                telegram: tenantData.telegram,
+                address: tenantData.address,
+                googleMapsLink: tenantData.googleMapsLink,
+                contractType: tenantData.contractType,
+                registrationFee: tenantData.registrationFee,
+                expiryDate: tenantData.expiryDate,
+                expiryNotified: tenantData.expiryNotified,
+                status: tenantData.status,
+                uid: tenantData.uid,
+                locationKey: tenantData.locationKey,
+                lastUpdated: currentTime
+            };
             queueAction('UPDATE', 'admin_tenant_summary', currentTenant.username, adminSummary);
         }
     }
