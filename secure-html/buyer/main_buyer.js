@@ -144,7 +144,6 @@ window.changeBuyerEmail = function() {
             showCustomAlert("❌ ስህተት", errMsg);
             return;
         }
-
         showFormModal("📧 ደረጃ 2/2 - አዲስ ኢሜል", [
             { id: "newEmail", label: "አዲስ ኢሜል (Gmail)፦", type: "email", placeholder: "newemail@gmail.com" },
             { id: "newEmail2", label: "አዲሱን ኢሜል ደግመው ያስገቡ፦", type: "email", placeholder: "አዲስ ኢሜል ያረጋግጡ" }
@@ -256,7 +255,13 @@ window.submitDeliveryFee = function(shopKey, orderId) {
                                 let i2 = ordersArr.findIndex(o => o && o.orderId == orderId);
                                 if (i2 > -1) ordersArr[i2].motorUser = mUser;
                                 return ordersArr;
-                            }).then(() => db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now()));
+                            }).then((result) => {
+                                db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now());
+                                // 🆕 ማስተካከያ: buyer_catalog ን ተመሳሳይ ደረጃ ላይ ማድረግ
+                                if (result.committed) {
+                                    db.ref(`tirfe_system/buyer_catalog/${shopKey}/data/deliveryOrders`).set(result.snapshot.val());
+                                }
+                            });
                         }
                     });
                 }).catch(err => console.warn("ማሳሰቢያ: ሞተረኛ ፍለጋ አልተሳካም:", err));
@@ -274,7 +279,11 @@ window.submitDeliveryFee = function(shopKey, orderId) {
                     if (i3 > -1) ordersArr[i3].deliveryFeePaid = fee;
                     return ordersArr;
                 }).then((result) => {
-                    if (result.committed) db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now());
+                    if (result.committed) {
+                        db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now());
+                        // 🆕 ማስተካከያ: buyer_catalog ን ተመሳሳይ ደረጃ ላይ ማድረግ
+                        db.ref(`tirfe_system/buyer_catalog/${shopKey}/data/deliveryOrders`).set(result.snapshot.val());
+                    }
                 });
             }
 
@@ -434,6 +443,8 @@ window.checkoutBuyerCart = function(orderType) {
                         if (result.committed) {
                             // የሻጩ ገፅ real-time "አዲስ ትዕዛዝ" እንዲያሳይ tenant root lastUpdated ማዘመን
                             db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now());
+                            // 🆕 ማስተካከያ: buyer_catalog ን ተመሳሳይ ደረጃ ላይ ማድረግ
+                            db.ref(`tirfe_system/buyer_catalog/${shopKey}/data/deliveryOrders`).set(result.snapshot.val());
                         }
                     });
                 } else {
@@ -487,17 +498,11 @@ window.renderBuyerCatalog = async function() {
     
     if (typeof db !== 'undefined' && (!localDB.tenants || Object.keys(localDB.tenants).length === 0)) {
         try {
-            let snap = await db.ref('tirfe_system/tenants').once('value');
+            // 🆕 ማስተካከያ: ከ `tirfe_system/tenants` (ሙሉ ጥሬ ዳታ) ይልቅ `buyer_catalog`
+            // (ገዢ የሚፈልገውን ብቻ የያዘ) - manual scrub (delete password/...) ከዚህ በኋላ አያስፈልግም
+            let snap = await db.ref('tirfe_system/buyer_catalog').once('value');
             if(snap.exists()) {
-                let allT = snap.val();
-                for(let k in allT) { 
-                    delete allT[k].password;
-                    delete allT[k].activationCode; 
-                    delete allT[k].staffAccounts; 
-                    delete allT[k].telegramToken; 
-                    delete allT[k].bankAccount; 
-                }
-                localDB.tenants = allT;
+                localDB.tenants = snap.val();
             }
         } catch(e) { console.warn("Catalog fetch error:", e); }
     }
@@ -558,7 +563,6 @@ window.renderBuyerCatalog = async function() {
                             let cl = st === "pending" ? "text-warning" : (st === "accepted" ? "text-success" : (st === "completed" ? "text-success" : "text-danger"));
                             
                             let transportBadge = ord.transport === 'car' ? '🚗 መኪና' : (ord.transport === 'motor' ? '🏍️ ሞተረኛ' : '');
-
                             let feeSection = "";
                             if(ord.transport === "motor" && (st === "pending" || st === "accepted")) {
                                 let feeValue = ord.deliveryFeePaid > 0 ? ord.deliveryFeePaid : "";
