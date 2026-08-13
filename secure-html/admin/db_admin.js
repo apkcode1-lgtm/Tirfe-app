@@ -48,6 +48,10 @@ function pushAdminTenantDelete(username) {
     queueAction('DELETE', 'tenants', username, null);
     queueAction('DELETE', 'public_tenants', username, null);
     queueAction('DELETE', 'admin_tenant_summary', username, null);
+    // 🆕 ማስተካከያ: ተከራይ ሲጠፋ mirror node ዎቹም (buyer_catalog, revenue_view) አብረው
+    // መጥፋት አለባቸው - አለበለዚያ በገዢ/ገቢዎች ካታሎግ ላይ "የሞተ" ግቤት ብቻ ይቀራል
+    queueAction('DELETE', 'buyer_catalog', username, null);
+    queueAction('DELETE', 'revenue_view', username, null);
     saveToLocalStorage();
     processActionQueue();
 }
