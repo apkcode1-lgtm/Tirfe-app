@@ -1,12 +1,6 @@
 // ==========================================
 // 📁 db_public.js - የጋራ ዋና ክፍል (ሁሉም ገፆች የሚጫኑት)
-// ==========================================
-// ⚠️ ማሳሰቢያ: ይህ ፋይል ከ database.js ስንከፋፍል የተፈጠረ ነው።
-// ማንኛውም ገፅ (login ቢሆንም ባይሆንም) ያስፈልገዋል፡ localDB, IndexedDB,
-// offline queue, generic push dispatcher, static data fetch።
-// role-specific ኮድ (admin/shop/buyer/delivery/revenue) በ
-// js/db_modules/ ውስጥ ይገኛል፣ ከ login በኋላ ብቻ በሚጫነው ገፅ ላይ።
-
+// =========================================
 let localDB = {
     tenants: {},
     buyers: {},
@@ -94,9 +88,7 @@ function migrateFromLocalStorageIfNeeded() {
 window.addEventListener('online', handleOnlineStatus);
 window.addEventListener('offline', handleOnlineStatus);
 
-// 🆕 ሌሎች ፋይሎች (login check, renderApp, ወዘተ) ገፁ ገና ሲከፈት ከ localDB/actionQueue
-// ጋር የሚሰሩ ከሆነ፣ IndexedDB ንባቡ እስኪጠናቀቅ ድረስ ይህንን Promise መጠበቅ አለባቸው፡
-//   window.dbReadyPromise.then(() => { ... })
+// 🆕 ሌሎች ፋይሎች (login check, renderApp 
 window.dbReadyPromise = migrateFromLocalStorageIfNeeded()
     .then(loadLocalStorageBackup)
     .catch(err => {
@@ -246,11 +238,6 @@ function processActionQueue() {
     }
 }
 const cleanData = (data) => data !== undefined ? JSON.parse(JSON.stringify(data)) : null;
-// 🆕 FIX: የገቢዎች ገፅ (revenue) ላይ ያለው real-time listener
-// (`tirfe_system/tenants` orderByChild('locationKey')) ውጤት እንዲያገኝ፣ ማንኛውም
-// ተከራይ/ሞተረኛ ዳታ ወደ Firebase ሲላክ locationKey የሚባል ፊልድ ከ region/zone/woreda
-// ተሰልቶ አብሮ መላክ አለበት። ይህ ፊልድ ከዚህ በፊት በጭራሽ አልተላከም ነበር፣ ስለዚህ ያ Query ምንም
-// ውጤት አያገኝም ነበር (ቫት ሲሰበሰብ ገቢዎች ገፅ ላይ ቀጥታ የማይታየው በዚህ ምክንያት ነው)።
 function computeLocationKey(record) {
     if(!record) return undefined;
     return `${record.region || ''}_${record.zone || ''}_${record.woreda || ''}`;
@@ -290,11 +277,6 @@ function loadScriptOnce(src) {
 // --------------------------------------------------------
 // 🚀 4. Generic Push Dispatcher
 // --------------------------------------------------------
-// 🆕 SPLIT-FIX: ቀደም ሲል pushTenantFirebase/pushBuyerFirebase/pushRevenueFirebase/
-// pushMotorFirebase በቀጥታ (ያለ ጥበቃ) ይጠሩ ነበር - ሁሉም በአንድ database.js ፋይል ውስጥ ስለነበሩ
-// ችግር አልነበረውም። አሁን እያንዳንዳቸው የተለያየ db_modules/ ፋይል ውስጥ ስለሆኑ፣ ገፁ ላይ ያልተጫነውን
-// ፋንክሽን ብንጠራ ReferenceError ይሰጣል። ስለዚህ እያንዳንዱን በ typeof ጠብቀነዋል፡
-// በተጫነው ገፅ ላይ ያለው module ብቻ ይሰራል፣ የሌሉት በጸጥታ ይታለፋሉ።
 function pushToFirebase() {
     saveToLocalStorage();
     if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
@@ -310,12 +292,6 @@ function pushToFirebase() {
 // --------------------------------------------------------
 // 🔔 UI Refresh Orchestrator - registry pattern
 // --------------------------------------------------------
-// 🆕 SPLIT-FIX: ቀደም ሲል triggerUIRefresh() ራሱ የ tenant/buyer/revenue/motor/admin
-// block-check + render ጥሪ ሎጂክ ሁሉ በውስጡ ይዞ ነበር (ሁሉም በአንድ database.js ፋይል
-// ስለነበሩ)። ይህ ግን ልክ እንደ push functions እና listeners ተመሳሳይ የ role-specific
-// ኮድ ስለሆነ፣ አሁን እያንዳንዱ ብሎክ የየራሱ db_modules/db_X.js ፋይል ውስጥ እንደ
-// window.refreshXUI ሆኖ ይኖራል። ይህ dispatcher የተጫኑትን ብቻ ይጠራል
-// (setupSecureUserListeners ከሚከተለው ተመሳሳይ registry pattern ጋር ወጥ ነው)።
 function triggerUIRefresh() {
     if(typeof updateAllLocationDropdowns === 'function') updateAllLocationDropdowns();
     if(typeof populateAllBizTypeDropdowns === 'function') populateAllBizTypeDropdowns();
@@ -346,10 +322,6 @@ function shouldUpdateLocal(incomingData, localData, collection, docId) {
 // --------------------------------------------------------
 // 🎧 Listener Orchestrator - registry pattern
 // --------------------------------------------------------
-// 🆕 SPLIT-FIX: ቀደም ሲል setupSecureUserListeners() ራሱ admin/tenant/buyer/
-// revenue/motor listener ብሎኮችን በሙሉ በውስጡ ይዞ ነበር (ሁሉም በአንድ ፋይል ስለነበሩ)።
-// አሁን እያንዳንዱ ብሎክ በየራሱ db_modules/db_X.js ፋይል ውስጥ እንደ
-// window.setupXListeners ሆኖ ይኖራል። ይህ orchestrator የተጫኑትን ብቻ ይጠራል።
 if (typeof db !== 'undefined') {
     const fetchStaticData = function() {
         const staticNodes = ['tariffs', 'businessTypes', 'adminSettings', 'public_locations', 'motorQuotas'];
@@ -375,10 +347,7 @@ if (typeof db !== 'undefined') {
         if (typeof window.setupMotorListeners === 'function') window.setupMotorListeners();
     };
 
-    // 🆕 SPLIT-FIX: ከዚህ በፊት ይህ ጥሪ ስክሪፕቱ ልክ ሲጫን (parse-time) ወዲያውኑ ይደረግ ነበር።
-    // አሁን db_modules/*.js የተለያዩ ፋይሎች ስለሆኑ፣ የ script tags ቅደም ተከተል ምንም ይሁን
-    // ምን ሁሉም (defer) ስክሪፕቶች እስኪጫኑ ድረስ መጠበቅ አለብን - DOMContentLoaded በትክክል
-    // ይህን ያረጋግጣል (defer ስክሪፕቶች ሁሉ ከዚያ ክስተት በፊት ይጠናቀቃሉ)።
+    // 🆕 SPLIT-FIX
     document.addEventListener('DOMContentLoaded', function() {
         fetchStaticData();
         setupSecureUserListeners();
