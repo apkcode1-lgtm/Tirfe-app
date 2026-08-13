@@ -188,15 +188,27 @@ window.openRevenueRegistrationModal = function() {
         if(localDB.revenueAuthorities[user]) { showCustomAlert("ስህተት", "ይህ ዩዘርኔም አስቀድሞ ተይዟል!");
             return; }
         try {
-            let userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+            // 🔒 ማስተካከያ: client-side auth.createUserWithEmailAndPassword() ከዚህ በፊት
+            // የ admin ን session በአዲሱ officer ይተካው ነበር (Firebase behavior)። አሁን
+            // Admin SDK backend endpoint ብቻ ነው user የሚፈጥረው/role የሚሰጠው - የ admin
+            // session ሳይነካ፣ እና ፓስዎርድ በጭራሽ Realtime Database ላይ ሳይቀመጥ (Firebase Auth ብቻ ይይዘዋል)።
+            let adminIdToken = await auth.currentUser.getIdToken();
+            let createRes = await fetch('/api/create-privileged-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken: adminIdToken, email, password: pass, role: 'revenue' })
+            });
+            let createData = await createRes.json();
+            if(!createRes.ok) throw new Error(createData.error || 'የ officer አካውንት መፍጠር አልተቻለም');
+
             localDB.revenueAuthorities[user] = {
-                uid: userCredential.user.uid, // ለወደፊት ለማጥፋት እንዲረዳ UID እናስቀምጣለን
+                uid: createData.uid, // ለወደፊት ለማጥፋት እንዲረዳ UID እናስቀምጣለን
                 username: user,
                 authUser: user,
                 authName: (res.revName || "").trim(),
                 authPhone: (res.revPhone || "").trim(),
                 authEmail: email,
-                authPass: pass,
+                // ❌ authPass ተሰርዟል - ፓስዎርድ በጭራሽ Realtime Database ላይ አይቀመጥም
                 authRegion: (res.revRegion || "").trim(),
                 authZone: (res.revZone || "").trim(),
                 authWoreda: (res.revWoreda || "").trim(),
