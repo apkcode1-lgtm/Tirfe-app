@@ -1,9 +1,5 @@
 // ==========================================
 // 📁 api/_firebaseAdmin.js
-// 🔗 የ Firebase Admin SDK የጋራ (shared) initializer - ሁሉም api/*.js
-// ፋይሎች ይሄንን ብቻ ነው የሚጠቀሙት፣ እያንዳንዳቸው ራሳቸው initializeApp() አይደግሙም
-// ⚠️ ፋይል ስሙ በ underscore ( _ ) ስለሚጀምር Vercel የራሱን route አድርጎ አይቆጥረውም -
-//    ማለት /api/_firebaseAdmin ተብሎ ተጠርቶ ጨርሶ ከውጭ (browser) ሊደረስበት አይችልም
 // ==========================================
 const admin = require('firebase-admin');
 
