@@ -37,8 +37,27 @@ function pushAdminTenantUpdate(username, tenantData) {
     cleaned.lastUpdated = Date.now();
     cleaned.locationKey = computeLocationKey(cleaned);
     queueAction('UPDATE', 'tenants', username, cleaned);
-    let summary = Object.assign({}, cleaned);
-    delete summary.items; delete summary.products; delete summary.catalog; delete summary.taxReceipts;
+
+    // 🛠️ ማስተካከያ: ከ db_shop.js pushTenantFirebase() ጋር ወጥ እንዲሆን whitelist
+    // ተግባርበናል - staffAccounts/bankAccount/tinNumber ወዘተ ጨርሶ አይካተትም
+    let summary = {
+        username: cleaned.username,
+        shopName: cleaned.shopName,
+        businessType: cleaned.businessType,
+        fullName: cleaned.fullName,
+        phone: cleaned.phone,
+        telegram: cleaned.telegram,
+        address: cleaned.address,
+        googleMapsLink: cleaned.googleMapsLink,
+        contractType: cleaned.contractType,
+        registrationFee: cleaned.registrationFee,
+        expiryDate: cleaned.expiryDate,
+        expiryNotified: cleaned.expiryNotified,
+        status: cleaned.status,
+        uid: cleaned.uid,
+        locationKey: cleaned.locationKey,
+        lastUpdated: cleaned.lastUpdated
+    };
     queueAction('UPDATE', 'admin_tenant_summary', username, summary);
     saveToLocalStorage();
     processActionQueue();
