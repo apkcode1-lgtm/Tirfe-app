@@ -1,10 +1,7 @@
 // ==========================================
 // 📁 api/create-privileged-user.js
-// አድሚን አዲስ ልዩ-ፍቃድ ያለው ተጠቃሚ (ለምሳሌ የገቢዎች ባለስልጣን) ሲፈጥር የሚጠቀምበት
 // ==========================================
 const admin = require('./_firebaseAdmin');
-
-// አድሚን ብቻ ሊፈጥራቸው የሚችላቸው roles
 const ADMIN_ONLY_ROLES = ['revenue', 'admin'];
 
 module.exports = async function handler(req, res) {
