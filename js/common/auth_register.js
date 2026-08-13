@@ -1,6 +1,23 @@
 // ---------------------------------------------------------------------
 // REGISTRATION LOGIC WITH FIREBASE AUTH (NO PASSWORD IN REALTIME DB)
 // ---------------------------------------------------------------------
+// 🆕 Custom Claim (role) ማስቀመጫ - ራሱ-ተመዝጋቢ (buyer/tenant/motor) ብቻ ራሱን ሊሰጥ ይችላል
+// Security Rules ላይ auth.token.role ተብሎ ያለ database lookup በቀጥታ ጥቅም ላይ ይውላል
+async function assignUserRole(uid, role) {
+    try {
+        let idToken = await auth.currentUser.getIdToken();
+        await fetch('/api/set-user-role', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken, targetUid: uid, role })
+        });
+        // ⚠️ አዲሱ claim ወዲያውኑ ስራ ላይ እንዲውል token ን በግድ ማደስ ያስፈልጋል
+        await auth.currentUser.getIdToken(true);
+    } catch(err) {
+        console.error('Role assignment error:', err);
+    }
+}
+
 async function triggerUnifiedRegistration() {
     let role = document.getElementById('unifiedRegRole').value;
     let regSubmitBtn = document.getElementById('regSubmitBtn');
@@ -38,6 +55,7 @@ async function triggerUnifiedRegistration() {
     
                 try {
                     let userCredential = await auth.createUserWithEmailAndPassword(pendingRegistrationData.email, res.newPass);
+                    await assignUserRole(userCredential.user.uid, 'buyer');
                     
                     if(!localDB.buyers) localDB.buyers = {};
                     localDB.buyers[pendingRegistrationData.user] = { 
@@ -114,6 +132,7 @@ async function triggerUnifiedRegistration() {
        
                 try {
                     let userCredential = await auth.createUserWithEmailAndPassword(newEmail, res.newPass);
+                    await assignUserRole(userCredential.user.uid, 'tenant');
 
                     let proceedReg = function(shopLogoBase64) {
                         let timestampNow = new Date().getTime();
@@ -125,6 +144,9 @@ async function triggerUnifiedRegistration() {
                             username: user, codeCreatedAt: timestampNow, // ❌ Password እና activationCode ተሰርዟል
                             isActivated: true, contractType: contractType, expiryDate: expiryDate, registrationFee: registrationFee,
                             status: "active", theme: "theme-deepblue", staffAccounts: [],
+                            // 🆕 ማስተካከያ: locationKey ከጅምሩ ይታከላል - pushTenantFirebase() ድረስ
+                            // ባይጠበቅም ገቢዎች officer query (orderByChild('locationKey')) ወዲያውኑ ያገኘዋል
+                            locationKey: `${region}_${zone}_${woreda}`,
                             data: { sessionActive: false, shiftClosed: false, inventory: [], expenses: [], debts: [], drawerLog: [], history: [], receipts: [], deliveryOrders: [], remoteCarts: {}, accumulatedVat: 0, lastMonthlyResetDate: timestampNow } 
                         };
                         
@@ -232,6 +254,7 @@ try {
 
             try {
                 let userCredential = await auth.createUserWithEmailAndPassword(email, res.newPass);
+                await assignUserRole(userCredential.user.uid, 'motor');
 
                 if(!localDB.motors) localDB.motors = {};
                 localDB.motors[user] = {
@@ -358,4 +381,4 @@ function verifyEmailCodeSubmit() {
     } else { 
         showCustomAlert("❌ ስህተት", "ያስገቡት ማረጋገጫ ኮድ የተሳሳተ ነው!");
     }
-  }
+                                                      }
