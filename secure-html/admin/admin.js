@@ -276,10 +276,11 @@ window.deleteRevenueAuth = function(key) {
         
         if (authUid) {
             try {
+                let adminIdToken = await auth.currentUser.getIdToken();
                 let response = await fetch('/api/delete-user', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ uid: authUid })
+                    body: JSON.stringify({ idToken: adminIdToken, uid: authUid })
                 });
                 if(!response.ok) throw new Error("Backend API Error");
             } catch (error) {
@@ -411,10 +412,11 @@ window.deleteMotor = function(username) {
         
         if (authUid) {
             try {
+                let adminIdToken = await auth.currentUser.getIdToken();
                 let response = await fetch('/api/delete-user', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ uid: authUid })
+                    body: JSON.stringify({ idToken: adminIdToken, uid: authUid })
                 });
                 if(!response.ok) throw new Error("Backend API Error");
             } catch (error) {
@@ -548,10 +550,11 @@ window.deleteTenant = function(user) {
         // ከ Firebase Authentication ላይ ለማጥፋት የ Backend API ን መጥራት
         if (authUid) {
             try {
+                let adminIdToken = await auth.currentUser.getIdToken();
                 let response = await fetch('/api/delete-user', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ uid: authUid })
+                    body: JSON.stringify({ idToken: adminIdToken, uid: authUid })
                 });
                 if(!response.ok) throw new Error("Backend API Error");
             } catch (error) {
