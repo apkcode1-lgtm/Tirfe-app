@@ -202,12 +202,27 @@ function processActionQueue() {
         ? `tirfe_system/${currentAction.collection}/${currentAction.docId}`
         : `tirfe_system/${currentAction.collection}`;
     let fbRequest;
-    if (currentAction.actionType === 'UPDATE') {
-        fbRequest = db.ref(refPath).update(currentAction.payload);
-    } else if (currentAction.actionType === 'SET') {
-        fbRequest = db.ref(refPath).set(currentAction.payload);
-    } else if (currentAction.actionType === 'DELETE') {
-        fbRequest = db.ref(refPath).remove();
+    // 🛠️ ማስተካከያ: db.ref().update()/.set() ውስጥ payload ላይ undefined ካለ Firebase
+    // SDK synchronously ስህተት ይወረውራል (throw)። ይህ ከዚህ በፊት try/catch ስላልነበረው
+    // ሙሉውን actionQueue ላይመለስ ድረስ ያደናቅፍ ነበር (isProcessingQueue ተጣብቆ ይቀር ነበር)።
+    // አሁን ይህን ስህተት እንይዘዋለን፣ ችግር ያለበትን ንጥል ብቻ አልፈን ወደ ቀጣዩ እንቀጥላለን።
+    try {
+        if (currentAction.actionType === 'UPDATE') {
+            fbRequest = db.ref(refPath).update(currentAction.payload);
+        } else if (currentAction.actionType === 'SET') {
+            fbRequest = db.ref(refPath).set(currentAction.payload);
+        } else if (currentAction.actionType === 'DELETE') {
+            fbRequest = db.ref(refPath).remove();
+        }
+    } catch (syncErr) {
+        console.error("Firebase Sync Error (payload/validation):", syncErr, currentAction);
+        // ችግር ያለበትን ንጥል ከ queue አውጣ (ደግመን ብንሞክር ተመሳሳይ ስህተት ይደግማል)፣
+        // ግን ስርዓቱ ጠቅልሎ እንዳይደናቀፍ isProcessingQueue ን መልስ
+        actionQueue.shift();
+        saveActionQueue();
+        isProcessingQueue = false;
+        if (actionQueue.length > 0) processActionQueue();
+        return;
     }
     if (fbRequest) {
         fbRequest.then(() => {
@@ -289,7 +304,12 @@ function pushToFirebase() {
     processActionQueue();
 }
 // --------------------------------------------------------
-// 🆕 SPLIT-FIX 
+// 🆕 Registration-time Mirror Writer (session-independent)
+// pushTenantFirebase() ከ currentTenant (login session global) ይነበባል፣
+// ስለዚህ በምዝገባ ወቅት (login ገና ስላልተደረገ) ስራ ላይ አይውልም (silent no-op)።
+// ይህ function ግን username/tenantData በቀጥታ parameter ስለሚቀበል
+// index.html (ገና login ባልተደረገበት ገጽ) ላይም መጠቀም ይቻላል - db_public.js
+// ሁሉም ገጽ ላይ ስለሚጫን።
 // --------------------------------------------------------
 function writeTenantMirrorsOnRegister(username, tenantData) {
     let currentTime = Date.now();
@@ -325,7 +345,12 @@ function writeTenantMirrorsOnRegister(username, tenantData) {
         phone: tenantData.phone, telegram: tenantData.telegram,
         address: tenantData.address, googleMapsLink: tenantData.googleMapsLink,
         contractType: tenantData.contractType, registrationFee: tenantData.registrationFee,
-        expiryDate: tenantData.expiryDate, status: tenantData.status,
+        expiryDate: tenantData.expiryDate,
+        // 🛠️ ማስተካከያ: expiryNotified በአዲስ ምዝገባ ወቅት ገና አልተፈጠረም (undefined ነው)፣
+        // Firebase undefined ያለበት object አይቀበልም እና ሙሉ queue ን ያደናቅፋል - ስለዚህ
+        // fallback (false) ጨምረናል
+        expiryNotified: tenantData.expiryNotified || false,
+        status: tenantData.status,
         uid: tenantData.uid, locationKey: tenantData.locationKey,
         lastUpdated: currentTime
     });
@@ -395,5 +420,5 @@ if (typeof db !== 'undefined') {
         fetchStaticData();
         setupSecureUserListeners();
         processActionQueue();
-    });
-        }
+    });                                    
+}
