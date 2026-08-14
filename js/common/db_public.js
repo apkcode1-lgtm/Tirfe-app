@@ -186,7 +186,6 @@ function queueAction(actionType, collection, docId, data) {
     };
     actionQueue.push(newAction);
    saveActionQueue();
-
    // 🆕 FIX: እያንዳንዱ አዲስ ትዕዛዝ ገፁ ሳይታደስ ወዲያውኑ ወደ Firebase እንዲላክ (ከዚህ በፊት እዚህ ውስጥ
    // ምንም የመላኪያ ጥሪ ስላልነበረ፣ ዳታው ገፁ እስኪታደስ ወይም ኢንተርኔት off/on እስኪደረግ ድረስ ተጣብቆ ይቀር ነበር)
    if (isOnline && typeof db !== 'undefined') {
@@ -290,6 +289,50 @@ function pushToFirebase() {
     processActionQueue();
 }
 // --------------------------------------------------------
+// 🆕 SPLIT-FIX 
+// --------------------------------------------------------
+function writeTenantMirrorsOnRegister(username, tenantData) {
+    let currentTime = Date.now();
+
+    queueAction('UPDATE', 'public_tenants', username, {
+        shopName: tenantData.shopName, businessType: tenantData.businessType,
+        phone: tenantData.phone, address: tenantData.address,
+        googleMapsLink: tenantData.googleMapsLink, shopLogo: tenantData.shopLogo,
+        lastUpdated: currentTime
+    });
+
+    queueAction('UPDATE', 'buyer_catalog', username, {
+        status: tenantData.status, shopName: tenantData.shopName,
+        businessType: tenantData.businessType, phone: tenantData.phone,
+        address: tenantData.address, telegram: tenantData.telegram,
+        shopLogo: tenantData.shopLogo, lastUpdated: currentTime,
+        data: { inventory: [], deliveryOrders: [] }
+    });
+
+    queueAction('UPDATE', 'revenue_view', username, {
+        username: tenantData.username, fullName: tenantData.fullName,
+        shopName: tenantData.shopName, businessType: tenantData.businessType,
+        phone: tenantData.phone, gmail: tenantData.gmail,
+        region: tenantData.region, zone: tenantData.zone, woreda: tenantData.woreda,
+        kebele: tenantData.kebele, houseNo: tenantData.houseNo,
+        tinNumber: tenantData.tinNumber, locationKey: tenantData.locationKey,
+        lastUpdated: currentTime, data: { accumulatedVat: 0 }
+    });
+
+    queueAction('UPDATE', 'admin_tenant_summary', username, {
+        username: tenantData.username, shopName: tenantData.shopName,
+        businessType: tenantData.businessType, fullName: tenantData.fullName,
+        phone: tenantData.phone, telegram: tenantData.telegram,
+        address: tenantData.address, googleMapsLink: tenantData.googleMapsLink,
+        contractType: tenantData.contractType, registrationFee: tenantData.registrationFee,
+        expiryDate: tenantData.expiryDate, status: tenantData.status,
+        uid: tenantData.uid, locationKey: tenantData.locationKey,
+        lastUpdated: currentTime
+    });
+
+    processActionQueue();
+}
+// --------------------------------------------------------
 // 🔔 UI Refresh Orchestrator - registry pattern
 // --------------------------------------------------------
 function triggerUIRefresh() {
@@ -353,4 +396,4 @@ if (typeof db !== 'undefined') {
         setupSecureUserListeners();
         processActionQueue();
     });
-                                          }
+        }
