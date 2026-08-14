@@ -70,8 +70,8 @@ async function triggerUnifiedRegistration() {
                         db.ref(`tirfe_system/buyers/${pendingRegistrationData.user}`).set(localDB.buyers[pendingRegistrationData.user]).catch(err => console.log(err));
                         db.ref(`tirfe_system/usernames/${pendingRegistrationData.user}`).set({ role: 'buyer' });
                     }
-                    pushBuyerFirebase();
-                    
+                    // 🛠️ ማስተካከያ: pushBuyerFirebase
+                
                     showCustomAlert("✅ ተሳክቷል", "በተሳካ ሁኔታ ተመዝግበዋል! አሁን በሚያውቁት ፓስዎርድ ሎጊን በማድረግ ይግቡ።");
                     if(regSubmitBtn) { regSubmitBtn.disabled = false; regSubmitBtn.innerText = "ተመዝገብ (Submit)"; }
                     switchView('welcomeGateway');
@@ -155,7 +155,7 @@ async function triggerUnifiedRegistration() {
                             db.ref(`tirfe_system/usernames/${user}`).set({ role: 'tenant' });
 
                         }
-                        pushTenantFirebase();
+                        writeTenantMirrorsOnRegister(user, localDB.tenants[user]);
                         
                         let capitalTierAmh = "ያልተመረጠ";
                         if (capitalTier === 'low') capitalTierAmh = "ዝቅተኛ (Low)";
@@ -197,7 +197,6 @@ async function triggerUnifiedRegistration() {
         
         let idCardInput = document.getElementById('mot_idCardFile');
         let licenseInput = document.getElementById('mot_licenseFile');
-
         if(!firstName || !lastName || !phone || !email || !user || !tgToken || !plateNumber || !region || !zone || !woreda) {
             showCustomAlert("ስህተት", "እባክዎ መሠረታዊ የሞተረኛ መረጃዎችን ሙሉ በሙሉ ያሟሉ!");
             return; 
@@ -264,6 +263,9 @@ try {
                     username: user, telegramToken: tgToken, tgToken: tgToken,
                     plateNumber: plateNumber,
                     region: region, zone: zone, woreda: woreda,
+                    // 🆕 ማስተካከያ: locationKey ከጅምሩ ይታከላል - pushMotorFirebase() ድረስ
+                    // ባይጠበቅም ገቢዎች officer query (orderByChild('locationKey')) ወዲያውኑ ያገኘዋል
+                    locationKey: `${region}_${zone}_${woreda}`,
                     // ❌ Base64 ተሰርዟል፣ ✅ አሁን ከ Storage የተገኘው የፎቶ ሊንክ (URL) ብቻ ዳታቤዝ ላይ ይቀመጣል
                     idCardImage: idCardUrl, 
                     licenseImage: licenseUrl,
@@ -279,7 +281,7 @@ try {
                     db.ref(`tirfe_system/motors/${user}`).set(localDB.motors[user]).catch(err => console.log(err));
                     db.ref(`tirfe_system/usernames/${user}`).set({ role: 'motor' });
                 }
-                pushMotorFirebase();
+                // 🛠️
                 
                 let nowForReg = new Date();
                 let timeStampReg = nowForReg.toLocaleDateString('am-ET') + " " + nowForReg.toLocaleTimeString('am-ET');
@@ -381,4 +383,4 @@ function verifyEmailCodeSubmit() {
     } else { 
         showCustomAlert("❌ ስህተት", "ያስገቡት ማረጋገጫ ኮድ የተሳሳተ ነው!");
     }
-                                                      }
+}
