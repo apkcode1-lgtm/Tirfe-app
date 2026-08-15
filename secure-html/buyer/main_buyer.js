@@ -688,147 +688,60 @@ window.checkoutBuyerCart = function(orderType) {
                             // (ሁሉም ገዢ ማንበብ ወደሚችለው) ከመጻፍ ይልቅ ይህን አዲስ ትዕዛዝ ለራሱ ገዢ
 
                             // per-user node ላይ ብቻ mirror እናደርጋለን።
-                            mirrorOrderToBuyer(newOrder, shopKey);
-
+                           mirrorOrderToBuyer(newOrder, shopKey);
                         }
-
                     });
-
                 } else {
-
                     if(!t.data) t.data = {};
-
                     if(!t.data.deliveryOrders) t.data.deliveryOrders = [];
-
                     t.data.deliveryOrders.push(newOrder);
-
                     t.lastUpdated = Date.now();
-
                     localDB.tenants[shopKey] = t;
-
                     saveToLocalStorage();
-
-                    // 🔒 PRIVACY FIX: ኦፍላይን ሆኖ ቢሆንም እንኳ የራሱን order mirror ወደ
-
-                    // buyer_orders/{ራሱ username} ብቻ (የጋራ buyer_catalog ሳይሆን) ኢንተርኔት
-
-                    // ሲመለስ እንዲላክ በ Queue ውስጥ እናስገባዋለን።
-
                     queueAction('UPDATE', 'buyer_orders', `${newOrder.buyerUser}/${shopKey}_${newOrder.orderId}`, {
-
                         shopKey: shopKey, orderId: newOrder.orderId, itemName: newOrder.itemName,
-
                         total: newOrder.total, status: newOrder.status, transport: newOrder.transport,
-
                         deliveryFeePaid: newOrder.deliveryFeePaid || 0, motorUser: null,
-
                         date: newOrder.date, lastUpdated: Date.now()
-
                     });
-
-                    // 🆕 FIX: pushBuyerFirebase() የገዢውን ራሱን ዳታ ብቻ ስለሚልክ (የሻጩን tenant
-
-                    // ዳታ አይደለም)፣ ኦፍላይን ሆኖ ትዕዛዝ ሲላክ ወደ ሻጩ በጭራሽ አይደርስም ነበር። አሁን የሻጩን
-                    // ዳታ (አዲሱን deliveryOrder ጨምሮ) በቀጥታ ወደ actionQueue በመጨመር ኢንተርኔት
-
-                    // ሲመለስ ወደ ሻጩ Firebase መዝገብ ትክክለኛ እንዲላክ ተደርጓል።
-
+                    // 🆕 FIX: pushBuyerFirebase
                     queueAction('UPDATE', 'tenants', shopKey, cleanData(t));
-
                 }
-
-
-
                 window.buyerCartData = [];
-
                 renderBuyerCart();
-
                 showCustomAlert("ተሳክቷል", "ትዕዛዝዎ በዴሊቨሪ ለሻጩ ተልኳል። ሻጩ ሲቀበለው በገጽዎ ላይ 'በመንገድ ላይ ነው' የሚል ምልክት ያያሉ።");
-
                 renderBuyerCatalog();
-
             });
-
         });
-
     }
-
 };
-
-
-
 window.renderBuyerCatalog = async function() {
-
-    // አዲስ የተጨመረ - ተጠቃሚዎች ሎጊን ካደረጉ በኋላ የፋየርቤዝ ቀጥታ ማዳመጫ (Real-time listener) እንዲያያዝ 
-
     if (typeof setupSecureUserListeners === 'function') setupSecureUserListeners();
-
-    // --- አዲስ የተጨመረ ማስተካከያ: ገፁ ሲከፈት የዛሬውን ቀን በራሱ (አውቶማቲክ) እንዲያስገባ ---
-
     if (!window.buyerDateFiltersInitialized) {
-
         let d = new Date();
-
         let todayStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
-        
-
         let histFilter = document.getElementById('buyerOrderHistoryDateFilter');
-
         if (histFilter && !histFilter.value) histFilter.value = todayStr;
-
-        
-
         let recFilter = document.getElementById('buyerReceiptDateFilter');
-
         if (recFilter && !recFilter.value) recFilter.value = todayStr;
-
         window.buyerDateFiltersInitialized = true;
-
     }
-
     // -------------------------------------------------------------------------
-
-
-
     if(currentBuyer) {
-
         let badge = document.getElementById('buyerProfileBadge');
-
         if(badge) badge.innerText = `👤 የተጠቃሚ ስም: ${currentBuyer.username} | 📱 ስልክ: ${currentBuyer.phone}`;
-
         renderBuyerCart();
-
     }
-
-
-
     let container = document.getElementById('buyerShopsContainer');
-
     if(!container) return;
-
-    
-
     if (typeof db !== 'undefined' && (!localDB.tenants || Object.keys(localDB.tenants).length === 0)) {
-
         try {
-            // 🆕 ማስተካከያ: ከ `tirfe_system/tenants` (ሙሉ ጥሬ ዳታ) ይልቅ `buyer_catalog`
-
-            // (ገዢ የሚፈልገውን ብቻ የያዘ) - manual scrub (delete password/...) ከዚህ በኋላ አያስፈልግም
-
             let snap = await db.ref('tirfe_system/buyer_catalog').once('value');
-
             if(snap.exists()) {
-
                 localDB.tenants = snap.val();
-
             }
-
         } catch(e) { console.warn("Catalog fetch error:", e); }
-
     }
-
-
-
     container.innerHTML = '';
     let hasData = false;
     let query = document.getElementById('buyerSearchInput') ? document.getElementById('buyerSearchInput').value.trim().toLowerCase() : "";
@@ -918,83 +831,41 @@ window.renderBuyerCatalog = async function() {
 
 
                         let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
-
                         let ordVat = (ord.total * vatRate) / 100;
                         let ordTotalWithVat = ord.total + ordVat;
-
-
-
                         let rowHtml = `<tr>
-
                             <td>${t.shopName}<br><small style="color:var(--accent-color)">${transportBadge}</small></td>
-
                             <td>${ord.itemName}</td>
-
                             <td>${ordTotalWithVat.toFixed(2)} ETB <br><small style="color:gray; font-size:0.7rem;">(ከነ ቫት)</small></td>
-
                             <td>${ord.date}</td>
-
                             <td class="${cl}"><b>${badge}</b>${feeSection}</td>
-
                         </tr>`;
-
-
-
                         if(st === "pending" || st === "accepted") {
-
-                            activeOrdersHTML += rowHtml;
-
+                         activeOrdersHTML += rowHtml;
                         } else {
-
-                            if (!historyDateFilter || ord.date === historyDateFilter) {
-
+                         if (!historyDateFilter || ord.date === historyDateFilter) {
                                 historyOrdersHTML += rowHtml;
-
                             }
-
                         }
-
                     });
-
                 }
-
             }
-
         });
     }
-
-
-
     allItems.sort((a, b) => {
-
         let scoreA = (a.name.charCodeAt(0) || 0) + (a.shopKey.charCodeAt(0) || 0) + a.originalIdx;
-
         let scoreB = (b.name.charCodeAt(0) || 0) + (b.shopKey.charCodeAt(0) || 0) + b.originalIdx;
-
         return (scoreA % 7) - (scoreB % 7) || scoreA - scoreB;
-
     });
-
     let carouselHTML = '';
-
     if (allItems.length > 0) {
-
         hasData = true;
-
         let carouselItems = allItems.slice(0, 8);
-
-        
-
         carouselHTML += `
-
         <div class="featured-carousel-section" style="grid-column: 1 / -1; margin-bottom: 20px; width: 100%; overflow: hidden; background: rgba(15, 23, 42, 0.4); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-
             <h3 style="color: var(--accent-color); margin: 0 0 12px 0; font-size: 1.05rem; display: flex; align-items: center; gap: 6px;">
-
                 ✨ ተለይተው የቀረቡ ዕቃዎች (Featured Products)
-
             </h3>
-
             <div class="carousel-track-container" style="width: 100%; overflow-x: auto; display: flex; gap: 12px; padding-bottom: 4px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
         `;
         carouselItems.forEach(item => {
