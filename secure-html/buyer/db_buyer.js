@@ -30,8 +30,6 @@ window.refreshBuyerUI = function() {
 // --------------------------------------------------------
 // 🎧 Firebase Listeners (buyer only)
 // --------------------------------------------------------
-// ❌ scrubTenantForBuyer() ሙሉ በሙሉ ተወግዷል - ከዚህ በኋላ አያስፈልግም ምክንያቱም
-// buyer_catalog ገና ከ write ጀምሮ (db_shop.js) ንፁህ ዳታ ብቻ ስለያዘ
 window.setupBuyerListeners = function() {
     if(typeof currentBuyer !== 'undefined' && currentBuyer && !window.buyerListenerAttached) {
         window.buyerListenerAttached = true;
@@ -44,8 +42,7 @@ window.setupBuyerListeners = function() {
                 }
             }
         });
-        // 🆕 ማስተካከያ: ከ `tirfe_system/tenants` (ሙሉ ጥሬ ዳታ) ይልቅ አሁን
-        // `tirfe_system/buyer_catalog` (ገዢ የሚፈልገውን ብቻ የያዘ mirror node) ነው የሚነበበው
+        //
         let buyerCatalogRef = db.ref('tirfe_system/buyer_catalog');
         buyerCatalogRef.on('child_added', (snapshot) => {
             let incomingData = snapshot.val();
@@ -67,6 +64,12 @@ window.setupBuyerListeners = function() {
         });
         buyerCatalogRef.on('child_removed', (snapshot) => {
             delete localDB.tenants[snapshot.key];
+            saveToLocalStorage();
+            if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
+        });
+        // 🆕 🔒 PRIVACY FIX:
+        db.ref(`tirfe_system/buyer_orders/${currentBuyer.username}`).on('value', (snapshot) => {
+            localDB.myOrders = snapshot.exists() ? snapshot.val() : {};
             saveToLocalStorage();
             if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
         });
