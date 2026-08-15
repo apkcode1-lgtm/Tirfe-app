@@ -793,43 +793,21 @@ window.renderBuyerCatalog = async function() {
                 // 🔒 PRIVACY FIX
                 if (liveBuyer && localDB.myOrders) {
                     Object.values(localDB.myOrders).filter(ord => ord.shopKey === tKey).forEach(ord => {
-
                         let st = ord.status;
-
                         let badge = st === "pending" ? "በመጠባበቅ ላይ" : (st === "accepted" ? "በመንገድ ላይ" : (st === "completed" ? "ተረክበዋል" : "ተመልሷል"));
-
                         let cl = st === "pending" ? "text-warning" : (st === "accepted" ? "text-success" : (st === "completed" ? "text-success" : "text-danger"));
-
-
-
                         let transportBadge = ord.transport === 'car' ? '🚗 መኪና' : (ord.transport === 'motor' ? '🏍️ ሞተረኛ' : '');
-
                         let feeSection = "";
-
                         if(ord.transport === "motor" && (st === "pending" || st === "accepted")) {
-
                             let feeValue = ord.deliveryFeePaid > 0 ? ord.deliveryFeePaid : "";
-
                             let isDisabled = ord.deliveryFeePaid > 0 ? "disabled" : "";
-
                             let btnText = ord.deliveryFeePaid > 0 ? "ገብቷል" : "አስገባ";
-
-                            // የተስተካከለው የ id አጠራር (አንድ underscore)
-
                             feeSection = `
-
                             <div style="margin-top: 8px; display: flex; gap: 5px; align-items: center; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
-
                                 <input type="number" id="delFee_${tKey}_${ord.orderId}" placeholder="የዴሊቨሪ ክፍያ (ብር)" style="width: 130px; padding: 6px; margin: 0; font-size: 0.85rem;" value="${feeValue}" ${isDisabled}>
-
                                 <button class="btn-sell btn-sm" onclick="submitDeliveryFee('${tKey}', '${ord.orderId}')" ${isDisabled} style="padding: 6px 12px; white-space:nowrap;">${btnText}</button>
-
                             </div>`;
-
                         }
-
-
-
                         let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
                         let ordVat = (ord.total * vatRate) / 100;
                         let ordTotalWithVat = ord.total + ordVat;
