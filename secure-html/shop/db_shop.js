@@ -81,8 +81,6 @@ function pushTenantFirebase(scopes) {
                     locationKey: tenantData.locationKey,
                     lastUpdated: currentTime
                 });
-
-                // 🚫 revenue_view ላይ gmail በጭራሽ አይላክም
                 queueAction('UPDATE', 'revenue_view', currentTenant.username, {
                     username: tenantData.username,
                     fullName: tenantData.fullName,
