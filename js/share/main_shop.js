@@ -1,4 +1,3 @@
-function logout() { currentTenant = null; currentRevenueOfficer = null; localStorage.removeItem('tirfe_active_session'); switchView('welcomeGateway'); }
 // 🆕 scopes: array - ['inventory'], ['vat'], ['profile'], ወይም [] (ራሱ ብቻ)። ካልተሰጠ ሙሉ ፑሽ ይደረጋል።
 function saveAndRefresh(scopes) { localDB.tenants[currentTenant.username] = currentTenant; saveToLocalStorage(); pushTenantFirebase(scopes); renderApp(); checkTimeLock(); }
 
