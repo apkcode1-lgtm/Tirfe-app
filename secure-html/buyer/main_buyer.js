@@ -607,87 +607,37 @@ window.checkoutBuyerCart = function(orderType) {
 
             if(!res.address || !res.phone || !res.transport) {
                 showCustomAlert("ስህተት", "እባክዎ ያላስገቡት ወይም ያልመረጡት የፎርም ዝርዝር አለ! ሁሉንም ግዴታ የሆኑትን በትክክል ይሙሉ!");
-
                 return;
-
             }
-
-
-
             let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
-
             let vatAmount = (grandTotal * vatRate) / 100;
-
             let finalTotal = grandTotal + vatAmount;
-
             let confirmMsg = `የታዘዙ ዕቃዎች: ${combinedItems}\nየትራንስፖርት: ${res.transport === 'car' ? '🚗 መኪና' : '🏍️ ሞተረኛ'}\n\nጠቅላላ የሚጠበቅ ሂሳብ: ${finalTotal.toFixed(2)} ETB\n\nይህንን ትዕዛዝ ወደ ሻጩ መላክ እርግጠኛ ነዎት?`;
-
             showCustomConfirm("📦 የትዕዛዝ ማረጋገጫ (Order Checkout)", confirmMsg, () => {
-
                 let orderId = Math.floor(100000 + Math.random() * 900000);
-
                 let newOrder = {
-
                     orderId: orderId, buyerUser: currentBuyer.username, buyerPhone: res.phone,
-
                     address: res.address, mapLink: res.mapLink,
-
                     itemIdx: window.buyerCartData[0].itemIdx, // Primary ID for legacy logic
-
                     itemName: combinedItems,
-
                     qty: 1, // Quantity representing 1 grouped package
-
                     price: grandTotal, 
-
                     total: grandTotal,
-
                     status: "pending", date: getTodayFormatted(),
-
                     transport: res.transport, deliveryFeePaid: 0,
-
                     cartItems: window.buyerCartData // Preserving original array
                 };
-
-
-
-                // 🆕 FIX: once('value') አንብቦ .update() ብቻ ማድረግ (read → modify → write)
-
-                // ሌላ ተጠቃሚ (ሻጭ/ሞተረኛ) ተመሳሳይ ደቂቃ ላይ deliveryOrders ላይ ለውጥ ቢያደርግ
-
-                // አንዱ የሌላውን ለውጥ ስለሚደመስስ transaction() ን ተጠቀምን - Firebase ራሱ
-
-                // ግጭት ካለ በራስ-ሰር ደጋግሞ በትክክለኛው የቅርብ ጊዜ ዳታ ላይ ብቻ ይተገብረዋል።
-
                 if (typeof db !== 'undefined' && navigator.onLine) {
-
-                    db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).transaction((currentOrders) => {
-
+                   db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).transaction((currentOrders) => {
                         let ordersArr = currentOrders ? (Array.isArray(currentOrders) ? currentOrders : Object.values(currentOrders)) : [];
-
                         // Check to prevent double-click duplicates
-
                         if(!ordersArr.find(o => o && o.orderId === orderId)) {
-
                             ordersArr.push(newOrder);
-
                         }
-
                         return ordersArr;
-
                     }).then((result) => {
-
                         if (result.committed) {
-
-                            // የሻጩ ገፅ real-time "አዲስ ትዕዛዝ" እንዲያሳይ tenant root lastUpdated ማዘመን
-
                             db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now());
-
-                            // 🔒 PRIVACY FIX: ጠቅላላ deliveryOrders array ወደ buyer_catalog
-
-                            // (ሁሉም ገዢ ማንበብ ወደሚችለው) ከመጻፍ ይልቅ ይህን አዲስ ትዕዛዝ ለራሱ ገዢ
-
-                            // per-user node ላይ ብቻ mirror እናደርጋለን።
                            mirrorOrderToBuyer(newOrder, shopKey);
                         }
                     });
