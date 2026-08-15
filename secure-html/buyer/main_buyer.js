@@ -1,74 +1,33 @@
 // የገዥ (Buyer) ሲስተም ዋና ኮዶች (main_buyer.js)
-
 window.clearBuyerData = function() {
-
     if(!currentBuyer) return;
-
-    
-
     showCustomConfirm("⚠️ እርግጠኛ ነዎት?", "ይህ እርምጃ የእርስዎን የተቆረጡ ደረሰኞች እና ጊዜያዊ የትዕዛዝ መረጃዎች ያጠፋል። በእርግጥ ማጥፋት ይፈልጋሉ?", () => {
-
         let buyerUsername = currentBuyer.username;
-
-
-
         // 1. መረጃዎችን ከ LocalStorage ላይ ማጥፋት (አካውንቱን / ፕሮፋይሉን ሳንነካ)
-
         if (localDB.buyers && localDB.buyers[buyerUsername]) {
-
             localDB.buyers[buyerUsername].receipts = [];
-
             currentBuyer.receipts = []; // አሁን ሎጊን ያደረገውንም ዩዘር ዳታ ማፅዳት
-
             saveToLocalStorage();
-
         }
-
-        
-
         // የ Cart መረጃንም ባዶ ማድረግ
-
         window.buyerCartData = [];
-
-
-
         // 2. ከ Firebase ላይ ማጥፋት (ሪፍሬሽ ሲደረግ እንዳይመለስ)
-
         if (typeof db !== 'undefined' && navigator.onLine) {
-
-            // እዚህ ጋር ፕሮፋይሉን ሳንነካ 'receipts' (ደረሰኞች) የሚለውን ዳታ ብቻ ነው የምናጠፋው
-
             db.ref(`tirfe_system/buyers/${buyerUsername}/receipts`).remove().then(() => {
                 showCustomAlert("✅ ተሳክቷል", "የደረሰኝ እና የትዕዛዝ መረጃዎችዎ በተሳካ ሁኔታ ተጠርገዋል!");
-
                 renderBuyerCatalog();
-
             }).catch(err => {
-
                 console.error("Firebase delete error:", err);
-
                 // ስህተት ቢፈጠርም ሎካል ላይ ስለጠፋ ፔጁን አፕዴት እናደርገዋለን
-
                 showCustomAlert("✅ ተሳክቷል", "መረጃዎ ጸድቷል፣ ነገር ግን ከኢንተርኔት ጋር ላይገናኝ ይችላል።");
-
                 renderBuyerCatalog();
-
             });
-
         } else {
-
-            // ኢንተርኔት ከሌለም ሎካል ላይ ስላጠፋነው አፕዴት እናደርጋለን
-
             showCustomAlert("✅ ተሳክቷል", "የደረሰኝ መረጃዎችዎ ተጠርገዋል። (Offline)");
-
             renderBuyerCatalog();
-
         }
-
     });
-
 };
-
 // ----------------------------------------------------
 window.openBuyerProfileSettings = function() {
     if(!currentBuyer) return;
@@ -155,70 +114,37 @@ window.changeBuyerEmail = function() {
         { id: "curPass", label: "ኢሜል ለመቀየር የአሁኑን የይለፍ ቃል ያስገቡ፦", type: "password", placeholder: "የአሁኑ ፓስዎርድ" }
     ], async (res) => {
         let curPass = res.curPass ? res.curPass.trim() : "";
-
         if(!curPass) { showCustomAlert("ስህተት", "እባክዎ የአሁኑን ፓስዎርድ ያስገቡ!"); return; }
-
         try {
-
             let cred = firebase.auth.EmailAuthProvider.credential(oldEmail, curPass);
-
             await auth.currentUser.reauthenticateWithCredential(cred);
-
         } catch(error) {
-
             console.error("Buyer Email Reauth Error:", error);
-
             let errMsg = "ማረጋገጫው አልተሳካም! " + (error.message || "");
-
             if(error.code === 'auth/wrong-password') errMsg = "❌ ያስገቡት የአሁኑ ፓስዎርድ ትክክል አይደለም!";
-
             if(error.code === 'auth/too-many-requests') errMsg = "❌ በጣም ብዙ ጊዜ ተሞክሯል፣ እባክዎ ትንሽ ቆይተው ደግመው ይሞክሩ!";
-
             showCustomAlert("❌ ስህተት", errMsg);
-
             return;
-
         }
-
         showFormModal("📧 ደረጃ 2/2 - አዲስ ኢሜል", [
             { id: "newEmail", label: "አዲስ ኢሜል (Gmail)፦", type: "email", placeholder: "newemail@gmail.com" },
-
             { id: "newEmail2", label: "አዲሱን ኢሜል ደግመው ያስገቡ፦", type: "email", placeholder: "አዲስ ኢሜል ያረጋግጡ" }
-
         ], async (res2) => {
-
             let newEmail = res2.newEmail ? res2.newEmail.trim() : "";
-
             let newEmail2 = res2.newEmail2 ? res2.newEmail2.trim() : "";
-
             if(!newEmail) { showCustomAlert("ስህተት", "እባክዎ አዲሱን ኢሜል ያስገቡ!"); return; }
-
             if(newEmail.toLowerCase() !== newEmail2.toLowerCase()) { showCustomAlert("ስህተት", "ያስገቧቸው ሁለት አዲስ ኢሜሎች አይመሳሰሉም!"); return; }
-
             if(newEmail.toLowerCase() === String(oldEmail || "").toLowerCase()) { showCustomAlert("ስህተት", "አዲሱ ኢሜል ካለው ኢሜል ጋር ተመሳሳይ ነው!"); return; }
-
             try {
-
-                await auth.currentUser.updateEmail(newEmail);
-
+             await auth.currentUser.updateEmail(newEmail);
                 currentBuyer.email = newEmail;
-
                 localDB.buyers[currentBuyer.username] = currentBuyer;
-
                 pushBuyerFirebase();
-
-                renderBuyerCatalog();
-
-                showCustomAlert("ተሳክቷል", "ኢሜልዎ በተሳካ ሁኔታ ተቀይሯል! ከዚህ በኋላ በአዲሱ ኢሜል ብቻ ሎጊን ያድርጉ።");
-
+                renderBuyerCatalog();                showCustomAlert("ተሳክቷል", "ኢሜልዎ በተሳካ ሁኔታ ተቀይሯል! ከዚህ በኋላ በአዲሱ ኢሜል ብቻ ሎጊን ያድርጉ።");
             } catch(error) {
-
                 console.error("Buyer Update Email Error:", error);
-
                 let errMsg = "ኢሜል ማስቀመጥ አልተቻለም! " + (error.message || "");
-
                 if(error.code === 'auth/requires-recent-login') errMsg = "❌ ደህንነት ችግር፡ እባክዎ Logout አድርገው እንደገና ሎጊን ካደረጉ በኋላ ይሞክሩ!";
-
                 if(error.code === 'auth/email-already-in-use') errMsg = "❌ ይህ ኢሜል በሌላ አካውንት ተይዟል!";
 
                 if(error.code === 'auth/invalid-email') errMsg = "❌ የገቡት ኢሜል ቅርፅ ትክክል አይደለም!";
