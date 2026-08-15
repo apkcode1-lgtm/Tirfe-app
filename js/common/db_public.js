@@ -291,12 +291,14 @@ function loadScriptOnce(src) {
 // --------------------------------------------------------
 // 🚀 4. Generic Push Dispatcher
 // --------------------------------------------------------
-function pushToFirebase() {
+function pushToFirebase(scopes) {
     saveToLocalStorage();
     if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
         if (typeof pushAdminFirebase === 'function') pushAdminFirebase();
     } else {
-        if (typeof pushTenantFirebase === 'function') pushTenantFirebase();
+        // 🆕 scopes የሚያገለግለው ለሻጭ (tenant) ብቻ ነው - ገዢ/ገቢዎች/ሞተረኛ የራሳቸውን ብቻ ስለሚጽፉ
+        // (የተለያየ session global ስለሚጠቀሙ) ተጨማሪ scoping አያስፈልጋቸውም
+        if (typeof pushTenantFirebase === 'function') pushTenantFirebase(scopes);
         if (typeof pushBuyerFirebase === 'function') pushBuyerFirebase();
         if (typeof pushRevenueFirebase === 'function') pushRevenueFirebase();
         if (typeof pushMotorFirebase === 'function') pushMotorFirebase();
@@ -329,10 +331,11 @@ function writeTenantMirrorsOnRegister(username, tenantData) {
         data: { inventory: [], deliveryOrders: [] }
     });
 
+    // 🚫 gmail በጭራሽ ወደ revenue_view አይላክም - ገቢዎች ባለስልጣን ኢሜል ማየት የለበትም
     queueAction('UPDATE', 'revenue_view', username, {
         username: tenantData.username, fullName: tenantData.fullName,
         shopName: tenantData.shopName, businessType: tenantData.businessType,
-        phone: tenantData.phone, gmail: tenantData.gmail,
+        phone: tenantData.phone,
         region: tenantData.region, zone: tenantData.zone, woreda: tenantData.woreda,
         kebele: tenantData.kebele, houseNo: tenantData.houseNo,
         tinNumber: tenantData.tinNumber, locationKey: tenantData.locationKey,
@@ -414,11 +417,10 @@ if (typeof db !== 'undefined') {
         if (typeof window.setupRevenueListeners === 'function') window.setupRevenueListeners();
         if (typeof window.setupMotorListeners === 'function') window.setupMotorListeners();
     };
-
     // 🆕 SPLIT-FIX
     document.addEventListener('DOMContentLoaded', function() {
         fetchStaticData();
         setupSecureUserListeners();
         processActionQueue();
     });                                    
-}
+        }
