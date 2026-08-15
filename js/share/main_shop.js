@@ -1,5 +1,6 @@
 function logout() { currentTenant = null; currentRevenueOfficer = null; localStorage.removeItem('tirfe_active_session'); switchView('welcomeGateway'); }
-function saveAndRefresh() { localDB.tenants[currentTenant.username] = currentTenant; saveToLocalStorage(); pushTenantFirebase(); renderApp(); checkTimeLock(); } //[span_0](start_span)[span_0](end_span)
+// 🆕 scopes: array - ['inventory'], ['vat'], ['profile'], ወይም [] (ራሱ ብቻ)። ካልተሰጠ ሙሉ ፑሽ ይደረጋል።
+function saveAndRefresh(scopes) { localDB.tenants[currentTenant.username] = currentTenant; saveToLocalStorage(); pushTenantFirebase(scopes); renderApp(); checkTimeLock(); }
 
 function collectDebt(idx) {
     let debt = currentTenant.data.debts[idx]; let remaining = debt.amount - debt.paid;
@@ -9,7 +10,7 @@ function collectDebt(idx) {
         let amt = parseFloat(res.amount) || 0;
         if(amt <= 0 || amt > remaining) { showCustomAlert("ስህተት", "የክፍያ መጠን ልክ አይደለም!"); return; }
         debt.paid += amt; currentTenant.data.collectedCreditToday = (parseFloat(currentTenant.data.collectedCreditToday) || 0) + amt;
-        saveAndRefresh();
+        saveAndRefresh([]);
      
         sendTelegramAlert(`💵 የዕዳ ክፍያ ተሰበሰበ (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nከ ${debt.customer} ላይ ${formatMoney(amt)} ETB ተቀብለዋል።`);
         showCustomAlert("ክፍያ ተፈጽሟል", `${debt.customer} እዳ ከፍሏል!`);
@@ -118,21 +119,21 @@ window.acceptDelivery = function(idx) {
                     showCustomAlert("ማሳሰቢያ", "ትዕዛዙ ተቀባይነት አግኝቷል ነገር ግን በአካባቢዎ የተመዘገበ ሞተረኛ አልተገኘም።");
                 }
                 
-                saveAndRefresh();
+                saveAndRefresh(['orders']);
                 
             }).catch(err => {
                 console.error(err);
                 showCustomAlert("ስህተት", "ከዳታቤዝ ጋር መገናኘት አልተቻለም!");
-                saveAndRefresh();
+                saveAndRefresh(['orders']);
             });
             
         } else {
             showCustomAlert("ስህተት", "ከኢንተርኔት ጋር አልተገናኙም! ሞተረኞችን መፈለግ አልተቻለም።");
-            saveAndRefresh();
+            saveAndRefresh(['orders']);
         }
     } else {
         showCustomAlert("ተቀብለዋል", "ትዕዛዙ ተቀባይነት አግኝቷል! እቃው በመንገድ ላይ ነው ተብሎ ምልክት ተደርጎበታል።");
-        saveAndRefresh();
+        saveAndRefresh(['orders']);
     }
 };
 // የተሰረዘን ትዕዛዝ ለሌላ ሞተረኛ ድጋሚ መላኪያ (Reassign)
@@ -148,7 +149,7 @@ window.reassignDelivery = function(idx) {
     ord.poolId = null; 
     
     // 2. ዳታቤዝ ላይ አፕዴት እናደርጋለን
-    saveAndRefresh(); 
+    saveAndRefresh(['orders']); 
     
     // 3. እንደ አዲስ የሞተረኛ ፍለጋ እንዲጀምር ቀድሞ የነበረውን ፈንክሽን እንጠራዋለን
     acceptDelivery(idx); 
@@ -163,7 +164,7 @@ window.resetDeliveryStatus = function(idx) {
             if(d.deliveryOrders[idx].driverId) {
                 delete d.deliveryOrders[idx].driverId;
             }
-            saveAndRefresh();
+            saveAndRefresh(['orders']);
             showCustomAlert("ተሳክቷል", "ትዕዛዙ ዳግም ክፍት ሆኗል! ሌላ ሹፌር ሊቀበለው ይችላል።");
         }
     });
@@ -190,14 +191,17 @@ window.completeDelivery = function(idx) {
     }
     
     generateDigitalReceipt(ord.itemName, ord.qty, ord.total, ord.orderId, null, true, ord.buyerUser, ord.buyerPhone, collectedVat);
-    saveAndRefresh();
+    // 🆕 FIX (double-push): generateDigitalReceipt→generateAdvancedReceipt ከዚህ በኋላ አይቆጥብም/አይገፋም
+    // (ራሱ) - ስለዚህ እዚህ አንድ ጊዜ ብቻ፣ ትክክለኛውን scope ይዞ እንቆጥባለን/እንገፋለን
+    // 'orders' ሁልጊዜ (ትዕዛዝ ሁኔታ ተጠናቋል ወደ completed ስለቀየረ) + ቫት ካለ 'vat' ተጨማሪ
+    saveAndRefresh(collectedVat > 0 ? ['orders', 'vat'] : ['orders']);
 };
 
 window.returnDelivery = function(idx) { 
     let ord = currentTenant.data.deliveryOrders[idx]; 
     if (ord.status === "returned") return;
     ord.status = "returned"; 
-    saveAndRefresh(); 
+    saveAndRefresh(['orders']); 
     showCustomAlert("ተመልሷል", "እቃው ተመልሷል!"); 
 };
 
@@ -231,7 +235,8 @@ window.handleRemoteCartCheckout = function(buyerUser) {
         }
 
         generateAdvancedReceipt(receiptItems, grandTotal, currentSeller, null, true, null, null, buyerUser, bPhone, collectedVat);
-        saveAndRefresh();
+        // 🆕 FIX (double-push): አንድ ጊዜ ብቻ - ስቶክ ለውጥ ወደ ገዢ አይላክም፣ ቫት ካለ ብቻ ወደ ገቢዎች
+        saveAndRefresh(collectedVat > 0 ? ['vat'] : []);
         sendTelegramAlert(`🛍️ የኦንላይን ሽያጭ (Remote Cart Checkout)፦\nየገዢ ስም: ${buyerUser}\nጠቅላላ ሂሳብ፡ ${formatMoney(grandTotal)} ETB`);
     });
 };
