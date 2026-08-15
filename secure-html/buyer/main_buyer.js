@@ -146,202 +146,87 @@ window.changeBuyerEmail = function() {
                 let errMsg = "ኢሜል ማስቀመጥ አልተቻለም! " + (error.message || "");
                 if(error.code === 'auth/requires-recent-login') errMsg = "❌ ደህንነት ችግር፡ እባክዎ Logout አድርገው እንደገና ሎጊን ካደረጉ በኋላ ይሞክሩ!";
                 if(error.code === 'auth/email-already-in-use') errMsg = "❌ ይህ ኢሜል በሌላ አካውንት ተይዟል!";
-
                 if(error.code === 'auth/invalid-email') errMsg = "❌ የገቡት ኢሜል ቅርፅ ትክክል አይደለም!";
                 showCustomAlert("❌ ስህተት", errMsg);
-
             }
-
         });
-
     });
-
 };
-
-
-
 window.addToBuyerCart = function(shopKey, itemIdx, itemName, price, availableRem) {
-
-    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return; }
-
-    
-
+    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return; 
     // የተለየ ሱቅ ማረጋገጫ (Single Shop Validation)
-
     if(window.buyerCartData && window.buyerCartData.length > 0) {
-
         if(window.buyerCartData[0].shopKey !== shopKey) {
-
             let sName = localDB.tenants[window.buyerCartData[0].shopKey] ? localDB.tenants[window.buyerCartData[0].shopKey].shopName : "ሌላ ሱቅ";
-
             showCustomAlert("ማሳሰቢያ", `በአንድ ጊዜ የአንድ ሱቅ ዕቃዎችን ብቻ ነው ወደ ካርት ማስገባት የሚቻለው!\n\nካርትዎ ውስጥ የ "${sName}" ዕቃዎች አሉ። እባክዎ መጀመሪያ ካርት ውስጥ ያለውን ትዕዛዝ ያጠናቅቁ ወይም ያጥፉ።`);
-
             return;
-
         }
-
     }
-
-    
-
     showFormModal("🛒 " + itemName + " - ወደ ቅርጫት (Cart) ማስገቢያ", [
-
         { id: "qty", label: "የሚፈልጉት ብዛት", type: "number", defaultValue: "1" }
-
     ], (res) => {
         let qty = parseFloat(res.qty) || 0;
-
         if(qty <= 0) { showCustomAlert("ስህተት", "የተሳሳተ ብዛት!"); return; }
-
         if(qty > availableRem) { showCustomAlert("ብዛት የለም", "የጠየቁት ብዛት በአሁኑ ሰዓት ከስቶር የለም (አልቋል)!"); return; }
-
-
-
         let existIdx = window.buyerCartData.findIndex(c => c.shopKey === shopKey && c.itemIdx === itemIdx);
-
         if(existIdx > -1) {
-
             let totalWanted = window.buyerCartData[existIdx].qty + qty;
-
             if(totalWanted > availableRem) { showCustomAlert("ስህተት", "ከክምችት በላይ ነው!"); return; }
-
             window.buyerCartData[existIdx].qty += qty;
-
             window.buyerCartData[existIdx].total = window.buyerCartData[existIdx].qty * price;
-
         } else {
-
             window.buyerCartData.push({ shopKey: shopKey, itemIdx: itemIdx, itemName: itemName, qty: qty, price: price, total: qty * price });
-
         }
-
         renderBuyerCart();
-
         renderBuyerCatalog();
-
         showCustomAlert("🛒 በቅርጫትዎ ውስጥ ገብቷል", "ትዕዛዙ Cart ውስጥ ገብቷል። ተጨማሪ ዕቃ መምረጥ ይችላሉ፣ ሲጨርሱ ከካርት ላይ የትዕዛዝ ምርጫዎን ይምረጡ።");
-
     });
-
 };
-
-
-
 window.submitDeliveryFee = function(shopKey, orderId) {
-
     let feeInput = document.getElementById(`delFee_${shopKey}_${orderId}`);
     if(!feeInput) return;
-
     let fee = parseFloat(feeInput.value) || 0;
-
     if(fee <= 0) {
-
         showCustomAlert("ስህተት", "እባክዎ ለዴሊቨሪ የከፈሉትን ትክክለኛ የብር መጠን ያስገቡ!");
-
         return;
-
     }
-
-    // 🔒 PRIVACY FIX: ከ t.data.deliveryOrders (ሁሉንም የሱቁ ገዢዎች ትዕዛዝ ይዞ ወደ buyer_catalog
-
-    // ይገለበጥ ከነበረው የጋራ array) ፈንታ አሁን ከራሱ ገዢ per-user cache (localDB.myOrders) እናነባለን።
-
+    // 🔒 PRIVACY FIX
     let orderKey = `${shopKey}_${orderId}`;
-
     let t = localDB.tenants[shopKey];
-
     if(localDB.myOrders && localDB.myOrders[orderKey]) {
-
         let ord = localDB.myOrders[orderKey];
-
         {
-
             ord.deliveryFeePaid = fee;
-
-
-
-            // 🆕 FIX: ገዥው ገፅ ላይ localDB.motors ፈጽሞ ስለማይሞላ (ገዥ ለ motors ምንም
-
-            // fetch/listener ስለሌለው)፣ ከዚህ በፊት የነበረው "localDB.motors[ord.motorUser]"
-
-            // ሁልጊዜ undefined ስለሆነ ክፍያው ለሞተረኛው በጭራሽ አይደርስም ነበር (ስህተት ፀጥ ብሎ
-
-            // ይታለፍ ነበር)። አሁን የሞተረኛውን ሙሉ ዳታ በገዥ በኩል ማወቅ ሳያስፈልገን በቀጥታ Firebase
-
-            // ላይ የተወሰነውን ፊልድ (targeted multi-path update) ብቻ እንጽፋለን።
-
+            // 
             function pushFeeToMotor(motorUsername) {
                 if (typeof db === 'undefined' || !navigator.onLine || !motorUsername) return;
-
                 let motorFeeUpdate = {};
-
                 motorFeeUpdate[`tirfe_system/motors/${motorUsername}/incomingFee`] = fee;
-
                 motorFeeUpdate[`tirfe_system/motors/${motorUsername}/lastUpdated`] = Date.now();
-
                 db.ref().update(motorFeeUpdate);
-
                 if (typeof sendMotorTelegramAlert === 'function') {
-
                     sendMotorTelegramAlert(motorUsername, `💸 አዲስ የዴሊቨሪ ክፍያ ተልኮልዎታል!\n\nገዥው ${fee} ETB ሲስተሙ ላይ አስገብቷል። እባክዎ ዳሽቦርድዎን ያረጋግጡ።`);
-
                 }
-
             }
-
-
-
             if (ord.motorUser) {
-
-                // የተመደበው ሞተረኛ ስም ቀድሞውኑ በትዕዛዙ ላይ ስለሚገኝ (ሞተረኛው accept ካደረገ በኋላ) በቀጥታ እንጽፋለን
-
                 pushFeeToMotor(ord.motorUser);
-
             } else if (typeof db !== 'undefined' && navigator.onLine) {
 
-                // 🔒 SECURITY/PRIVACY FIX: ከዚህ በፊት 'tirfe_system/motors' ን ሙሉ በሙሉ
-
-                // (የሀገሪቱን ሞተረኛ ሁሉ - ስልክ፣ ክሬዲት፣ accountStatus፣ ሌላ ገዢ ዳታ ጨምሮ) ወደ
-
-                // ገዢው ደንበኛ (browser) ያወርድ ነበር። አሁን የሱ ሱቅ ራሱ ባለበት ቦታ (locationKey)
-
-                // ውስጥ ያሉ ሞተረኞችን ብቻ ነው የምንፈልገው (ልክ እንደ revenue module ንድፍ) - ይህ
-
-                // ተጋላጭነቱን ወደ አካባቢው (ወረዳ) ብቻ ይገድበዋል፣ ከሀገር-አቀፍ ወደ አካባቢያዊ።
-
-                // ✅ ምርጡ ዘላቂ መፍትሔ ግን ይህን ፍለጋ ጨርሶ ማስወገድ ነው - ሞተረኛው ትዕዛዝ ሲቀበል
-
-                // (acceptMotorOrder) ራሱ ወደ ገዢው mirror (buyer_orders) ቢጽፍ - ያ ግን
-                // የሻጭ-ጎን ኮድ ላይ orderId/buyerUser ማከል ስለሚጠይቅ (እዚህ ካሉት ፋይሎች ውጪ ነው)።
-
+                // 🔒 SECURITY/PRIVACY FIX:
                 if (!t || !t.locationKey) {
-
                     console.warn("ሞተረኛ ፍለጋ አልተቻለም: የሱቁ locationKey አልተገኘም።");
-
                 } else {
-
                     db.ref('tirfe_system/motors').orderByChild('locationKey').equalTo(t.locationKey).once('value').then(snap => {
-
                         let areaMotors = snap.val() || {};
-
                         Object.keys(areaMotors).forEach(mUser => {
-
                             let m = areaMotors[mUser];
-
                             let matched = (m.activeOrders || []).find(mo => mo.orderId == orderId || mo.buyerPhone == ord.buyerPhone);
-
                             if (matched && matched.status === 'accepted') {
-
                                 ord.motorUser = mUser;
-
                                 pushFeeToMotor(mUser);
-
                                 db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).transaction((currentOrders) => {
-
                                     if (!currentOrders) return currentOrders;
-
                                     let ordersArr = Array.isArray(currentOrders) ? currentOrders : Object.values(currentOrders);
-
                                     let i2 = ordersArr.findIndex(o => o && o.orderId == orderId);
 
                                     if (i2 > -1) ordersArr[i2].motorUser = mUser;
