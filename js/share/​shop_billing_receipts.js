@@ -298,8 +298,12 @@ window.checkoutMainCart = function() {
     }
     let finalTotal = grandTotal + collectedVat;
     sendTelegramAlert(`🛍️ የሽያጭ ማስታወቂያ (${currentSeller})፦\nየሱቅ ስም: ${currentTenant.shopName}\nየተሸጡ ዕቃዎች፡ ${receiptItems.length} አይነት\nጠቅላላ ሂሳብ፡ ${formatMoney(finalTotal)} ETB`);
-    mainCart = []; saveAndRefresh(); renderMainCart();
+    mainCart = [];
     generateAdvancedReceipt(receiptItems, grandTotal, currentSeller, null, true, null, null, null, null, collectedVat);
+    // 🆕 FIX (double-push): አንድ ጊዜ ብቻ እንቆጥባለን/እንገፋለን - ስቶክ (sold) ለውጥ ወደ ገዢ አይላክም፣
+    // ቫት ከተሰበሰበ ብቻ ወደ ገቢዎች (revenue_view) ይላካል
+    saveAndRefresh(collectedVat > 0 ? ['vat'] : []);
+    renderMainCart();
 };
 window.validateQuickVatPrice = function() {
     let priceInput = document.getElementById('specialVatItemPrice');
@@ -363,7 +367,7 @@ window.generateStandaloneVatReceipt = function() {
     };
     currentTenant.data.receipts.push(recObj);
     
-    saveAndRefresh();
+    saveAndRefresh(['vat']);
 
     document.getElementById('recPrintShopName').innerText = currentTenant.shopName;
     document.getElementById('recPrintFullName').innerText = currentTenant.fullName;
@@ -449,7 +453,10 @@ function generateAdvancedReceipt(itemsArray, subTotal, currentSeller, recId = nu
                 db.ref(`tirfe_system/buyers/${displayBuyerName}`).set(JSON.parse(JSON.stringify(localDB.buyers[displayBuyerName]))).catch(err => console.error(err));
             }
         }
-        saveAndRefresh();
+        // 🆕 FIX (double-push): ከዚህ በፊት እዚህ ውስጥ saveAndRefresh() ይጠራ ነበር፣ ይህ ደግሞ
+        // caller (checkoutMainCart/handleRemoteCartCheckout/completeDelivery) ራሱ ከዚህ በፊት
+        // ወይም በኋላ ተጨማሪ saveAndRefresh() ስለሚጠራ ወደ Firebase ሁለት ጊዜ ተከታታይ ፑሽ ይደረግ ነበር።
+        // አሁን ይህ ፋንክሽን ራሱ አይቆጥብም/አይገፋም - caller ብቻ አንድ ጊዜ (ትክክለኛውን scope ይዞ) ይቆጥባል/ይገፋል።
     }
 
     let buyerSection = "";
@@ -592,7 +599,7 @@ function checkMorningSession() {
             d.deliveryOrders = d.deliveryOrders || []; d.collectedCreditToday = 0;
             currentTenant.data = d; 
             document.getElementById('receiptDateFilter').value = getTodayFormatted();
-            saveAndRefresh();
+            saveAndRefresh([]);
         });
     } else { renderApp(); }
 }
@@ -610,4 +617,4 @@ if (window.dbReadyPromise && typeof window.dbReadyPromise.then === 'function') {
     loadLocalStorageBackup();
     checkAutomaticLogin();
     handleOnlineStatus();
-    }
+}
