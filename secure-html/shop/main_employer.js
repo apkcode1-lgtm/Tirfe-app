@@ -21,7 +21,7 @@ function openTenantProfileEditor() {
             currentTenant.telegramChatId = res.telegramChatId.trim();
             
             if(base64Logo) currentTenant.shopLogo = base64Logo;
-            saveAndRefresh();
+            saveAndRefresh(['profile']);
             showCustomAlert("ተሳክቷል", "የሱቅዎ መረጃ በተሳካ ሁኔታ ተስተካክሏል!");
         };
         if(fileInput && fileInput.files[0]) { processImageUpload(fileInput.files[0], updateTenantData); } else { updateTenantData(""); }
@@ -81,7 +81,6 @@ function changeShopPassword() {
         });
     });
 }
-
 // ==========================================================
 // 📧 ኢሜል ቀይር - 2-ደረጃ ፍሎው (ደረጃ1፡ ነባሩን ማረጋገጥ → ደረጃ2፡ አዲሱን ማስገባት)
 // ==========================================================
@@ -124,7 +123,7 @@ function changeShopEmail() {
             try {
                 await auth.currentUser.updateEmail(newEmail);
                 currentTenant.gmail = newEmail;
-                saveAndRefresh();
+                saveAndRefresh([]);
                 showCustomAlert("ተሳክቷል", "ኢሜልዎ በተሳካ ሁኔታ ተቀይሯል! ከዚህ በኋላ በአዲሱ ኢሜል ብቻ ሎጊን ያድርጉ።");
             } catch(error) {
                 console.error("Shop Update Email Error:", error);
@@ -163,7 +162,7 @@ function addItemDirectly() {
         } else {
             inv.push({ name, model: model || "-", cost, price, qty, sold: 0, profit: 0, imgUrl: imgBase64 || "", unitType: "pcs" });
         }
-        currentTenant.data.inventory = inv; saveAndRefresh();
+        currentTenant.data.inventory = inv; saveAndRefresh(['inventory']);
         
         document.getElementById('itemName').value = ''; document.getElementById('itemModel').value = '';
         document.getElementById('itemCost').value = ''; document.getElementById('itemPrice').value = ''; 
@@ -182,7 +181,7 @@ function openExpenseModal() {
         let d = currentTenant.data || {}; if(!d.expenses) 
             d.expenses = [];
         d.expenses.push({ reason, amount, date: getTodayFormatted(), time: new Date().toLocaleTimeString('en-GB') });
-        currentTenant.data = d; saveAndRefresh();
+        currentTenant.data = d; saveAndRefresh([]);
     });
 }
 function openDebtModal() {
@@ -209,7 +208,7 @@ function openDebtModal() {
        
         let d = currentTenant.data || {}; if (!d.debts) d.debts = [];
         d.debts.push({ customer: customer, phone: phone || "-", itemName: selectedItem.name, qty: qty, amount: calculatedAmount, paid: 0, date: selectedDate });
-        selectedItem.sold += qty; currentTenant.data = d; saveAndRefresh();
+        selectedItem.sold += qty; currentTenant.data = d; saveAndRefresh([]);
         sendTelegramAlert(`💳 አዲስ እዳ ተመዘገበ (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nባለእዳ፦ ${customer}\nእቃ፦ ${selectedItem.name} (${qty})\nየታሰበ ሂሳብ፦ ${formatMoney(calculatedAmount)} ETB\nቀን፦ ${selectedDate}`);
         showCustomAlert("ተሳክቷል", `${customer} በዕዳ የወሰደው ሂሳብ በራሱ ተባዝቶ ገብቷል፦ ${formatMoney(calculatedAmount)} ETB`);
     });
@@ -227,7 +226,7 @@ function openDrawerModal() {
         let finalAmount = action === "withdraw" ? amount : -amount;
         let displayType = action === "withdraw" ? "ገንዘብ ተነሳ" : "ገንዘብ ተመለሰ";
         d.drawerLog.push({ reason: `${action === "withdraw" ? "⚠️ [የተነሳ] " : "✅ [የተመለሰ] "} ${reason}`, amount: finalAmount, time: new Date().toLocaleTimeString('en-GB') });
-        currentTenant.data = d; saveAndRefresh();
+        currentTenant.data = d; saveAndRefresh([]);
         sendTelegramAlert(`💸 ከሳጥን ${displayType} (${currentUserRole === 'staff' ? 'በሰራተኛ' : 'በአሰሪ'})፦\nምክንያት፡ ${reason}\nመጠን፡ ${formatMoney(amount)} ETB`);
     });
 }
@@ -276,7 +275,7 @@ function startNewDaySession() {
         let inv = d.inventory || [];
         inv.forEach(item => { item.qty = Math.max(0, item.qty - item.sold); item.sold = 0; });
         d.sessionActive = false; d.shiftClosed = false; d.drawerLog = []; d.collectedCreditToday = 0;
-        currentTenant.data = d; saveAndRefresh(); checkMorningSession();
+        currentTenant.data = d; saveAndRefresh([]); checkMorningSession();
         sendTelegramAlert(`🔄 አዲስ የሥራ ቀን በአሰሪ ተጀምሯል! የትላንትና ሂሳብ ተሰርዞ ወደ አዲስ ቀን ተሸጋግረዋል።`);
     });
 }
@@ -309,10 +308,9 @@ function clearAllTenantData() {
             taxReceipts: [] 
         };
         
-        saveAndRefresh(); checkMorningSession();
+        saveAndRefresh(['orders']); checkMorningSession();
     });
 }
-
 function initChart() {
     let canvasElement = document.getElementById('businessChart');
     if (!canvasElement || currentUserRole === "staff") return;
@@ -333,7 +331,6 @@ function initChart() {
         }
     });
 }
-
 function openItemRegistrationChoice() {
     showFormModal("የዕቃ ምዝገባ አማራጭ", [
         { id: "regType", label: "እባክዎ የሚመዘግቡትን የዕቃ ልኬት አይነት ይምረጡ፦", type: "select", options: [{value: "standard", label: "📦 መደበኛ (በፍሬ / ልኬት የሌለው)"}, {value: "advanced", label: "📏/⚖️ በጥቅል/ሜትር ወይም በኪሎግራም"}] }
@@ -379,7 +376,7 @@ function openAdvancedRegistration() {
                 inv.push({ name: name, model: res.model || "-", cost: unitCostPerMeter, price: retailPrice, qty: totalQtyInMeters, sold: 0, profit: 0, imgUrl: imgBase64 || "", wholesalePrice: parseFloat(res.wholesalePrice) || 0, isAdvanced: true, unitType: res.unitType, unitPerPack: unitPerPack });
                 showCustomAlert("ተሳክቷል", `ዕቃው በተሳካ ሁኔታ ተመዝግቧል! አጠቃላይ ብዛት: ${totalQtyInMeters} ${res.unitType === 'kg' ? 'ኪሎ' : 'ሜትር'}`);
             }
-            currentTenant.data.inventory = inv; saveAndRefresh();
+            currentTenant.data.inventory = inv; saveAndRefresh(['inventory']);
         };
         if(fileInputObj && fileInputObj.files[0]) { processImageUpload(fileInputObj.files[0], proceedAdd); } else { proceedAdd(""); }
     });
@@ -388,34 +385,6 @@ function openAdvancedRegistration() {
 function deleteInventoryItem(idx) { 
     if(currentUserRole === "staff") return;
     showCustomConfirm("እቃ መሰረዣ", "ይህንን እቃ ማጥፋት ይፈልጋሉ?", () => { 
-        currentTenant.data.inventory.splice(idx, 1); saveAndRefresh(); 
+        currentTenant.data.inventory.splice(idx, 1); saveAndRefresh(['inventory']); 
     });
 }
-
-// አከፋፋዮች 
-let selectedSupplierItem = "";
-
-// ሻጩ "ግዛ" የሚለውን በተን ሲነካ ፖፓፑን የሚከፍት ፋንክሽን
-function openBuyPopup(itemName, price) {
-    selectedSupplierItem = itemName;
-    document.getElementById('modalItemDetail').innerText = "የተመረጠው እቃ፦ " + itemName + " (" + price + " ETB)";
-    document.getElementById('supplierBuyModal').classList.remove('hidden');
-}
-
-// ትዕዛዙን አረጋግጦ ወደ አከፋፋዩ ዳሽቦርድ የሚልከው ፋንክሽን
-function submitOrderToSupplier() {
-    let qty = document.getElementById('orderQty').value;
-    let country = document.getElementById('orderCountry').value;
-    let phone = document.getElementById('orderPhone').value;
-    let area = document.getElementById('orderArea').value;
-
-    if(!qty || !country || !phone || !area) {
-        return alert("እባክዎ ሁሉንም የመላኪያ መረጃዎች ያሟሉ!");
-    }
-
-    // እዚህ ጋ ወደፊት ከዳታቤዝ (Firebase) ጋር ሲገናኝ በቀጥታ ወደ አከፋፋዩ ገጽ ይልከዋል
-    alert("ትዕዛዝዎ በተሳካ ሁኔታ ተላልፏል!\nእቃ፦ " + selectedSupplierItem + "\nብዛት፦ " + qty + "\nአድራሻ፦ " + area + "\nአከፋፋዩ መረጃውን አይቶ ያደርስልዎታል!");
-    
-    // ፎርሙን መዝጋት
-    document.getElementById('supplierBuyModal').classList.add('hidden');
-    }
