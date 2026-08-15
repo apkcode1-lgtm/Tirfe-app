@@ -15,7 +15,6 @@ function sanitizeInventoryForBuyer(inv) {
         unitType: item.unitType,
         isAdvanced: item.isAdvanced,
         unitPerPack: item.unitPerPack
-        // ❌ ሆን ብለን ያልጨመርናቸው፦ qty, sold, cost - ስቶክ/ካፒታል ለገዢ አይታይም
     }));
 }
 // --------------------------------------------------------
