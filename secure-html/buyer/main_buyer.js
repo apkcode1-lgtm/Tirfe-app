@@ -70,194 +70,90 @@ window.clearBuyerData = function() {
 };
 
 // ----------------------------------------------------
-
-
-
 window.openBuyerProfileSettings = function() {
-
     if(!currentBuyer) return;
-
     // ✅ ኢሜል/ፓስዎርድ ከዚህ ውስጥ ተነስተዋል፤ ለብቻቸው 🔑/📧 2-ደረጃ ማረጋገጫ ባላቸው ፈንክሽኖች ብቻ ይቀየራሉ
-
     showFormModal("⚙️ የፕሮፋይል ሲቲንግ", [
         { id: "b_name", label: "ሙሉ ስም (Name)", type: "text", defaultValue: currentBuyer.name },
-
         { id: "b_username", label: "መግቢያ ስም (Username)", type: "text", defaultValue: currentBuyer.username },
-
         { id: "b_phone", label: "ስልክ ቁጥር (Phone)", type: "tel", defaultValue: currentBuyer.phone }
-
     ], async (res) => {
-
         let newU = res.b_username.trim().toLowerCase();
-
         let newP = res.b_phone.trim();
-
-        
-
         if(newU !== currentBuyer.username || newP !== currentBuyer.phone) {
-
             let takenMsg = await isSystemDataTaken(newU, newP, "", currentBuyer.username);
-
             if(takenMsg) { showCustomAlert("ስህተት (Error)", takenMsg); return; }
-
         }
-
-
-
         let oldU = currentBuyer.username;
-
         currentBuyer.name = res.b_name.trim();
-
         currentBuyer.username = newU;
-
         currentBuyer.phone = newP; 
-
         if(oldU !== newU) {
-
             localDB.buyers[newU] = currentBuyer;
-
             delete localDB.buyers[oldU];
-
             localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'buyer', loginMode: 'buyer', username: newU }));
-
         } else { 
             localDB.buyers[newU] = currentBuyer;
-
         }
-
-        
-
         pushBuyerFirebase();
-
         renderBuyerCatalog();
-
         showCustomAlert("✅ ተሳክቷል", "ፕሮፋይልዎ በትክክል ተስተካክሏል!");
-
     });
-
 };
-
-
-
 // ==========================================================
-
 // 🔑 የይለፍ ቃል ቀይር - 2-ደረጃ ፍሎው (ደረጃ1፡ ነባሩን ማረጋገጥ → ደረጃ2፡ አዲሱን ማስገባት)
-
 // ==========================================================
-
 window.changeBuyerPassword = function() {
-
     if(!currentBuyer) return;
-
     let oldEmail = currentBuyer.email;
-
-
-
     showFormModal("🔒 ደረጃ 1/2 - ማረጋገጫ", [
-
         { id: "curPass", label: "የይለፍ ቃል ለመቀየር የአሁኑን የይለፍ ቃል ያስገቡ፦", type: "password", placeholder: "የአሁኑ ፓስዎርድ" }
-
     ], async (res) => {
-
         let curPass = res.curPass ? res.curPass.trim() : "";
-
         if(!curPass) { showCustomAlert("ስህተት", "እባክዎ የአሁኑን ፓስዎርድ ያስገቡ!"); return; }
-
-
         try {
-
             let cred = firebase.auth.EmailAuthProvider.credential(oldEmail, curPass);
-
             await auth.currentUser.reauthenticateWithCredential(cred);
-
         } catch(error) {
-
             console.error("Buyer Password Reauth Error:", error);
-
             let errMsg = "ማረጋገጫው አልተሳካም! " + (error.message || "");
-
             if(error.code === 'auth/wrong-password') errMsg = "❌ ያስገቡት የአሁኑ ፓስዎርድ ትክክል አይደለም!";
-
             if(error.code === 'auth/too-many-requests') errMsg = "❌ በጣም ብዙ ጊዜ ተሞክሯል፣ እባክዎ ትንሽ ቆይተው ደግመው ይሞክሩ!";
-
             showCustomAlert("❌ ስህተት", errMsg);
-
             return;
-
         }
-
-
-
         showFormModal("🔑 ደረጃ 2/2 - አዲስ የይለፍ ቃል", [
-
             { id: "newPass", label: "አዲስ የይለፍ ቃል፦", type: "password", placeholder: "ቢያንስ 6 ፊደል/ቁጥር" },
-
             { id: "newPass2", label: "አዲሱን የይለፍ ቃል ደግመው ያስገቡ፦", type: "password", placeholder: "አዲስ የይለፍ ቃል ያረጋግጡ" }
-
         ], async (res2) => {
-
             let newPass = res2.newPass ? res2.newPass.trim() : "";
-
             let newPass2 = res2.newPass2 ? res2.newPass2.trim() : "";
-
             if(!newPass || newPass.length < 6) { showCustomAlert("ስህተት", "አዲሱ የይለፍ ቃል ቢያንስ 6 ፊደል/ቁጥር ሊኖረው ይገባል!"); return; }
-
             if(newPass !== newPass2) { showCustomAlert("ስህተት", "ያስገቧቸው ሁለት አዲስ የይለፍ ቃሎች አይመሳሰሉም!"); return; }
-
-
             try {
-
                 await auth.currentUser.updatePassword(newPass);
-
-                // ❌ ፓስዎርድ በጭራሽ RTDB ላይ አይቀመጥም - Firebase Auth ብቻ ነው የሚያዘው
-
                 localDB.buyers[currentBuyer.username] = currentBuyer;
-
                 pushBuyerFirebase();
-
                 showCustomAlert("ተሳክቷል", "የይለፍ ቃልዎ በተሳካ ሁኔታ ተቀይሯል! ከዚህ በኋላ በአዲሱ የይለፍ ቃል ብቻ ሎጊን ያድርጉ።");
-
             } catch(error) {
-
                 console.error("Buyer Update Password Error:", error);
-
                 let errMsg = "የይለፍ ቃል ማስቀመጥ አልተቻለም! " + (error.message || "");
-
                 if(error.code === 'auth/requires-recent-login') errMsg = "❌ ደህንነት ችግር፡ እባክዎ Logout አድርገው እንደገና ሎጊን ካደረጉ በኋላ ይሞክሩ!";
-
                 if(error.code === 'auth/weak-password') errMsg = "❌ አዲሱ ፓስዎርድ ደካማ ነው (ቢያንስ 6 ፊደል/ቁጥር ያስፈልጋል)!";
-
                 showCustomAlert("❌ ስህተት", errMsg);
-
             }
-
         });
-
     });
-
 };
-
-
-
 // ==========================================================
-
 // 📧 ኢሜል ቀይር - 2-ደረጃ ፍሎው (ደረጃ1፡ ነባሩን ማረጋገጥ → ደረጃ2፡ አዲሱን ማስገባት)
-
 // ==========================================================
 window.changeBuyerEmail = function() {
-
     if(!currentBuyer) return;
-
     let oldEmail = currentBuyer.email;
-
-
-
     showFormModal("🔒 ደረጃ 1/2 - ማረጋገጫ", [
-
         { id: "curPass", label: "ኢሜል ለመቀየር የአሁኑን የይለፍ ቃል ያስገቡ፦", type: "password", placeholder: "የአሁኑ ፓስዎርድ" }
-
     ], async (res) => {
-
         let curPass = res.curPass ? res.curPass.trim() : "";
 
         if(!curPass) { showCustomAlert("ስህተት", "እባክዎ የአሁኑን ፓስዎርድ ያስገቡ!"); return; }
