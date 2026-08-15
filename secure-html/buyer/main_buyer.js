@@ -830,80 +830,39 @@ window.renderBuyerCatalog = async function() {
 
 
     container.innerHTML = '';
-
     let hasData = false;
-
     let query = document.getElementById('buyerSearchInput') ? document.getElementById('buyerSearchInput').value.trim().toLowerCase() : "";
-
     let categories = new Set();
-
-    
-
     if (localDB.tenants) { 
-
         Object.values(localDB.tenants).forEach(t => { if (t.status === "active") { categories.add(t.businessType || "አጠቃላይ ንግድ"); } });
-
     }
-
-    
-
     let catContainer = document.getElementById('buyerCategoryContainer');
-
     if (catContainer) {
-
         let catHTML = `<button class="category-btn ${activeCategoryFilter === 'all' ? 'active' : ''}" onclick="setCategoryFilter('all')">🌐 ሁሉም</button>`;
         categories.forEach(cat => { catHTML += `<button class="category-btn ${activeCategoryFilter === cat ? 'active' : ''}" onclick="setCategoryFilter('${cat}')">🛍️ ${cat}</button>`; });
-
         catContainer.innerHTML = catHTML;
-
     }
-
-
-
     let activeOrdersHTML = "";
-
     let historyOrdersHTML = "";
-
     let myReceiptsHTML = "";
-
     let historyDateFilter = document.getElementById('buyerOrderHistoryDateFilter') ? document.getElementById('buyerOrderHistoryDateFilter').value : "";
-
     let liveBuyer = (currentBuyer && localDB.buyers) ? localDB.buyers[currentBuyer.username] : currentBuyer;
-
     let allItems = [];
-
-
     if (localDB.tenants) {
-
         Object.keys(localDB.tenants).forEach(tKey => {
-
             let t = localDB.tenants[tKey];
-
             if (t.status === "active") {
-
                 let tBType = t.businessType || "አጠቃላይ ንግድ";
-
                 if (activeCategoryFilter !== "all" && tBType !== activeCategoryFilter) return;
-
                 let isShopMatch = false;
-
                 if (query !== "") {
-
-                    let uName = t.username ? t.username.toLowerCase() : tKey.toLowerCase();
-
+                 let uName = t.username ? t.username.toLowerCase() : tKey.toLowerCase();
                     isShopMatch = (uName === query || uName.includes(query)) ||
                                   (t.shopName && t.shopName.toLowerCase().includes(query)) ||
-
                                   (t.phone && t.phone.includes(query));
-
                 }
-
-                
-
                 if (t.data && t.data.inventory) {
-
                      t.data.inventory.forEach((item, index) => {
-
                         let isItemMatch = query === "" || isShopMatch || 
 
                                           item.name.toLowerCase().includes(query) ||
@@ -914,24 +873,11 @@ window.renderBuyerCatalog = async function() {
 
                             allItems.push({ ...item, originalIdx: index, shopKey: tKey, tenant: t });
 
-                        }
-
+                       }
                     });
-
                 }
 
-
-
-                // 🔒 PRIVACY FIX: t.data.deliveryOrders ላይ የ liveBuyer.username filter ማድረግ
-
-                // ማሳያ ላይ ብቻ ነበር የሚከላከለው - ጥሬ ዳታው (ሌሎች ገዢዎችን ጨምሮ) ቀድሞውኑ ወደ
-
-                // localDB/IndexedDB ወርዷል ነበር። አሁን localDB.myOrders ራሱ ከ Firebase
-
-                // ጀምሮ የዚህ ገዢ ትዕዛዝ ብቻ ስለያዘ (buyer_orders/{ራሱ username} node)፣ ተጨማሪ
-
-                // filter ሳያስፈልግ shopKey ብቻ በማጣራት እንጠቀማለን።
-
+                // 🔒 PRIVACY FIX
                 if (liveBuyer && localDB.myOrders) {
                     Object.values(localDB.myOrders).filter(ord => ord.shopKey === tKey).forEach(ord => {
 
@@ -1050,169 +996,83 @@ window.renderBuyerCatalog = async function() {
             </h3>
 
             <div class="carousel-track-container" style="width: 100%; overflow-x: auto; display: flex; gap: 12px; padding-bottom: 4px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
-
         `;
-
         carouselItems.forEach(item => {
-
             let itemImg = item.imgUrl || "https://cdn-icons-png.flaticon.com/512/3342/3342137.png";
             carouselHTML += `
-
                 <div class="carousel-item-card" style="flex: 0 0 170px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between;">
-
                     <div onclick="viewImageFullscreen('${itemImg}')" style="cursor: pointer;">
-
                         <img src="${itemImg}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 6px;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3342/3342137.png'">
-
                         <div style="font-weight: bold; font-size: 0.85rem; color: #fff; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</div>
-
                         <div style="color: var(--warning-color); font-size: 0.85rem; font-weight: bold; margin-top: 2px;">${item.price} ETB</div>
-
                         <div style="color: #94a3b8; font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">🏬 ${item.tenant.shopName}</div>
-
                     </div>
-
                     <button class="btn-add btn-sm" style="width: 100%; margin-top: 8px; padding: 8px 0; font-size: 0.85rem; border-radius: 4px; font-weight:bold;" onclick="addToBuyerCart('${item.shopKey}', ${item.originalIdx}, '${item.name}', ${item.price}, ${item.qty - item.sold})">🛒 ወደ ካርት ጨምር</button>
-
                 </div>
-
             `;
-
         });
-
-        
-
         carouselHTML += `
-
             </div>
-
         </div>
-
         <div style="grid-column: 1 / -1; margin-bottom: 12px; margin-top: 5px;"><h3 style="color: #fff; font-size: 1.1rem; margin: 0; font-weight: 600;">🛍️ አጠቃላይ የዕቃዎች ዝርዝር (All Mixed Products)</h3></div>
-
         `;
-
         container.innerHTML = carouselHTML;
-
-
-
         allItems.forEach(item => {
             let t = item.tenant;
-
             let itemImg = item.imgUrl || "https://cdn-icons-png.flaticon.com/512/3342/3342137.png";
-
             let modelDisplay = item.model && item.model !== "-" ? `<br><small style="color:var(--accent-color)">ሞዴል: ${item.model}</small>` : '';
-
             let unitLabel = item.unitType === 'kg' ? 'ኪሎ' : (item.isAdvanced ? 'ሜትር' : 'ፍሬ');
-
             let rem = item.qty - item.sold;
-
             let shopLogo = t.shopLogo || "https://cdn-icons-png.flaticon.com/512/869/869636.png";
-
             let tgLink = t.telegram && t.telegram !== "-" ? (t.telegram.startsWith('@') ? t.telegram.substring(1) : t.telegram) : "";
-
-            
-
             let singleProductHTML = `
-
             <div class="shop-card" style="display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;">
-
                 <div>
-
                     <div class="shop-card-header" style="padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-
                         <img src="${shopLogo}" class="shop-avatar" onerror="this.src='https://cdn-icons-png.flaticon.com/512/869/869636.png'" style="width:28px; height:28px; margin:0;">
-
                         <div class="shop-meta" style="margin:0;">
-
                             <h3 style="font-size: 0.85rem; margin:0; line-height:1.2;">${t.shopName}</h3>
-
                             <span style="color:#64748b; font-size:0.7rem;">📍 ${t.address || 'ያልተገለጸ'}</span>
-
                         </div>
-
                     </div>
-
                     <div class="catalog-item-card" style="background:transparent; padding:0; border:none; box-shadow:none; margin:0;">
-
                         <img src="${itemImg}" class="catalog-item-img" onclick="viewImageFullscreen('${itemImg}')" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3342/3342137.png'">
-
                         <div class="catalog-item-info">
                             <span style="font-weight:bold; font-size:0.9rem; color:#fff;">${item.name}</span>${modelDisplay}
-
                             <div style="color:var(--warning-color); font-weight:bold; margin-top:2px;">${item.price} ETB <small>(${unitLabel})</small></div>
-
                             <div style="color:#94a3b8; font-size:0.75rem; margin-top:2px;">ቀሪ፡ ${rem}</div>
-
                         </div>
-
                     </div>
-
                 </div>
-
                 <div style="margin-top:12px;">
-
                     <div style="display:flex; gap:5px; margin-bottom:6px;">
-
                         <button class="btn-success btn-block" style="background:var(--warning-color); color:#000; font-weight:bold; font-size: 1rem; padding: 10px;" onclick="addToBuyerCart('${item.shopKey}', ${item.originalIdx}, '${item.name}', ${item.price}, ${rem})">🛒 ወደ ካርት ጨምር (Add to Cart)</button>
-
                     </div>
-
                     <div class="shop-links" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; padding:0; margin:0;">
-
                         <a href="tel:${t.phone}" class="btn-link-action" style="background:#22c55e; color:#fff; padding:4px; font-size:0.75rem; text-align:center; border-radius:4px; display:block; text-decoration:none;">📞 ደውል</a>
-
                         ${tgLink ? `<a href="https://t.me/${tgLink}" target="_blank" class="btn-link-action" style="background:#0088cc; color:#fff; padding:4px; font-size:0.75rem; text-align:center; border-radius:4px; display:block; text-decoration:none;">✈️ ቴሌግራም</a>` : `<span class="btn-link-action" style="background:#334155; color:#64748b; padding:4px; font-size:0.75rem; text-align:center; border-radius:4px; display:block;">✈️ የለም</span>`}
-
                     </div>
-
                 </div>
-
             </div>`;
-
             container.innerHTML += singleProductHTML;
-
         });
-
-
-
         setTimeout(() => {
-
             let track = document.querySelector('.carousel-track-container');
             if (track && !track.dataset.animated) {
-
                 track.dataset.animated = "true";
-
                 setInterval(() => {
-
                     if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
-
                         track.scrollLeft = 0;
-
                     } else {
-
-                        track.scrollLeft += 160;
-
+                     track.scrollLeft += 160;
                     }
-
                 }, 3500);
-
             }
-
         }, 600);
-
     }
-
-
-
     if (!hasData) { 
-
         container.innerHTML = '<p style="text-align:center; color:#94a3b8; grid-column: 1/-1; padding:20px;">በተፈለገው ስም የተገኘ ምንም ሱቅ ወይም ዕቃ የለም።</p>';
-
     }
-
-    
-
     let liveBuyerReceipts = (currentBuyer && localDB.buyers) ? localDB.buyers[currentBuyer.username] : currentBuyer;
 
     if(liveBuyerReceipts && liveBuyerReceipts.receipts) {
