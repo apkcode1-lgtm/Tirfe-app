@@ -1,8 +1,33 @@
 // ==========================================
 // 📁 db_modules/db_shop.js
 // ==========================================
-function pushTenantFirebase() {
+// --------------------------------------------------------
+// 🎯 Buyer Catalog Sanitizer - ገዢ የሱቅን ስቶክ/ብዛት (qty/sold) እና ግዢ ዋጋ (cost)
+// በፍጹም እንዳያይ ብቻ ግብይት ለመፈጸም የሚያስፈልገውን (ስም/ዋጋ/ፎቶ) ብቻ ይመልሳል
+// --------------------------------------------------------
+function sanitizeInventoryForBuyer(inv) {
+    return (inv || []).map(item => ({
+        name: item.name,
+        model: item.model,
+        price: item.price,
+        wholesalePrice: item.wholesalePrice,
+        imgUrl: item.imgUrl,
+        unitType: item.unitType,
+        isAdvanced: item.isAdvanced,
+        unitPerPack: item.unitPerPack
+        // ❌ ሆን ብለን ያልጨመርናቸው፦ qty, sold, cost - ስቶክ/ካፒታል ለገዢ አይታይም
+    }));
+}
+// --------------------------------------------------------
+// 🚀 Targeted Push - scopes = array, ምሳሌ: ['inventory'], ['vat'], ['profile'], ወይም [] (ራሱን ብቻ)
+// scopes ካልተሰጠ (undefined) ሙሉ ፑሽ ይደረጋል (ለምሳሌ ኢንተርኔት ሲመለስ ሙሉ resync ለማድረግ)
+// --------------------------------------------------------
+function pushTenantFirebase(scopes) {
     if(typeof currentTenant !== 'undefined' && currentTenant) {
+        let fullPush = (typeof scopes === 'undefined');
+        let scopeList = scopes || [];
+        let hasScope = (s) => fullPush || scopeList.indexOf(s) !== -1;
+
         // ✅ የሎካል እና የ Firebase ሰዓት አንድ አይነት እንዲሆን Date.now() እንጠቀማለን
         let currentTime = Date.now();
         localDB.tenants[currentTenant.username].lastUpdated = currentTime;
@@ -10,77 +35,97 @@ function pushTenantFirebase() {
         if(tenantData) {
             tenantData.lastUpdated = currentTime;
             tenantData.locationKey = computeLocationKey(tenantData);
+
+            // 1️⃣ 'tenants' - የራሱ ሙሉ ዳታ - ሁልጊዜ ይጻፋል (staff/multi-device sync ወሳኝ ስለሆነ)
             queueAction('UPDATE', 'tenants', currentTenant.username, tenantData);
-            let publicTenantData = {
-              shopName: tenantData.shopName,
-                businessType: tenantData.businessType,
-                phone: tenantData.phone,
-                address: tenantData.address,
-                googleMapsLink: tenantData.googleMapsLink,
-                shopLogo: tenantData.shopLogo,
-                lastUpdated: currentTime
-            };
-            queueAction('UPDATE', 'public_tenants', currentTenant.username, publicTenantData);
+            // 2️⃣ 'public_tenants' + 3️⃣ 'buyer_catalog' (የመገለጫ ክፍል) + 4️⃣ 'admin_tenant_summary'
+            // - እነዚህ ሶስቱ የ"ስም/ስልክ/ፎቶ" ለውጥ ላይ የጋራ ናቸው (scope: 'profile')
+            if(hasScope('profile')) {
+                let publicTenantData = {
+                    shopName: tenantData.shopName,
+                    businessType: tenantData.businessType,
+                    phone: tenantData.phone,
+                    address: tenantData.address,
+                    googleMapsLink: tenantData.googleMapsLink,
+                    shopLogo: tenantData.shopLogo,
+                    lastUpdated: currentTime
+                };
+                queueAction('UPDATE', 'public_tenants', currentTenant.username, publicTenantData);
 
-            // 🆕 buyer_catalog - ገዢ የሚፈልገውን ብቻ የያዘ "view" node
-            let buyerCatalogData = {
-                status: tenantData.status,
-                shopName: tenantData.shopName,
-                businessType: tenantData.businessType,
-                phone: tenantData.phone,
-                address: tenantData.address,
-                telegram: tenantData.telegram,
-                shopLogo: tenantData.shopLogo,
-                lastUpdated: currentTime,
-                data: {
-                    inventory: (tenantData.data && tenantData.data.inventory) || [],
-                    deliveryOrders: (tenantData.data && tenantData.data.deliveryOrders) || []
-                }
-            };
-            queueAction('UPDATE', 'buyer_catalog', currentTenant.username, buyerCatalogData);
+                queueAction('UPDATE', 'buyer_catalog', currentTenant.username, {
+                    status: tenantData.status,
+                    shopName: tenantData.shopName,
+                    businessType: tenantData.businessType,
+                    phone: tenantData.phone,
+                    address: tenantData.address,
+                    telegram: tenantData.telegram,
+                    shopLogo: tenantData.shopLogo,
+                    lastUpdated: currentTime
+                });
 
-            // 🆕 revenue_view - ገቢዎች ባለስልጣን የሚፈልገውን ብቻ የያዘ "view" node
-            let revenueViewData = {
-                username: tenantData.username,
-                fullName: tenantData.fullName,
-                shopName: tenantData.shopName,
-                businessType: tenantData.businessType,
-                phone: tenantData.phone,
-                gmail: tenantData.gmail,
-                region: tenantData.region,
-                zone: tenantData.zone,
-                woreda: tenantData.woreda,
-                kebele: tenantData.kebele,
-                houseNo: tenantData.houseNo,
-                tinNumber: tenantData.tinNumber,
-                locationKey: tenantData.locationKey,
-                lastUpdated: currentTime,
-                data: {
-                    accumulatedVat: (tenantData.data && tenantData.data.accumulatedVat) || 0
-                }
-            };
-            queueAction('UPDATE', 'revenue_view', currentTenant.username, revenueViewData);
+                queueAction('UPDATE', 'admin_tenant_summary', currentTenant.username, {
+                    username: tenantData.username,
+                    shopName: tenantData.shopName,
+                    businessType: tenantData.businessType,
+                    fullName: tenantData.fullName,
+                    phone: tenantData.phone,
+                    telegram: tenantData.telegram,
+                    address: tenantData.address,
+                    googleMapsLink: tenantData.googleMapsLink,
+                    contractType: tenantData.contractType,
+                    registrationFee: tenantData.registrationFee,
+                    expiryDate: tenantData.expiryDate,
+                    expiryNotified: tenantData.expiryNotified,
+                    status: tenantData.status,
+                    uid: tenantData.uid,
+                    locationKey: tenantData.locationKey,
+                    lastUpdated: currentTime
+                });
 
-            // 🛠️ 
-            let adminSummary = {
-                username: tenantData.username,
-                shopName: tenantData.shopName,
-                businessType: tenantData.businessType,
-                fullName: tenantData.fullName,
-                phone: tenantData.phone,
-                telegram: tenantData.telegram,
-                address: tenantData.address,
-                googleMapsLink: tenantData.googleMapsLink,
-                contractType: tenantData.contractType,
-                registrationFee: tenantData.registrationFee,
-                expiryDate: tenantData.expiryDate,
-                expiryNotified: tenantData.expiryNotified,
-                status: tenantData.status,
-                uid: tenantData.uid,
-                locationKey: tenantData.locationKey,
-                lastUpdated: currentTime
-            };
-            queueAction('UPDATE', 'admin_tenant_summary', currentTenant.username, adminSummary);
+                // 🚫 revenue_view ላይ gmail በጭራሽ አይላክም
+                queueAction('UPDATE', 'revenue_view', currentTenant.username, {
+                    username: tenantData.username,
+                    fullName: tenantData.fullName,
+                    shopName: tenantData.shopName,
+                    businessType: tenantData.businessType,
+                    phone: tenantData.phone,
+                    region: tenantData.region,
+                    zone: tenantData.zone,
+                    woreda: tenantData.woreda,
+                    kebele: tenantData.kebele,
+                    houseNo: tenantData.houseNo,
+                    tinNumber: tenantData.tinNumber,
+                    locationKey: tenantData.locationKey,
+                    lastUpdated: currentTime
+                });
+            }
+
+            // 5️⃣ 'buyer_catalog/data/inventory' - እቃ ሲመዘገብ/ሲስተካከል/ሲሰረዝ ብቻ (ስቶክ ሳይሆን ካታሎግ ብቻ)
+            // multi-path partial update ("data/inventory") ስለምንጠቀም deliveryOrders አይነካም
+            if(hasScope('inventory')) {
+                let sanitizedInv = sanitizeInventoryForBuyer((tenantData.data && tenantData.data.inventory) || []);
+                queueAction('UPDATE', 'buyer_catalog', currentTenant.username, {
+                    'data/inventory': sanitizedInv,
+                    lastUpdated: currentTime
+                });
+            }
+
+            // 6️⃣ 'revenue_view/data/accumulatedVat' - ቫት ሲቆረጥ/ሲጨመር ብቻ
+            if(hasScope('vat')) {
+                queueAction('UPDATE', 'revenue_view', currentTenant.username, {
+                    'data/accumulatedVat': (tenantData.data && tenantData.data.accumulatedVat) || 0,
+                    lastUpdated: currentTime
+                });
+            }
+
+            // 7️⃣ 'buyer_catalog/data/deliveryOrders' - የትዕዛዝ ሁኔታ (pending/accepted/completed/...)
+            // ሲቀየር ብቻ - ገዥ የራሱን ትዕዛዝ real-time እንዲከታተል ወሳኝ ነው
+            if(hasScope('orders')) {
+                queueAction('UPDATE', 'buyer_catalog', currentTenant.username, {
+                    'data/deliveryOrders': (tenantData.data && tenantData.data.deliveryOrders) || [],
+                    lastUpdated: currentTime
+                });
+            }
         }
     }
 }
