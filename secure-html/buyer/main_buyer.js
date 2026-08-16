@@ -153,7 +153,7 @@ window.changeBuyerEmail = function() {
     });
 };
 window.addToBuyerCart = function(shopKey, itemIdx, itemName, price, availableRem) {
-    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return; 
+    if(!currentBuyer) { showCustomAlert("ማሳሰቢያ", "እባክዎ መጀመሪያ እንደ ገዥ ይግቡ/ይመዝገቡ!"); return; }
     // የተለየ ሱቅ ማረጋገጫ (Single Shop Validation)
     if(window.buyerCartData && window.buyerCartData.length > 0) {
         if(window.buyerCartData[0].shopKey !== shopKey) {
@@ -617,7 +617,7 @@ window.renderBuyerCatalog = async function() {
                         <div class="catalog-item-info">
                             <span style="font-weight:bold; font-size:0.9rem; color:#fff;">${item.name}</span>${modelDisplay}
                             <div style="color:var(--warning-color); font-weight:bold; margin-top:2px;">${item.price} ETB <small>(${unitLabel})</small></div>
-                            <div style="color:#94a3b8; font-size:0.75rem; margin-top:2px;">ቀሪ፡ ${rem}</div>
+                            <!-- 🆕 FIX: ገዥ ትክክለኛውን ቀሪ ክምችት (rem) በዓይኑ አያይም - ግን rem still used internally for cart's availability check below -->
                         </div>
                     </div>
                 </div>
