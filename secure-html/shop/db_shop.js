@@ -6,14 +6,16 @@
 // --------------------------------------------------------
 function sanitizeInventoryForBuyer(inv) {
     return (inv || []).map(item => ({
-        name: item.name,
-        model: item.model,
-        price: item.price,
-        wholesalePrice: item.wholesalePrice,
-        imgUrl: item.imgUrl,
-        unitType: item.unitType,
-        isAdvanced: item.isAdvanced,
-        unitPerPack: item.unitPerPack
+        name: item.name || "",
+        model: item.model || "-",
+        price: item.price || 0,
+        wholesalePrice: item.wholesalePrice || 0,
+        imgUrl: item.imgUrl || "",
+        unitType: item.unitType || "pcs",
+        isAdvanced: item.isAdvanced || false,
+        unitPerPack: item.unitPerPack || 1,
+        qty: item.qty || 0,
+        sold: item.sold || 0
     }));
 }
 // --------------------------------------------------------
@@ -32,7 +34,6 @@ function pushTenantFirebase(scopes) {
         if(tenantData) {
             tenantData.lastUpdated = currentTime;
             tenantData.locationKey = computeLocationKey(tenantData);
-
             // 1️⃣ 'tenants' - የራሱ ሙሉ ዳታ - ሁልጊዜ ይጻፋል (staff/multi-device sync ወሳኝ ስለሆነ)
             queueAction('UPDATE', 'tenants', currentTenant.username, tenantData);
             // 2️⃣ 'public_tenants' + 3️⃣ 'buyer_catalog' (የመገለጫ ክፍል) + 4️⃣ 'admin_tenant_summary'
