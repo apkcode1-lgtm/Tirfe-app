@@ -228,71 +228,34 @@ window.submitDeliveryFee = function(shopKey, orderId) {
                                     if (!currentOrders) return currentOrders;
                                     let ordersArr = Array.isArray(currentOrders) ? currentOrders : Object.values(currentOrders);
                                     let i2 = ordersArr.findIndex(o => o && o.orderId == orderId);
-
                                     if (i2 > -1) ordersArr[i2].motorUser = mUser;
-
                                     return ordersArr;
-
                                 }).then((result) => {
-
                                     db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now());
-
-                                    // 🔒 PRIVACY FIX: ጠቅላላ deliveryOrders array ወደ buyer_catalog
-                                    // (ሁሉም ገዢ ማንበብ ወደሚችለው) ከመጻፍ ይልቅ የተነካውን ትዕዛዝ ብቻ ለራሱ
-
-                                    // ገዢ per-user node ላይ mirror እናደርጋለን።
-
                                     if (result.committed) {
-
                                         let ordersArr = result.snapshot.val() || [];
-
                                         let changedOrder = ordersArr.find(o => o && o.orderId == orderId);
-
                                         if (changedOrder) mirrorOrderToBuyer(changedOrder, shopKey);
-
                                     }
-
                                 });
-
                             }
-
                         });
-
                     }).catch(err => console.warn("ማሳሰቢያ: ሞተረኛ ፍለጋ አልተሳካም:", err));
-
                 }
-
             }
 
-
-
             localDB.myOrders[orderKey] = ord;
-
             saveToLocalStorage();
-
             pushBuyerFirebase();
-
             if (typeof db !== 'undefined' && navigator.onLine) {
-
-                // 🆕 FIX: read→modify→write ሳይሆን transaction() ስለሆነ ከሌላ ጎን (ለምሳሌ
-
-                // ሻጭ በራሱ በኩል) ተመሳሳይ ደቂቃ ላይ ለውጥ ቢያደርግ ዳታ አይጠፋም/አይደገምም።
-
                 db.ref(`tirfe_system/tenants/${shopKey}/data/deliveryOrders`).transaction((currentOrders) => {
                     if (!currentOrders) return currentOrders;
-
                     let ordersArr = Array.isArray(currentOrders) ? currentOrders : Object.values(currentOrders);
-
                     let i3 = ordersArr.findIndex(o => o && o.orderId == orderId);
-
                     if (i3 > -1) ordersArr[i3].deliveryFeePaid = fee;
-
                     return ordersArr;
-
                 }).then((result) => {
-
                     if (result.committed) {
-
                         db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now());
                         let ordersArr = result.snapshot.val() || [];
                         let changedOrder = ordersArr.find(o => o && o.orderId == orderId);
