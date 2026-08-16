@@ -9,6 +9,7 @@ let localDB = {
     motorQuotas: {},
     public_locations: {},
     taxReceipts: [],
+    myOrders: {}, // 🆕 🔒 PRIVACY FIX: ገዢው የራሱን ትዕዛዞች ብቻ የያዘ per-user cache (tirfe_system/buyer_orders/{username})
     adminSettings: { bankAccount: '', vatRate: 0, motorTariff: 0, deliveryCommissionRate: 10 },
     tariffs: { low: 500, medium: 1000, high: 2000 },
     businessTypes: ["አጠቃላይ ንግድ", "ኤሌክትሮኒክስ", "ፋርማሲ", "ልብስ እና ጫማ", "ግሮሰሪ", "ኮስሞቲክስ", "ካፌ እና ሬስቶራንት"]
@@ -132,6 +133,7 @@ function applyBackupToLocalDB(parsedBackup) {
     if(parsedBackup.motors) localDB.motors = parsedBackup.motors;
     if(parsedBackup.motorQuotas) localDB.motorQuotas = parsedBackup.motorQuotas;
     if(parsedBackup.taxReceipts) localDB.taxReceipts = parsedBackup.taxReceipts;
+    if(parsedBackup.myOrders) localDB.myOrders = parsedBackup.myOrders; // 🆕 🔒 PRIVACY FIX
     if(parsedBackup.tariffs) localDB.tariffs = parsedBackup.tariffs;
     if(parsedBackup.public_locations) localDB.public_locations = parsedBackup.public_locations;
     if(parsedBackup.businessTypes) localDB.businessTypes = parsedBackup.businessTypes;
@@ -146,7 +148,6 @@ function applyBackupToLocalDB(parsedBackup) {
 async function loadLocalStorageBackup() {
     try {
         let parsedQueue = await idbGet(ACTION_QUEUE_KEY);
-        // actionQueue ገና ካልተነካካ (ተጠቃሚው በዚህ መሃል action ካልጨመረ) ብቻ ከ IDB ይሙላ
         if (parsedQueue && actionQueue.length === 0) actionQueue = parsedQueue;
 
         let parsedBackup = await idbGet(LOCAL_DB_KEY);
@@ -186,8 +187,6 @@ function queueAction(actionType, collection, docId, data) {
     };
     actionQueue.push(newAction);
    saveActionQueue();
-   // 🆕 FIX: እያንዳንዱ አዲስ ትዕዛዝ ገፁ ሳይታደስ ወዲያውኑ ወደ Firebase እንዲላክ (ከዚህ በፊት እዚህ ውስጥ
-   // ምንም የመላኪያ ጥሪ ስላልነበረ፣ ዳታው ገፁ እስኪታደስ ወይም ኢንተርኔት off/on እስኪደረግ ድረስ ተጣብቆ ይቀር ነበር)
    if (isOnline && typeof db !== 'undefined') {
        processActionQueue();
    }
@@ -202,10 +201,6 @@ function processActionQueue() {
         ? `tirfe_system/${currentAction.collection}/${currentAction.docId}`
         : `tirfe_system/${currentAction.collection}`;
     let fbRequest;
-    // 🛠️ ማስተካከያ: db.ref().update()/.set() ውስጥ payload ላይ undefined ካለ Firebase
-    // SDK synchronously ስህተት ይወረውራል (throw)። ይህ ከዚህ በፊት try/catch ስላልነበረው
-    // ሙሉውን actionQueue ላይመለስ ድረስ ያደናቅፍ ነበር (isProcessingQueue ተጣብቆ ይቀር ነበር)።
-    // አሁን ይህን ስህተት እንይዘዋለን፣ ችግር ያለበትን ንጥል ብቻ አልፈን ወደ ቀጣዩ እንቀጥላለን።
     try {
         if (currentAction.actionType === 'UPDATE') {
             fbRequest = db.ref(refPath).update(currentAction.payload);
@@ -216,8 +211,6 @@ function processActionQueue() {
         }
     } catch (syncErr) {
         console.error("Firebase Sync Error (payload/validation):", syncErr, currentAction);
-        // ችግር ያለበትን ንጥል ከ queue አውጣ (ደግመን ብንሞክር ተመሳሳይ ስህተት ይደግማል)፣
-        // ግን ስርዓቱ ጠቅልሎ እንዳይደናቀፍ isProcessingQueue ን መልስ
         actionQueue.shift();
         saveActionQueue();
         isProcessingQueue = false;
@@ -275,8 +268,7 @@ async function uploadImageToStorage(file, folderName, username) {
     }
 }
 // --------------------------------------------------------
-// 📜 Dynamic Script Loader - auth.js ከ login በኋላ ተገቢውን db_modules/db_X.js
-// በትክክለኛው ጊዜ (ደህንነት cookie ከተቀመጠ በኋላ) ጭኖ push ለማድረግ የሚጠቀምበት
+// 📜 Dynamic Script Loader 
 // --------------------------------------------------------
 function loadScriptOnce(src) {
     return new Promise((resolve, reject) => {
@@ -296,8 +288,7 @@ function pushToFirebase(scopes) {
     if(typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
         if (typeof pushAdminFirebase === 'function') pushAdminFirebase();
     } else {
-        // 🆕 scopes የሚያገለግለው ለሻጭ (tenant) ብቻ ነው - ገዢ/ገቢዎች/ሞተረኛ የራሳቸውን ብቻ ስለሚጽፉ
-        // (የተለያየ session global ስለሚጠቀሙ) ተጨማሪ scoping አያስፈልጋቸውም
+        // 🆕 scopes
         if (typeof pushTenantFirebase === 'function') pushTenantFirebase(scopes);
         if (typeof pushBuyerFirebase === 'function') pushBuyerFirebase();
         if (typeof pushRevenueFirebase === 'function') pushRevenueFirebase();
@@ -306,12 +297,7 @@ function pushToFirebase(scopes) {
     processActionQueue();
 }
 // --------------------------------------------------------
-// 🆕 Registration-time Mirror Writer (session-independent)
-// pushTenantFirebase() ከ currentTenant (login session global) ይነበባል፣
-// ስለዚህ በምዝገባ ወቅት (login ገና ስላልተደረገ) ስራ ላይ አይውልም (silent no-op)።
-// ይህ function ግን username/tenantData በቀጥታ parameter ስለሚቀበል
-// index.html (ገና login ባልተደረገበት ገጽ) ላይም መጠቀም ይቻላል - db_public.js
-// ሁሉም ገጽ ላይ ስለሚጫን።
+// 🆕 Registration-time Mirror 
 // --------------------------------------------------------
 function writeTenantMirrorsOnRegister(username, tenantData) {
     let currentTime = Date.now();
@@ -322,7 +308,6 @@ function writeTenantMirrorsOnRegister(username, tenantData) {
         googleMapsLink: tenantData.googleMapsLink, shopLogo: tenantData.shopLogo,
         lastUpdated: currentTime
     });
-
     queueAction('UPDATE', 'buyer_catalog', username, {
         status: tenantData.status, shopName: tenantData.shopName,
         businessType: tenantData.businessType, phone: tenantData.phone,
@@ -330,8 +315,6 @@ function writeTenantMirrorsOnRegister(username, tenantData) {
         shopLogo: tenantData.shopLogo, lastUpdated: currentTime,
         data: { inventory: [], deliveryOrders: [] }
     });
-
-    // 🚫 gmail በጭራሽ ወደ revenue_view አይላክም - ገቢዎች ባለስልጣን ኢሜል ማየት የለበትም
     queueAction('UPDATE', 'revenue_view', username, {
         username: tenantData.username, fullName: tenantData.fullName,
         shopName: tenantData.shopName, businessType: tenantData.businessType,
@@ -349,9 +332,6 @@ function writeTenantMirrorsOnRegister(username, tenantData) {
         address: tenantData.address, googleMapsLink: tenantData.googleMapsLink,
         contractType: tenantData.contractType, registrationFee: tenantData.registrationFee,
         expiryDate: tenantData.expiryDate,
-        // 🛠️ ማስተካከያ: expiryNotified በአዲስ ምዝገባ ወቅት ገና አልተፈጠረም (undefined ነው)፣
-        // Firebase undefined ያለበት object አይቀበልም እና ሙሉ queue ን ያደናቅፋል - ስለዚህ
-        // fallback (false) ጨምረናል
         expiryNotified: tenantData.expiryNotified || false,
         status: tenantData.status,
         uid: tenantData.uid, locationKey: tenantData.locationKey,
@@ -374,8 +354,7 @@ function triggerUIRefresh() {
     if(typeof window.refreshAdminUI === 'function') window.refreshAdminUI();
 }
 // --------------------------------------------------------
-// 🔐 shouldUpdateLocal - ሁሉም db_modules/*.js listeners የሚጠቀሙት የጋራ helper
-// (ገና ያልተላከ ዳታ በ Queue ውስጥ ካለ incoming update እንዳይተካው የሚከላከል)
+// 🔐 shouldUpdateLocal
 // --------------------------------------------------------
 function shouldUpdateLocal(incomingData, localData, collection, docId) {
     let pendingQueue = actionQueue || [];
@@ -417,10 +396,11 @@ if (typeof db !== 'undefined') {
         if (typeof window.setupRevenueListeners === 'function') window.setupRevenueListeners();
         if (typeof window.setupMotorListeners === 'function') window.setupMotorListeners();
     };
+
     // 🆕 SPLIT-FIX
     document.addEventListener('DOMContentLoaded', function() {
         fetchStaticData();
         setupSecureUserListeners();
         processActionQueue();
     });                                    
-        }
+                    }
