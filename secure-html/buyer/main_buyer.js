@@ -294,207 +294,87 @@ window.submitDeliveryFee = function(shopKey, orderId) {
                     if (result.committed) {
 
                         db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now());
-
-                        // 🔒 PRIVACY FIX: ጠቅላላ deliveryOrders array ወደ buyer_catalog
-
-                        // (ሁሉም ገዢ ማንበብ ወደሚችለው) ከመጻፍ ይልቅ የተነካውን ትዕዛዝ ብቻ ለራሱ
-
-                        // ገዢ per-user node ላይ mirror እናደርጋለን።
-
                         let ordersArr = result.snapshot.val() || [];
-
                         let changedOrder = ordersArr.find(o => o && o.orderId == orderId);
-
                         if (changedOrder) mirrorOrderToBuyer(changedOrder, shopKey);
-
                     }
-
                 });
-
             }
-
-
-
             showCustomAlert("✅ ተሳክቷል", "የዴሊቨሪ ክፍያ መጠን በተሳካ ሁኔታ ገብቷል! መረጃው በቀጥታ ለሞተረኛው ተልኳል።");
-
             renderBuyerCatalog();
-
         }
     }
-
 };
-
-
-
 window.renderBuyerCart = function() {
-
     let section = document.getElementById('buyerCartSection');
-
     let listBody = document.getElementById('buyerCartList');
-
     let cartTotalBar = section.querySelector('.cart-total-bar');
-
     if(!window.buyerCartData || window.buyerCartData.length === 0) {
-
         section.style.display = 'none';
-
         listBody.innerHTML = ''; 
-
         if(cartTotalBar) cartTotalBar.innerHTML = `አጠቃላይ ሂሳብ: <span id="buyerCartTotalSum" style="color: var(--success-color);">0</span> ብር`;
-
         return;
-
     }
-
-
-
     section.style.display = 'block'; listBody.innerHTML = '';
-
     let grandTotal = 0;
-
     window.buyerCartData.forEach((c, i) => {
-
         grandTotal += c.total;
-
         let shopName = localDB.tenants[c.shopKey] ? localDB.tenants[c.shopKey].shopName : "ሱቅ";
-
         listBody.innerHTML += `
-
         <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
             <td style="color:var(--text-color);"><b>${c.itemName}</b><br><small style="color:var(--accent-color)">[${shopName}]</small></td>
-
             <td style="color:var(--text-color);">${c.qty}</td>
-
             <td style="color:var(--success-color);"><b>${c.total}</b></td>
-
             <td><button class="btn-expense btn-sm" onclick="removeFromBuyerCart(${i})">❌ አጥፋ</button></td>
-
         </tr>`;
-
     });
-
     let vatRate = (localDB.adminSettings && localDB.adminSettings.vatRate) ? parseFloat(localDB.adminSettings.vatRate) : 0;
-
     let vatAmount = (grandTotal * vatRate) / 100;
-
     let finalTotal = grandTotal + vatAmount;
-
-    
-
     if (cartTotalBar) {
-
         if (vatRate > 0) {
-
             cartTotalBar.innerHTML = `
-
                 <div style="font-size: 0.95rem;">የዕቃዎች ድምር (Subtotal): <span style="color: white;">${grandTotal.toFixed(2)}</span> ብር</div>
-
                 <div style="font-size: 0.9rem; color: var(--danger-color);">ቫት (VAT ${vatRate}%): <span>${vatAmount.toFixed(2)}</span> ብር</div>
-
                 <div style="border-top: 1px dashed #eab308; padding-top: 5px; margin-top: 5px;">ጠቅላላ ሂሳብ (Total): <span id="buyerCartTotalSum" style="color: var(--success-color); font-weight: bold;">${finalTotal.toFixed(2)}</span> ብር</div>
-
             `;
-
         } else {
-
             cartTotalBar.innerHTML = `አጠቃላይ ሂሳብ: <span id="buyerCartTotalSum" style="color: var(--success-color);">${grandTotal.toFixed(2)}</span> ብር`;
-
         }
-
     }
 };
-
-
-
 window.removeFromBuyerCart = function(i) { if(window.buyerCartData) { window.buyerCartData.splice(i, 1); renderBuyerCart(); } };
-
-
-
-// 🔒 PRIVACY FIX: ከዚህ በፊት የሱቁ ጠቅላላ deliveryOrders array (ማለትም ያ ሱቅ ላይ ያዘዙት
-
-// ሁሉም ገዢዎች ትዕዛዝ - ስልክ ቁጥር፣ አድራሻ፣ የጎግል ማፕ ሊንክ ጨምሮ) ወደ 'buyer_catalog' node ይገለበጥ
-
-// ነበር - ያ node ላይ ደግሞ ማንኛውም ገዢ (setupBuyerListeners) ስለሚያዳምጥ የሌላ ገዢ የግል መረጃ
-
-// ወደ ራሱ IndexedDB/localStorage ይወርድ ነበር። አሁን ለእያንዳንዱ order የተለየ per-buyer node
-
-// (tirfe_system/buyer_orders/{ራሱ ገዢ username}/...) ላይ ብቻ ስለምንጽፍ፣ ገዢው የራሱን ትዕዛዝ
-
-// ብቻ ነው ማየት/ማውረድ የሚችለው (ይህ Firebase Security Rules ደግሞ ማስከበር አለበት - ከታች ማስታወሻ ይመልከቱ)።
-
 function mirrorOrderToBuyer(order, shopKey) {
-
     if (typeof db === 'undefined' || !navigator.onLine || !order || !order.buyerUser) return;
-
     let path = `tirfe_system/buyer_orders/${order.buyerUser}/${shopKey}_${order.orderId}`;
-
     db.ref(path).set({
-
         shopKey: shopKey, orderId: order.orderId, itemName: order.itemName,
-
         total: order.total, status: order.status, transport: order.transport,
-
         deliveryFeePaid: order.deliveryFeePaid || 0, motorUser: order.motorUser || null,
-
-        // 🔒 ማስታወሻ: buyerPhone/address/mapLink እዚህ ማካተት ችግር የለውም ምክንያቱም ይህ node
-
-        // ራሱ ለዚያ ገዢ ብቻ የተገደበ ነው (የራሱ ዳታ) - ችግር የነበረው ይህ ወደ ጋራ 'buyer_catalog'
-
-        // ሲገለበጥ (ለሌላ ገዢዎችም ስለሚደርስ) ብቻ ነው።
-
         buyerPhone: order.buyerPhone, address: order.address, mapLink: order.mapLink,
         date: order.date, lastUpdated: Date.now()
-
     }).catch(err => console.error("Buyer order mirror failed:", err));
-
 }
-
-
-
 window.checkoutBuyerCart = function(orderType) {
-
     if(!window.buyerCartData || window.buyerCartData.length === 0) { showCustomAlert("ስህተት", "ምንም ዕቃ አልመረጡም!"); return; }
-
-
-
     let shopKey = window.buyerCartData[0].shopKey;
-
     let t = localDB.tenants[shopKey];
-
     if(!t) return;
-
-
     let grandTotal = 0;
-
     let itemNamesArr = [];
-
     window.buyerCartData.forEach(c => {
-
         grandTotal += c.total;
-
         itemNamesArr.push(`${c.itemName} (x${c.qty})`);
-
     });
-
     let combinedItems = itemNamesArr.join("፣ ");
-
-
-
     if(orderType === 'shop') {
-
         showCustomConfirm("🛒 ሱቅ ሄጄ እወስዳለሁ", "ሁሉንም የቅርጫት ትዕዛዞች 'ሱቅ ሄጄ እወስዳለሁ' በሚል ወደ ሱቁ መላክ ይፈልጋሉ?", () => {
             let newCartItems = [];
-
             window.buyerCartData.forEach(item => {
-
                 newCartItems.push({
-
-                    itemIdx: item.itemIdx, 
-
+                 itemIdx: item.itemIdx, 
                     itemName: item.itemName, qty: item.qty, price: item.price, total: item.total
-
                 });
-
             });
 
             if (typeof db !== 'undefined' && navigator.onLine) {
