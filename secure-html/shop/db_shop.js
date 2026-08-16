@@ -2,8 +2,7 @@
 // 📁 db_modules/db_shop.js
 // ==========================================
 // --------------------------------------------------------
-// 🎯 Buyer Catalog Sanitizer - ገዢ የሱቅን ስቶክ/ብዛት (qty/sold) እና ግዢ ዋጋ (cost)
-// በፍጹም እንዳያይ ብቻ ግብይት ለመፈጸም የሚያስፈልገውን (ስም/ዋጋ/ፎቶ) ብቻ ይመልሳል
+// 🎯 Buyer Catalog Sanitizer
 // --------------------------------------------------------
 function sanitizeInventoryForBuyer(inv) {
     return (inv || []).map(item => ({
@@ -18,9 +17,8 @@ function sanitizeInventoryForBuyer(inv) {
     }));
 }
 // --------------------------------------------------------
-// 🚀 Targeted Push - scopes = array, ምሳሌ: ['inventory'], ['vat'], ['profile'], ወይም [] (ራሱን ብቻ)
-// scopes ካልተሰጠ (undefined) ሙሉ ፑሽ ይደረጋል (ለምሳሌ ኢንተርኔት ሲመለስ ሙሉ resync ለማድረግ)
-// --------------------------------------------------------
+// 🚀 Targeted Push - scopes = array,
+// --------------------------------------------------
 function pushTenantFirebase(scopes) {
     if(typeof currentTenant !== 'undefined' && currentTenant) {
         let fullPush = (typeof scopes === 'undefined');
@@ -97,8 +95,6 @@ function pushTenantFirebase(scopes) {
                 });
             }
 
-            // 5️⃣ 'buyer_catalog/data/inventory' - እቃ ሲመዘገብ/ሲስተካከል/ሲሰረዝ ብቻ (ስቶክ ሳይሆን ካታሎግ ብቻ)
-            // multi-path partial update ("data/inventory") ስለምንጠቀም deliveryOrders አይነካም
             if(hasScope('inventory')) {
                 let sanitizedInv = sanitizeInventoryForBuyer((tenantData.data && tenantData.data.inventory) || []);
                 queueAction('UPDATE', 'buyer_catalog', currentTenant.username, {
@@ -115,8 +111,6 @@ function pushTenantFirebase(scopes) {
                 });
             }
 
-            // 7️⃣ 'buyer_catalog/data/deliveryOrders' - የትዕዛዝ ሁኔታ (pending/accepted/completed/...)
-            // ሲቀየር ብቻ - ገዥ የራሱን ትዕዛዝ real-time እንዲከታተል ወሳኝ ነው
             if(hasScope('orders')) {
                 queueAction('UPDATE', 'buyer_catalog', currentTenant.username, {
                     'data/deliveryOrders': (tenantData.data && tenantData.data.deliveryOrders) || [],
