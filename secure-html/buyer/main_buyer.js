@@ -497,108 +497,47 @@ window.checkoutBuyerCart = function(orderType) {
 
             });
 
-
-
-            // 🔒 SECURITY/RACE-CONDITION FIX (v2): once('value') → .update() የነበረው
-
-            // read-modify-write pattern atomic ስላልነበረ፣ ተመሳሳይ ደቂቃ/ሰከንድ ላይ ሌላ ጽሁፍ
-
-            // (ለምሳሌ ተመሳሳይ ገዢ ከሌላ ትር/መሳሪያ፣ ወይም ሌላ ሂደት) ወደዚሁ path ቢጽፍ አንዱ የሌላውን
-
-            // ውጤት ይደመስስ ነበር። transaction() ደግሞ Firebase server ራሱ ግጭት ካጋጠመ
-
-            // ራሱ በራሱ በጣም የቅርብ ጊዜውን ዳታ ላይ ደግሞ ስለሚተገብር ምንም ትዕዛዝ ፈጽሞ አይጠፋም።
-
             if (typeof db !== 'undefined' && navigator.onLine) {
-
                 db.ref(`tirfe_system/tenants/${shopKey}/data/remoteCarts/${currentBuyer.username}`)
-
                   .transaction((currentCart) => {
-
                       let latestCart = currentCart || [];
-
                       newCartItems.forEach(ci => latestCart.push(ci));
-
                       return latestCart;
-
                   })
 
                   .then((result) => {
                       if (result.committed) {
-
-                          // የሻጩ real-time listener (shouldUpdateLocal) tenant root ላይ
-
-                          // ያለው lastUpdated ሲቀየር ብቻ ስለሚነቃ፣ ያንን ለብቻ እናዘምናለን።
-
                           db.ref(`tirfe_system/tenants/${shopKey}/lastUpdated`).set(Date.now());
-
                       } else {
-
                           showCustomAlert("ስህተት", "ትዕዛዝ መላክ አልተቻለም፣ እባክዎ ደግመው ይሞክሩ።");
-
                       }
-
                   })
-
                   .catch(err => {
-
                       console.error("Cart transaction failed:", err);
-
                       showCustomAlert("ስህተት", "ትዕዛዝ መላክ አልተቻለም፣ እባክዎ ደግመው ይሞክሩ።");
-
                   });
-
             } else {
-
                 if(!t.data) t.data = {};
-
                 if(!t.data.remoteCarts) t.data.remoteCarts = {};
-
                 if(!t.data.remoteCarts[currentBuyer.username]) t.data.remoteCarts[currentBuyer.username] = [];
-
                 newCartItems.forEach(ci => t.data.remoteCarts[currentBuyer.username].push(ci));
-
                 t.lastUpdated = Date.now();
-
                 localDB.tenants[shopKey] = t;
-
                 saveToLocalStorage();
-
-                // 🆕 FIX: pushBuyerFirebase() የገዢውን ራሱን ዳታ ብቻ ስለሚልክ (የሻጩን tenant ዳታ
-                // አይደለም)፣ ኦፍላይን ሆኖ ትዕዛዝ ሲላክ ወደ ሻጩ በጭራሽ አይደርስም ነበር። አሁን የሻጩን ዳታ
-
-                // (አዲሱን remoteCart ጨምሮ) በቀጥታ ወደ actionQueue በመጨመር ሲመለስ እንዲላክ ተደርጓል።
-
                 queueAction('UPDATE', 'tenants', shopKey, cleanData(t));
-
             }
-
-
-
             window.buyerCartData = [];
-
             renderBuyerCart();
-
             showCustomAlert("✅ ተሳክቷል", "ትዕዛዞችዎ በተሳካ ሁኔታ ተልከዋል! ሱቁ ሲያረጋግጥ የ'ተቆረጡ ደረሰኞች' ቦታ ላይ ይደርስዎታል።");
-
         });
-
     } else if(orderType === 'delivery') {
-
         showFormModal("🚚 ዴሊቨሪ ማዘዣ", [
-
             { id: "phone", label: "ስልክ ቁጥርዎ (ግዴታ)", type: "text", defaultValue: currentBuyer.phone },
-
             { id: "address", label: "ያሉበት ትክክለኛ አድራሻ / ሰፈር (ግዴታ)", type: "text", placeholder: "ምሳሌ: ቦሌ ሚካኤል፣ ህንፃ 3..." },
-
             { id: "mapLink", label: "የጎግል ማፕ ሊንክ (አማራጭ)", type: "text", placeholder: "https://maps.google.com/..." },
-
             { id: "transport", label: "የትራንስፖርት ምርጫ (ግዴታ)", type: "select", options: [
-
                 { value: "", label: "-- ይምረጡ --" },
-
                 { value: "motor", label: "🏍️ ሞተረኛ" },
-
                 { value: "car", label: "🚗 መኪና" }
 
             ]}
@@ -727,15 +666,11 @@ window.renderBuyerCatalog = async function() {
                 if (t.data && t.data.inventory) {
                      t.data.inventory.forEach((item, index) => {
                         let isItemMatch = query === "" || isShopMatch || 
-
                                           item.name.toLowerCase().includes(query) ||
-
                                           (item.model && item.model.toLowerCase().includes(query));
 
                         if (isItemMatch) {
-
                             allItems.push({ ...item, originalIdx: index, shopKey: tKey, tenant: t });
-
                        }
                     });
                 }
@@ -873,22 +808,14 @@ window.renderBuyerCatalog = async function() {
         container.innerHTML = '<p style="text-align:center; color:#94a3b8; grid-column: 1/-1; padding:20px;">በተፈለገው ስም የተገኘ ምንም ሱቅ ወይም ዕቃ የለም።</p>';
     }
     let liveBuyerReceipts = (currentBuyer && localDB.buyers) ? localDB.buyers[currentBuyer.username] : currentBuyer;
-
     if(liveBuyerReceipts && liveBuyerReceipts.receipts) {
-
         let reversed = [...liveBuyerReceipts.receipts].reverse();
-
         let filterDate = document.getElementById('buyerReceiptDateFilter') ? document.getElementById('buyerReceiptDateFilter').value : "";
         reversed.forEach(rec => {
-
             if (filterDate && rec.date !== filterDate) return;
-
             myReceiptsHTML += `<tr>
-
                 <td><b>#${rec.recId}</b></td><td>${rec.date}</td>
-
                 <td>${rec.itemName} (${rec.count})</td>
-
                 <td style="color:var(--success-color);"><b>${rec.totalVal} ETB</b></td>
                 <td><button class="btn-sm btn-add" onclick="viewBuyerReceipt('${rec.recId}')">📥 አውርድ</button></td>
             </tr>`;
