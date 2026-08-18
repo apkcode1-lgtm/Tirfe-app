@@ -8,9 +8,43 @@ function pushMotorFirebase() {
         if(motorData) {
             motorData.lastUpdated = currentTime;
             motorData.locationKey = computeLocationKey(motorData);
+            // 1️⃣ 'motors' - ሙሉ ዳታ (history/activeOrders ጨምሮ)
             queueAction('UPDATE', 'motors', currentMotor.username, motorData);
+
+            // 2️⃣ 'admin_motor_summary' - ለአድሚን 
+            queueAction('UPDATE', 'admin_motor_summary', currentMotor.username, buildAdminMotorSummary(motorData, currentTime));
+
+            // 3️⃣ 'motor_location_view
+            queueAction('UPDATE', 'motor_location_view', currentMotor.username, {
+                locationKey: motorData.locationKey,
+                lastUpdated: currentTime
+            });
         }
     }
+}
+
+// --------------------------------------------------------
+// 🛠️ ማስተካከያ: አድሚን
+// --------------------------------------------------------
+function buildAdminMotorSummary(motorData, currentTime) {
+    return {
+        username: motorData.username,
+        firstName: motorData.firstName,
+        lastName: motorData.lastName,
+        phone: motorData.phone,
+        email: motorData.email,
+        plateNumber: motorData.plateNumber,
+        region: motorData.region,
+        zone: motorData.zone,
+        woreda: motorData.woreda,
+        credit: motorData.credit,
+        accountStatus: motorData.accountStatus,
+        creditBlocked: motorData.creditBlocked,
+        uid: motorData.uid,
+        idCardImage: motorData.idCardImage,
+        licenseImage: motorData.licenseImage,
+        lastUpdated: currentTime
+    };
 }
 
 // --------------------------------------------------------
