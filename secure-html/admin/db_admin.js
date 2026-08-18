@@ -22,12 +22,28 @@ function pushAdminRecordUpdate(collection, docId, data) {
         cleaned.locationKey = computeLocationKey(cleaned);
     }
     queueAction('UPDATE', collection, docId, cleaned);
+
+    // 🆕 
+    if(collection === 'motors' && typeof buildAdminMotorSummary === 'function') {
+        queueAction('UPDATE', 'admin_motor_summary', docId, buildAdminMotorSummary(cleaned, cleaned.lastUpdated));
+        queueAction('UPDATE', 'motor_location_view', docId, {
+            locationKey: cleaned.locationKey,
+            lastUpdated: cleaned.lastUpdated
+        });
+    }
+
     saveToLocalStorage();
     processActionQueue();
 }
 function pushAdminRecordDelete(collection, docId) {
     if(!docId) return;
     queueAction('DELETE', collection, docId, null);
+    // 🆕 ማስተካከያ: ሞተረኛ ሲሰረዝ mirror node-ዎቹም (admin_motor_summary, motor_location_view)
+    // አብረው መጥፋት አለባቸው - ካልሆነ የ"ሞተ" ግቤት dashboard/ገቢዎች ቆጠራ ላይ ይቀራል
+    if(collection === 'motors') {
+        queueAction('DELETE', 'admin_motor_summary', docId, null);
+        queueAction('DELETE', 'motor_location_view', docId, null);
+    }
     saveToLocalStorage();
     processActionQueue();
 }
@@ -67,8 +83,6 @@ function pushAdminTenantDelete(username) {
     queueAction('DELETE', 'tenants', username, null);
     queueAction('DELETE', 'public_tenants', username, null);
     queueAction('DELETE', 'admin_tenant_summary', username, null);
-    // 🆕 ማስተካከያ: ተከራይ ሲጠፋ mirror node ዎቹም (buyer_catalog, revenue_view) አብረው
-    // መጥፋት አለባቸው - አለበለዚያ በገዢ/ገቢዎች ካታሎግ ላይ "የሞተ" ግቤት ብቻ ይቀራል
     queueAction('DELETE', 'buyer_catalog', username, null);
     queueAction('DELETE', 'revenue_view', username, null);
     saveToLocalStorage();
@@ -84,7 +98,6 @@ function sendAdminTelegramAlert(message) {
     let tgChatId = (localDB.adminSettings && localDB.adminSettings.tgChatId) ? localDB.adminSettings.tgChatId : null;
     fetch(backendAPIUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: message, token: tgToken, chatId: tgChatId }) }).catch(err => console.log(err));
 }
-
 // --------------------------------------------------------
 // 🔔 UI Refresh (admin only) - db_public.js's triggerUIRefresh() ይህን ይጠራል
 // --------------------------------------------------------
@@ -103,7 +116,7 @@ window.setupAdminListeners = function() {
         window.adminListenerAttached = true;
         const adminNodes = [
             { fbNode: 'admin_tenant_summary', localKey: 'tenants' },
-            { fbNode: 'motors', localKey: 'motors' },
+            { fbNode: 'admin_motor_summary', localKey: 'motors' },
             { fbNode: 'revenueAuthorities', localKey: 'revenueAuthorities' }
         ];
         adminNodes.forEach(nodeObj => {
