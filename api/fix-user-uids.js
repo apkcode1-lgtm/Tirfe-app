@@ -1,9 +1,9 @@
 // ==========================================
 // 📁 api/fix-user-uids.js
 // ==========================================
-// 🔄 ማስተካከያ፦ ይህ ፕሮጀክት admin ን የሚያረጋግጠው በ Firebase Auth idToken
-// ሳይሆን በ env variables (ADMIN_USERNAME/ADMIN_EMAIL/ADMIN_PASSWORD)
-// ስለሆነ (admin-login.js ላይ እንዳለው)፣ ይህ endpoint ተመሳሳይ ስልት ይጠቀማል።
+// 🔄 ማስተካከያ 2፦ Sequential (አንድ በአንድ) ፋንታ Promise.all
+// (parallel/በትይዩ) በመጠቀም ፈጣን እንዲሆን ተደርጓል - Vercel serverless
+// function timeout (10 ሰከንድ በ Hobby plan) እንዳይመታ ለመከላከል።
 //
 // 🧪 DRY RUN (ምንም አይቀየርም)፦
 //    POST /api/fix-user-uids
@@ -11,6 +11,9 @@
 //
 // ✅ እውነተኛ ማስተካከያ፦
 //    body: { username, email, password, dryRun: false }
+//
+// 🎯 አንድ node ብቻ ለማድረግ (ፈጣን እንዲሆን፣ timeout እንዳይመታ)፦
+//    body: { ..., nodes: ["tenants"] }
 // ==========================================
 
 const admin = require('./_firebaseAdmin');
@@ -38,6 +41,40 @@ const NODES_CONFIG = {
     }
 };
 
+async function processOneUser(username, record, config, dryRun) {
+    const email = config.getEmail(record);
+    const storedUid = record.uid || null;
+
+    if (!email) {
+        return { type: 'noEmail', username };
+    }
+
+    let authUser;
+    try {
+        authUser = await admin.auth().getUserByEmail(email);
+    } catch (err) {
+        return { type: 'notFoundInAuth', username, email };
+    }
+
+    const correctUid = authUser.uid;
+
+    if (storedUid === correctUid) {
+        return { type: 'alreadyOk' };
+    }
+
+    if (!dryRun) {
+        await admin.database().ref(`${config.path}/${username}/uid`).set(correctUid);
+    }
+
+    return {
+        type: 'fixed',
+        username,
+        email,
+        oldUid: storedUid || '(ባዶ/የለም)',
+        newUid: correctUid
+    };
+}
+
 async function processNode(config, dryRun) {
     const result = {
         label: config.label,
@@ -54,44 +91,19 @@ async function processNode(config, dryRun) {
 
     const records = snap.val();
     const usernames = Object.keys(records);
+    result.checked = usernames.length;
 
-    for (const username of usernames) {
-        result.checked++;
-        const record = records[username];
-        const email = config.getEmail(record);
-        const storedUid = record.uid || null;
+    // 🚀 ሁሉንም ተጠቃሚዎች በትይዩ (parallel) ማካሄድ - ፈጣን ይሆናል
+    const outcomes = await Promise.all(
+        usernames.map(username => processOneUser(username, records[username], config, dryRun))
+    );
 
-        if (!email) {
-            result.noEmail.push(username);
-            continue;
-        }
-
-        let authUser;
-        try {
-            authUser = await admin.auth().getUserByEmail(email);
-        } catch (err) {
-            result.notFoundInAuth.push({ username, email });
-            continue;
-        }
-
-        const correctUid = authUser.uid;
-
-        if (storedUid === correctUid) {
-            result.alreadyOk++;
-            continue;
-        }
-
-        if (!dryRun) {
-            await admin.database().ref(`${config.path}/${username}/uid`).set(correctUid);
-        }
-
-        result.fixed.push({
-            username,
-            email,
-            oldUid: storedUid || '(ባዶ/የለም)',
-            newUid: correctUid
-        });
-    }
+    outcomes.forEach(o => {
+        if (o.type === 'alreadyOk') result.alreadyOk++;
+        else if (o.type === 'noEmail') result.noEmail.push(o.username);
+        else if (o.type === 'notFoundInAuth') result.notFoundInAuth.push({ username: o.username, email: o.email });
+        else if (o.type === 'fixed') result.fixed.push({ username: o.username, email: o.email, oldUid: o.oldUid, newUid: o.newUid });
+    });
 
     return result;
 }
@@ -103,9 +115,8 @@ module.exports = async function handler(req, res) {
 
     try {
         const { username, email, password, dryRun, nodes } = req.body || {};
-        const isDryRun = dryRun !== false; // 🔒 default ሁልጊዜ dry-run
+        const isDryRun = dryRun !== false;
 
-        // 1️⃣ ልክ እንደ admin-login.js ተመሳሳይ ማረጋገጫ
         const ADMIN_USER = process.env.ADMIN_USERNAME;
         const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
         const ADMIN_PASS = process.env.ADMIN_PASSWORD;
@@ -118,7 +129,6 @@ module.exports = async function handler(req, res) {
             return res.status(403).json({ error: 'ይህንን ለማድረግ የ admin ፍቃድ ያስፈልጋል' });
         }
 
-        // 2️⃣ የትኞቹ nodes መስተካከል እንዳለባቸው መወሰን
         const targetKeys = Array.isArray(nodes) && nodes.length > 0
             ? nodes.filter(k => NODES_CONFIG[k])
             : Object.keys(NODES_CONFIG);
@@ -127,11 +137,13 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ error: 'ልክ ያልሆነ nodes ዝርዝር' });
         }
 
-        // 3️⃣ እያንዳንዱን node ማስተካከል
+        // 🚀 4ቱንም nodes በአንድ ጊዜ (parallel) ማካሄድ
+        const resultsArray = await Promise.all(
+            targetKeys.map(key => processNode(NODES_CONFIG[key], isDryRun))
+        );
+
         const results = {};
-        for (const key of targetKeys) {
-            results[key] = await processNode(NODES_CONFIG[key], isDryRun);
-        }
+        targetKeys.forEach((key, i) => { results[key] = resultsArray[i]; });
 
         return res.status(200).json({
             success: true,
