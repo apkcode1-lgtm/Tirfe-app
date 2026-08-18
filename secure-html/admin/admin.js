@@ -568,3 +568,60 @@ window.deleteTenant = function(user) {
         showCustomAlert("ተሳክቷል", "ተከራዩ ሙሉ በሙሉ ጠፍቷል።");
     });
 };
+
+// ==========================================
+// 📁 admin.js ውስጥ ይህንን ይጨምሩ
+// (uid Fix ን በ button ብቻ ከ admin panel ውስጥ ለማሄድ)
+// ==========================================
+async function runUidFixCheck(applyFix) {
+    let btn = document.getElementById('btnUidFixDryRun');
+    let btnApply = document.getElementById('btnUidFixApply');
+    if(btn) { btn.disabled = true; btn.innerText = "🔄 በማጣራት ላይ..."; }
+    if(btnApply) { btnApply.disabled = true; }
+
+    try {
+        let idToken = await auth.currentUser.getIdToken();
+
+        let res = await fetch('/api/fix-user-uids', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken, dryRun: !applyFix })
+        });
+        let data = await res.json();
+
+        if(!data.success) {
+            showCustomAlert("❌ ስህተት", data.error || "ያልታወቀ ስህተት ተፈጥሯል");
+            return;
+        }
+
+        // 📋 ውጤቱን ለማንበብ በሚቻል መልኩ መገንባት
+        let report = "";
+        for(let key in data.results) {
+            let r = data.results[key];
+            report += `\n📦 ${r.label}\n`;
+            report += `   የተፈተሸ: ${r.checked} | ትክክል ነበሩ: ${r.alreadyOk}\n`;
+            report += `   ${applyFix ? '✅ የተስተካከሉ' : '🛠️ መስተካከል ያለባቸው'}: ${r.fixed.length}\n`;
+            if(r.fixed.length > 0) {
+                r.fixed.forEach(f => {
+                    report += `      • ${f.username} (${f.email})\n`;
+                });
+            }
+            if(r.noEmail.length > 0) report += `   ⚠️ Email የሌላቸው: ${r.noEmail.join(', ')}\n`;
+            if(r.notFoundInAuth.length > 0) {
+                report += `   ❌ Auth ውስጥ ያልተገኙ: ${r.notFoundInAuth.map(x => x.username).join(', ')}\n`;
+            }
+        }
+
+        showCustomAlert(
+            applyFix ? "✅ ማስተካከያ ተጠናቋል" : "🧪 Dry-Run ውጤት",
+            report || "ምንም ችግር አልተገኘም! ✅"
+        );
+
+    } catch(err) {
+        console.error(err);
+        showCustomAlert("❌ ስህተት", "ጥያቄው አልተሳካም: " + err.message);
+    } finally {
+        if(btn) { btn.disabled = false; btn.innerText = "🧪 uid Dry-Run አሂድ"; }
+        if(btnApply) { btnApply.disabled = false; }
+    }
+}
