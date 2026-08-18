@@ -1,14 +1,16 @@
 // ==========================================
 // 📁 api/fix-user-uids.js
 // ==========================================
-// ይህ endpoint ልክ እንደ create-privileged-user.js / set-user-role.js
-// admin-only endpoint ነው። tenants, buyers, revenueAuthorities, motors
-// ውስጥ ያለውን "uid" field ከ Firebase Authentication UID ጋር በማመሳከር
-// ትክክል ያልሆኑትን/የጠፉትን ያስተካክላል።
+// 🔄 ማስተካከያ፦ ይህ ፕሮጀክት admin ን የሚያረጋግጠው በ Firebase Auth idToken
+// ሳይሆን በ env variables (ADMIN_USERNAME/ADMIN_EMAIL/ADMIN_PASSWORD)
+// ስለሆነ (admin-login.js ላይ እንዳለው)፣ ይህ endpoint ተመሳሳይ ስልት ይጠቀማል።
 //
-// 🔒 ማስተካከያ የሚያደርገው admin ብቻ ነው (idToken ማረጋገጫ + decodedToken.role === 'admin')
+// 🧪 DRY RUN (ምንም አይቀየርም)፦
+//    POST /api/fix-user-uids
+//    body: { username, email, password, dryRun: true }
 //
-// 🧪 DRY RUN
+// ✅ እውነተኛ ማስተካከያ፦
+//    body: { username, email, password, dryRun: false }
 // ==========================================
 
 const admin = require('./_firebaseAdmin');
@@ -36,15 +38,15 @@ const NODES_CONFIG = {
     }
 };
 
-async function processNode(key, config, dryRun) {
+async function processNode(config, dryRun) {
     const result = {
         label: config.label,
         path: config.path,
         checked: 0,
         alreadyOk: 0,
-        fixed: [],          // { username, email, oldUid, newUid }
-        noEmail: [],        // [username]
-        notFoundInAuth: []  // [{ username, email }]
+        fixed: [],
+        noEmail: [],
+        notFoundInAuth: []
     };
 
     const snap = await admin.database().ref(config.path).once('value');
@@ -99,21 +101,24 @@ module.exports = async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { idToken, dryRun, nodes } = req.body || {};
-    const isDryRun = dryRun !== false; // 🔒 default ሁልጊዜ dry-run (ደህንነት ስንል)
-
-    if (!idToken) {
-        return res.status(400).json({ error: 'idToken ያስፈልጋል' });
-    }
-
     try {
-        // 1️⃣ የላከው ሰው በእውነት admin መሆኑን ማረጋገጥ
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        if (decodedToken.role !== 'admin') {
+        const { username, email, password, dryRun, nodes } = req.body || {};
+        const isDryRun = dryRun !== false; // 🔒 default ሁልጊዜ dry-run
+
+        // 1️⃣ ልክ እንደ admin-login.js ተመሳሳይ ማረጋገጫ
+        const ADMIN_USER = process.env.ADMIN_USERNAME;
+        const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+        const ADMIN_PASS = process.env.ADMIN_PASSWORD;
+
+        if (!ADMIN_PASS || !ADMIN_EMAIL || !ADMIN_USER) {
+            return res.status(500).json({ error: 'Server ENV error: Admin credentials are not fully set.' });
+        }
+
+        if (username !== ADMIN_USER || email !== ADMIN_EMAIL || password !== ADMIN_PASS) {
             return res.status(403).json({ error: 'ይህንን ለማድረግ የ admin ፍቃድ ያስፈልጋል' });
         }
 
-        // 2️⃣ የትኞቹ nodes መስተካከል እንዳለባቸው መወሰን (ካልተገለጸ ሁሉንም)
+        // 2️⃣ የትኞቹ nodes መስተካከል እንዳለባቸው መወሰን
         const targetKeys = Array.isArray(nodes) && nodes.length > 0
             ? nodes.filter(k => NODES_CONFIG[k])
             : Object.keys(NODES_CONFIG);
@@ -125,7 +130,7 @@ module.exports = async function handler(req, res) {
         // 3️⃣ እያንዳንዱን node ማስተካከል
         const results = {};
         for (const key of targetKeys) {
-            results[key] = await processNode(key, NODES_CONFIG[key], isDryRun);
+            results[key] = await processNode(NODES_CONFIG[key], isDryRun);
         }
 
         return res.status(200).json({
