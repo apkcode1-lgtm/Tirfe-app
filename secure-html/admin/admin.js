@@ -572,20 +572,45 @@ window.deleteTenant = function(user) {
 // ==========================================
 // 📁 admin.js ውስጥ ይህንን ይጨምሩ
 // (uid Fix ን በ button ብቻ ከ admin panel ውስጥ ለማሄድ)
+//
+// 🔄 ማስተካከያ፦ admin idToken ስለሌለው (Firebase Auth ውስጥ ስለማይገባ)፣
+// ይህ function ልክ እንደ login ገጹ username/email/password
+// በ modal እንደገና ጠይቆ ወደ /api/fix-user-uids ይልካል።
 // ==========================================
-async function runUidFixCheck(applyFix) {
+function promptUidFixCredentials(applyFix) {
+    showFormModal(
+        applyFix ? "⚠️ እውነተኛ ማስተካከያ ለማድረግ ፍቃድዎን ያረጋግጡ" : "🧪 Dry-Run ለማድረግ ፍቃድዎን ያረጋግጡ",
+        [
+            { id: "adminUser", label: "የ Admin ዩዘርኔም፦", type: "text" },
+            { id: "adminEmail", label: "የ Admin ኢሜል፦", type: "email" },
+            { id: "adminPass", label: "የ Admin የይለፍ ቃል፦", type: "password" }
+        ],
+        async (res) => {
+            if(!res.adminUser || !res.adminEmail || !res.adminPass) {
+                showCustomAlert("ስህተት", "ሁሉንም መስኮች መሙላት አለብዎት!");
+                return;
+            }
+            await runUidFixCheck(applyFix, res.adminUser, res.adminEmail, res.adminPass);
+        }
+    );
+}
+
+async function runUidFixCheck(applyFix, adminUser, adminEmail, adminPass) {
     let btn = document.getElementById('btnUidFixDryRun');
     let btnApply = document.getElementById('btnUidFixApply');
     if(btn) { btn.disabled = true; btn.innerText = "🔄 በማጣራት ላይ..."; }
     if(btnApply) { btnApply.disabled = true; }
 
     try {
-        let idToken = await auth.currentUser.getIdToken();
-
         let res = await fetch('/api/fix-user-uids', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken, dryRun: !applyFix })
+            body: JSON.stringify({
+                username: adminUser,
+                email: adminEmail,
+                password: adminPass,
+                dryRun: !applyFix
+            })
         });
         let data = await res.json();
 
