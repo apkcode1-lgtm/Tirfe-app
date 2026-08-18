@@ -8,14 +8,7 @@
 //
 // 🔒 ማስተካከያ የሚያደርገው admin ብቻ ነው (idToken ማረጋገጫ + decodedToken.role === 'admin')
 //
-// 🧪 DRY RUN (ምንም አይቀየርም፣ ችግር ያለባቸውን ብቻ ይመልሳል)፦
-//    POST /api/fix-user-uids   body: { idToken, dryRun: true }
-//
-// ✅ እውነተኛ ማስተካከያ፦
-//    POST /api/fix-user-uids   body: { idToken, dryRun: false }
-//
-// 🎯 የተወሰኑ nodes ብቻ ማስተካከል ከፈለጉ (ለምሳሌ tenants እና buyers ብቻ)፦
-//    body: { idToken, dryRun: false, nodes: ["tenants", "buyers"] }
+// 🧪 DRY RUN
 // ==========================================
 
 const admin = require('./_firebaseAdmin');
