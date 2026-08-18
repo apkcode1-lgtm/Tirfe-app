@@ -158,16 +158,9 @@ function renderRevenuePanel() {
     document.getElementById('revenueAnnualVatSum').innerText = aSum.toFixed(2) + " ETB";
     // ---- አዲሱ የሞተረኛ ጣሪያ እና አሁን ያሉ ሞተረኞች ማሳያ ሎጂክ ----
     let locKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
-    let mCount = 0;
-    if(localDB.motors) {
-        Object.values(localDB.motors).forEach(m => {
-            if(m.region === currentRevenueOfficer.authRegion && 
-               m.zone === currentRevenueOfficer.authZone && 
-               m.woreda === currentRevenueOfficer.authWoreda) {
-                mCount++;
-            }
-        });
-    }
+    // 🛠️ ማስተካከያ: ከ localDB.motors (ራው/ሙሉ ዳታ - ገቢዎች ጨርሶ ማየት የለበትም) ይልቅ
+    // db_revenue.js's setupRevenueListeners() ቀድሞ ባስቀመጠው motorCounts ቁጥር ብቻ እንጠቀማለን
+    let mCount = (localDB.motorCounts && localDB.motorCounts[locKey]) || 0;
     let mLimit = (localDB.motorQuotas && localDB.motorQuotas[locKey] !== undefined) ? localDB.motorQuotas[locKey] : "ያልተወሰነ (Unlimited)";
     let curElem = document.getElementById('revMotorCurrentCount');
     let limElem = document.getElementById('revMotorMaxLimit');
