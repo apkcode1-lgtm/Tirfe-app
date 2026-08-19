@@ -216,6 +216,12 @@ window.openRevenueRegistrationModal = function() {
             };
 
             pushAdminRecordUpdate('revenueAuthorities', user, localDB.revenueAuthorities[user]);
+            // 🆕 ማስተካከያ: ተከራይ/ገዢ/ሞተረኛ በራሳቸው registration ጊዜ usernames index ላይ
+            // role ይመዘግባሉ፣ ገቢዎች ግን በአድሚን ስለሚፈጠሩ ይህ ጎድሎ ነበር - login flow ወዲያውኑ
+            // ትክክለኛውን collection እንዲያውቅ (permission_denied ሳይገጥመው) ያስፈልጋል
+            if(isOnline && typeof db !== 'undefined') {
+                db.ref(`tirfe_system/usernames/${user}`).set({ role: 'revenue' }).catch(err => console.error('Username index write failed:', err));
+            }
 // 🆕 ደህንነቱ የተጠበቀ የ location-only ኮፒ ለ dropdown እንዲያገለግል
 let locKey = `${(res.revRegion || "").trim()}_${(res.revZone || "").trim()}_${(res.revWoreda || "").trim()}`;
 if(!localDB.public_locations) localDB.public_locations = {};
@@ -292,6 +298,10 @@ window.deleteRevenueAuth = function(key) {
         let locKey = `${revRecord.authRegion}_${revRecord.authZone}_${revRecord.authWoreda}`;
         delete localDB.revenueAuthorities[key];
         pushAdminRecordDelete('revenueAuthorities', key);
+        // 🆕 ማስተካከያ: usernames index entry ጭምር ይሰረዝ - ካልሆነ የ"ሞተ" username ለዘላለም ይይዛል
+        if(isOnline && typeof db !== 'undefined') {
+            db.ref(`tirfe_system/usernames/${key}`).remove().catch(err => console.error('Username index delete failed:', err));
+        }
         
         let stillUsedByOthers = Object.values(localDB.revenueAuthorities).some(r =>
             `${r.authRegion}_${r.authZone}_${r.authWoreda}` === locKey
@@ -568,85 +578,3 @@ window.deleteTenant = function(user) {
         showCustomAlert("ተሳክቷል", "ተከራዩ ሙሉ በሙሉ ጠፍቷል።");
     });
 };
-
-// ==========================================
-// 📁 admin.js ውስጥ ይህንን ይጨምሩ
-// (uid Fix ን በ button ብቻ ከ admin panel ውስጥ ለማሄድ)
-//
-// 🔄 ማስተካከያ፦ admin idToken ስለሌለው (Firebase Auth ውስጥ ስለማይገባ)፣
-// ይህ function ልክ እንደ login ገጹ username/email/password
-// በ modal እንደገና ጠይቆ ወደ /api/fix-user-uids ይልካል።
-// ==========================================
-function promptUidFixCredentials(applyFix) {
-    showFormModal(
-        applyFix ? "⚠️ እውነተኛ ማስተካከያ ለማድረግ ፍቃድዎን ያረጋግጡ" : "🧪 Dry-Run ለማድረግ ፍቃድዎን ያረጋግጡ",
-        [
-            { id: "adminUser", label: "የ Admin ዩዘርኔም፦", type: "text" },
-            { id: "adminEmail", label: "የ Admin ኢሜል፦", type: "email" },
-            { id: "adminPass", label: "የ Admin የይለፍ ቃል፦", type: "password" }
-        ],
-        async (res) => {
-            if(!res.adminUser || !res.adminEmail || !res.adminPass) {
-                showCustomAlert("ስህተት", "ሁሉንም መስኮች መሙላት አለብዎት!");
-                return;
-            }
-            await runUidFixCheck(applyFix, res.adminUser, res.adminEmail, res.adminPass);
-        }
-    );
-}
-
-async function runUidFixCheck(applyFix, adminUser, adminEmail, adminPass) {
-    let btn = document.getElementById('btnUidFixDryRun');
-    let btnApply = document.getElementById('btnUidFixApply');
-    if(btn) { btn.disabled = true; btn.innerText = "🔄 በማጣራት ላይ..."; }
-    if(btnApply) { btnApply.disabled = true; }
-
-    try {
-        let res = await fetch('/api/fix-user-uids', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: adminUser,
-                email: adminEmail,
-                password: adminPass,
-                dryRun: !applyFix
-            })
-        });
-        let data = await res.json();
-
-        if(!data.success) {
-            showCustomAlert("❌ ስህተት", data.error || "ያልታወቀ ስህተት ተፈጥሯል");
-            return;
-        }
-
-        // 📋 ውጤቱን ለማንበብ በሚቻል መልኩ መገንባት
-        let report = "";
-        for(let key in data.results) {
-            let r = data.results[key];
-            report += `\n📦 ${r.label}\n`;
-            report += `   የተፈተሸ: ${r.checked} | ትክክል ነበሩ: ${r.alreadyOk}\n`;
-            report += `   ${applyFix ? '✅ የተስተካከሉ' : '🛠️ መስተካከል ያለባቸው'}: ${r.fixed.length}\n`;
-            if(r.fixed.length > 0) {
-                r.fixed.forEach(f => {
-                    report += `      • ${f.username} (${f.email})\n`;
-                });
-            }
-            if(r.noEmail.length > 0) report += `   ⚠️ Email የሌላቸው: ${r.noEmail.join(', ')}\n`;
-            if(r.notFoundInAuth.length > 0) {
-                report += `   ❌ Auth ውስጥ ያልተገኙ: ${r.notFoundInAuth.map(x => x.username).join(', ')}\n`;
-            }
-        }
-
-        showCustomAlert(
-            applyFix ? "✅ ማስተካከያ ተጠናቋል" : "🧪 Dry-Run ውጤት",
-            report || "ምንም ችግር አልተገኘም! ✅"
-        );
-
-    } catch(err) {
-        console.error(err);
-        showCustomAlert("❌ ስህተት", "ጥያቄው አልተሳካም: " + err.message);
-    } finally {
-        if(btn) { btn.disabled = false; btn.innerText = "🧪 uid Dry-Run አሂድ"; }
-        if(btnApply) { btnApply.disabled = false; }
-    }
-}
