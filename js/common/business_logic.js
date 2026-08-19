@@ -5,7 +5,7 @@ function isTenantExpired(tenant, errorElement) {
         let expiry = new Date(tenant.expiryDate); expiry.setHours(0,0,0,0);
         if(today > expiry) {
             tenant.status = "blocked";
-            localDB.tenants[tenant.username] = tenant; pushTenantFirebase();
+            localDB.tenants[tenant.username] = tenant; pushToFirebase();
             errorElement.innerText = "🔒 የኪራይ ውልዎ ጊዜ አልቋል! እባክዎ ባለቤቱን ያነጋግሩ።"; return true;
         }
     }
@@ -141,9 +141,22 @@ window.saveAllStaff = async function() {
         let staff = tempStaffForms[i];
         if (staff.gmail && staff.rawPass) {
             try {
-                await auth.createUserWithEmailAndPassword(staff.gmail, staff.rawPass);
+                // 🛠️ ማስተካከያ: ከ client-side auth.createUserWithEmailAndPassword() ይልቅ
+                // (ያ የባለቤቱን session በአዲሱ ሰራተኛ ይተካ ነበር) አሁን admin.js's revenue
+                // creation ጋር ተመሳሳይ backend endpoint (Admin SDK) እንጠቀማለን - የባለቤቱ
+                // session ሳይነካ፣ uid በእርግጠኝነት ይመለሳል
+                let ownerIdToken = await auth.currentUser.getIdToken();
+                let createRes = await fetch('/api/create-privileged-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken: ownerIdToken, email: staff.gmail, password: staff.rawPass, role: 'staff', tenantUsername: currentTenant.username })
+                });
+                let createData = await createRes.json();
+                if (!createRes.ok) throw new Error(createData.error || 'የሰራተኛ አካውንት መፍጠር አልተቻለም');
+                staff.uid = createData.uid;
             } catch (fbErr) {
                 console.warn(`Staff Firebase Auth creation failed for ${staff.gmail}: ${fbErr.message}`);
+                showCustomAlert("ስህተት", `ሰራተኛ ${staff.name || i+1}: ${fbErr.message}`);
             }
             delete staff.rawPass;
         }
@@ -161,8 +174,20 @@ window.saveAllStaff = async function() {
                     phone: staff.phone,
                     user: staff.user,
                     pass: staff.pass,
+                    uid: staff.uid || null,
                     tenantUsername: currentTenant.username
                 }).catch(err => console.error("Staff Save Error:", err));
+
+                // 🆕 ማስተካከያ: 1️⃣ usernames index - login flow ወዲያውኑ role='staff'
+                // እንዲያውቅ (ገቢዎች ላይ ተመሳሳይ ማስተካከያ አድርገናል)
+                db.ref(`tirfe_system/usernames/${staff.user}`).set({ role: 'staff' }).catch(err => console.error('Username index write failed:', err));
+
+                // 🆕 ማስተካከያ: 2️⃣ staffUidIndex - rules ይህን ተጠቅመው ስታፉ የራሱን
+                // አሰሪ tenant record ማንበብ/መጻፍ (ለሽያጭ/ዕዳ/ገንዘብ ማስቀመጫ) እንዲችል ብቻ ይፈቅዳሉ
+                // (uid ከሌለ - auth creation ቢወድቅ - index አይጻፍም)
+                if(staff.uid) {
+                    db.ref(`tirfe_system/staffUidIndex/${staff.uid}`).set(currentTenant.username).catch(err => console.error('Staff uid index write failed:', err));
+                }
             }
         });
     }
@@ -196,5 +221,22 @@ window.triggerShiftReport = function() {
     
     // ማሳሰቢያ፦ የሪፖርት ማቅረቢያ ዋናውን ኮድ (ሂሳብ ማስላቱን እና ሪፖርት መላኩን) እዚህ ውስጥ ይፃፉ።
 };
+window.logout = function() {
+    // 1. መውጣቱን ለተጠቃሚው ማሳወቅ (አማራጭ)
+    console.log("ከሲስተም እየወጣ ነው...");
 
-
+    // 2. ከፋየርቤዝ (Firebase) አገልጋይ ላይ ደህንነቱ በተጠበቀ ሁኔታ ሳይን አውት ማድረግ
+    if (typeof auth !== 'undefined' && auth.signOut) {
+        auth.signOut().then(() => {
+            // ፋየርቤዝ በተሳካ ሁኔታ ካስወጣ በኋላ ወደ ሆም ፔጅ ይመልሳል
+            window.location.replace("index.html");
+        }).catch((error) => {
+            console.error("በመውጣት ሂደት ላይ ስህተት ተፈጥሯል:", error);
+            // ስህተት ቢፈጠርም አፑ እንዳይፈዝዝ በግድ ወደ ሆም ፔጅ ይመልሳል
+            window.location.replace("index.html");
+        });
+    } else {
+        // የፋየርቤዝ ግንኙነት ከሌለ ወይም ቀጥታ ለሚሰሩ (Offline)
+        window.location.replace("index.html");
+    }
+};
