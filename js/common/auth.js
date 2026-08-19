@@ -148,8 +148,17 @@ async function handleUnifiedLogin() {
 
         // Firebase Auth በትክክል ካሳለፈው፣ ዳታቤዝ (Realtime DB) ላይ የዩዘሩን ፕሮፋይል ብቻ ፈልገን እናስገባዋለን
             if(navigator.onLine && typeof db !== 'undefined') {
-        
+
+            // 🛠️ ማስተካከያ: ተራ በተራ 5 collection ("tenants" ብዙ ጊዜ ትክክለኛው ላይሆን ይችላል)
+            // ከመሞከር ይልቅ መጀመሪያ ሚናውን (role) ከ public 'usernames' index እናውቃለን፣
+            // ከዚያ ትክክለኛውን collection ብቻ እንፈትሻለን። ይህ ካልሆነ፣ ለምሳሌ ሞተረኛ/ገቢዎች/ስታፍ
+            // ሲገቡ የመጀመሪያው (tenants) ፍተሻ የራሳቸው ያልሆነ record ስለሆነ rules-ችን
+            // permission_denied ይመልሱና ገና ወደ ትክክለኛው branch ሳይደርሱ ውድቅ ይሆኑ ነበር።
+            let uSnap = await db.ref(`tirfe_system/usernames/${user}`).once('value');
+            let loginRole = uSnap.exists() ? uSnap.val().role : null;
+
             // --- TENANT (SHOP) CHECK ---
+            if(loginRole === 'tenant') {
             let tSnap = await db.ref(`tirfe_system/tenants/${user}`).once('value');
             if(tSnap.exists()) {
                 let t = tSnap.val();
@@ -182,8 +191,10 @@ async function handleUnifiedLogin() {
                     return;
                 }
             }
+            }
 
             // --- BUYER CHECK ---
+            if(loginRole === 'buyer') {
             let bSnap = await db.ref(`tirfe_system/buyers/${user}`).once('value');
             if(bSnap.exists()) {
                 let b = bSnap.val();
@@ -208,8 +219,10 @@ async function handleUnifiedLogin() {
                     return;
                 }
             }
+            }
   
             // --- REVENUE OFFICER CHECK ---
+            if(loginRole === 'revenue') {
             let rSnap = await db.ref(`tirfe_system/revenueAuthorities/${user}`).once('value');
             if(rSnap.exists()) {
                 let r = rSnap.val();
@@ -233,8 +246,10 @@ async function handleUnifiedLogin() {
                     return;
                 }
             }
+            }
 
             // --- MOTOR (DELIVERY) CHECK ---
+            if(loginRole === 'motor') {
             let mSnap = await db.ref(`tirfe_system/motors/${user}`).once('value');
             if(mSnap.exists()) {
                 let m = mSnap.val();
@@ -264,8 +279,10 @@ async function handleUnifiedLogin() {
                     return;
                 }
             }
+            }
 
             // --- STAFF ACCOUNTS CHECK (FIREBASE ONLY) ---
+            if(loginRole === 'staff') {
             let sSnap = await db.ref(`tirfe_system/staffAccounts/${user}`).once('value');
             if(sSnap.exists()) {
                 let s = sSnap.val();
@@ -303,6 +320,7 @@ async function handleUnifiedLogin() {
                         return;
                     }
                 }
+            }
             }
         }
 
