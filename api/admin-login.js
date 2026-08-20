@@ -1,3 +1,5 @@
+const admin = require('./_firebaseAdmin');
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, message: 'Method Not Allowed' });
@@ -19,7 +21,29 @@ export default async function handler(req, res) {
         // መጀመሪያ ዩዘርኔም እና ኢሜሉ የአድሚኑ መሆኑን ያረጋግጣል
         if (username === ADMIN_USER && email === ADMIN_EMAIL) {
             if (password === ADMIN_PASS) {
-                return res.status(200).json({ success: true });
+                // 🆕 ማስተካከያ: ከዚህ በፊት { success: true } ብቻ ይመለስ ነበር፣ ስለዚህ አድሚኑ
+                // በጭራሽ Firebase Auth ውስጥ አይገባም ነበር (auth.currentUser == null →
+                // getIdToken() ላይ ስህተት፣ Realtime DB rules ላይ PERMISSION_DENIED)።
+                // አሁን፦ 1) የ admin Firebase user ካለ እናገኘዋለን፣ ከሌለ በ Admin SDK
+                // እንፈጥረዋለን፤ 2) role:'admin' custom claim እንሰጠዋለን (ሁልጊዜ login ላይ
+                // እንደገና እናረጋግጣለን)፤ 3) custom token ፈጥረን ለ client እንመልሳለን - ክላይንቱ
+                // auth.signInWithCustomToken() ተጠቅሞ ይገባበታል።
+                let adminUid;
+                try {
+                    const existingUser = await admin.auth().getUserByEmail(ADMIN_EMAIL);
+                    adminUid = existingUser.uid;
+                    if (!existingUser.customClaims || existingUser.customClaims.role !== 'admin') {
+                        await admin.auth().setCustomUserClaims(adminUid, { role: 'admin' });
+                    }
+                } catch (lookupErr) {
+                    // የ admin Firebase user ገና የለም - አዲስ እንፍጠር
+                    const newUser = await admin.auth().createUser({ email: ADMIN_EMAIL, password: ADMIN_PASS });
+                    adminUid = newUser.uid;
+                    await admin.auth().setCustomUserClaims(adminUid, { role: 'admin' });
+                }
+
+                const customToken = await admin.auth().createCustomToken(adminUid, { role: 'admin' });
+                return res.status(200).json({ success: true, customToken });
             } else {
                 return res.status(401).json({ success: false, error: 'Invalid Admin Password', isAdminMatch: true }); 
             }
