@@ -113,6 +113,9 @@ async function handleUnifiedLogin() {
             body: JSON.stringify({ username: user, email: email, password: pass })
         });
         const data = await response.json();
+        // 🆕 ጊዜያዊ (TEMPORARY) - /api/admin-login ትክክለኛውን ምላሽ በ console ላይ
+        // ለማየት (debugMessage/debugCode ጨምሮ) - ችግሩ ከተፈታ በኋላ ይህን መስመር ማጥፋት ይቻላል
+        console.log("admin-login response:", data);
 
         if(data.success) {
             // 🆕 ማስተካከያ: ከዚህ በፊት Firebase Auth ላይ በጭራሽ አይገባም ነበር (auth.currentUser
@@ -144,6 +147,14 @@ async function handleUnifiedLogin() {
             
         } else if (data.isAdminMatch) {
             err.innerText = "❌ የተሳሳተ የአድሚን የይለፍ ቃል!";
+            if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
+            return;
+        } else if (response.status >= 500) {
+            // 🆕 ማስተካከያ: ከዚህ በፊት server-side ስህተት (500) ቢፈጠር እንኳን በ silent
+            // ሁኔታ ወደ ታች fallback ኮድ ይወርድ ነበር (የተሳሳተ "የተሳሳተ ኢሜል/ፓስዎርድ"
+            // መልዕክት እያሳየ) - አሁን እውነተኛውን የ server ስህተት እናሳያለን
+            console.error("Admin login server error:", data.error || data);
+            err.innerText = "❌ የ Server ስህተት: " + (data.error || 'ያልታወቀ ስህተት') + " (Console ውስጥ ዝርዝሩን ይመልከቱ)";
             if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
             return;
         }
@@ -351,4 +362,4 @@ async function handleUnifiedLogin() {
         err.innerText = "❌ ስህተት አጋጥሟል! " + (error.message || "ያልታወቀ የውስጥ ስህተት");
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
     }
-                        }
+}
