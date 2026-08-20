@@ -115,6 +115,24 @@ async function handleUnifiedLogin() {
         const data = await response.json();
 
         if(data.success) {
+            // 🆕 ማስተካከያ: ከዚህ በፊት Firebase Auth ላይ በጭራሽ አይገባም ነበር (auth.currentUser
+            // == null ይቀር ነበር) - አሁን /api/admin-login የላከውን customToken ተጠቅመን
+            // በ Firebase Auth እውነተኛ session እንከፍታለን (getIdToken() እና database
+            // rules (auth != null) እንዲሰሩ ያስፈልጋል)
+            if(!data.customToken) {
+                err.innerText = "❌ የ Firebase ማረጋገጫ token አልተገኘም! (Server ችግር)";
+                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
+                return;
+            }
+            try {
+                await auth.signInWithCustomToken(data.customToken);
+            } catch (fbErr) {
+                console.error("Admin Firebase custom token sign-in failed:", fbErr);
+                err.innerText = "❌ የ Firebase ማረጋገጫ አልተሳካም! እባክዎ እንደገና ይሞክሩ።";
+                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
+                return;
+            }
+
             localStorage.setItem('tirfe_active_session', JSON.stringify({ role: 'admin', loginMode: 'admin', username: user }));
             currentUserRole = 'admin'; 
             if(typeof setupSecureUserListeners === 'function') setupSecureUserListeners(); 
@@ -333,4 +351,4 @@ async function handleUnifiedLogin() {
         err.innerText = "❌ ስህተት አጋጥሟል! " + (error.message || "ያልታወቀ የውስጥ ስህተት");
         if(loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "ግባ (Login)"; }
     }
-            }
+                        }
