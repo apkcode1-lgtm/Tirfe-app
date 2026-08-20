@@ -36,6 +36,11 @@ export default async function handler(req, res) {
                         await admin.auth().setCustomUserClaims(adminUid, { role: 'admin' });
                     }
                 } catch (lookupErr) {
+                    if (lookupErr.code !== 'auth/user-not-found') {
+                        // 🆕 ያልታሰበ ስህተት (permission-denied, network, ወዘተ) ከሆነ
+                        // እንደ 'የለም' ቆጥረን አዲስ ላለመፍጠር - ወደ ላይ እንወረውረዋለን
+                        throw lookupErr;
+                    }
                     // የ admin Firebase user ገና የለም - አዲስ እንፍጠር
                     const newUser = await admin.auth().createUser({ email: ADMIN_EMAIL, password: ADMIN_PASS });
                     adminUid = newUser.uid;
@@ -53,7 +58,15 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("API Server Error:", error);
-        // ሰርቨሩ Crash ቢያደርግም ትክክለኛ JSON ይመልሳል
-        return res.status(500).json({ success: false, error: 'Internal Server Error' }); 
+        // 🆕 ጊዜያዊ (TEMPORARY) ማስተካከያ: ችግሩን በትክክል ለማየት እንድንችል እውነተኛውን
+        // error message/code እንልካለን - ችግሩ ከተስተካከለ በኋላ ይህንን መልሰን
+        // 'Internal Server Error' ብቻ ማድረግ አለብን (ዝርዝር ስህተት ለ client መላክ
+        // ደህንነቱ የተጠበቀ አይደለም)
+        return res.status(500).json({
+            success: false,
+            error: 'Internal Server Error',
+            debugMessage: error.message || String(error),
+            debugCode: error.code || null
+        });
     }
 }
