@@ -9,8 +9,10 @@ function pushRevenueFirebase() {
             revData.lastUpdated = currentTime;
             queueAction('UPDATE', 'revenueAuthorities', currentRevenueOfficer.username, revData);
         }
-        if(localDB.motorQuotas) {
-            queueAction('UPDATE', 'motorQuotas', null, cleanData(localDB.motorQuotas));
+        // 🆕 
+        let officerLocKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
+        if(localDB.motorQuotas && localDB.motorQuotas[officerLocKey] !== undefined) {
+            queueAction('UPDATE', 'motorQuotas', officerLocKey, localDB.motorQuotas[officerLocKey]);
         }
     }
 }
@@ -43,7 +45,8 @@ window.setupRevenueListeners = function() {
         // 🆕 የገቢዎች ሰራተኛው ክልል+ዞን+ወረዳ የተጣመረ መለያ (locationKey) - ተመሳሳይ ስም ያላቸው ወረዳዎች
         // (ለምሳሌ በተለያዩ ዞን ያሉ) እንዳይምታቱ
         let officerLocKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
-
+        // 🆕 ማስተካከያ: ከ `tirfe_system/tenants` (ሙሉ ጥሬ ዳታ - password ጭምር) ይልቅ አሁን
+        // `tirfe_system/revenue_view` (ገቢዎች የሚፈልገውን ብቻ የያዘ mirror node) ነው query የሚደረገው
         db.ref(`tirfe_system/revenue_view`).orderByChild('locationKey').equalTo(officerLocKey).on('value', (snapshot) => {
          let hasUpdates = false;
             if(snapshot.exists()) {
@@ -59,10 +62,18 @@ window.setupRevenueListeners = function() {
             saveToLocalStorage();
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         });
-        // 🛠️ 
-        db.ref(`tirfe_system/motor_location_view`).orderByChild('locationKey').equalTo(officerLocKey).on('value', (snapshot) => {
-            if(!localDB.motorCounts) localDB.motorCounts = {};
-            localDB.motorCounts[officerLocKey] = snapshot.exists() ? snapshot.numChildren() : 0;
+        // የገቢዎች ሰራተኛው ምድብ (ክልል/ዞን/ወረዳ) ውስጥ ያሉትን ሞተረኞች ብቻ Query በማድረግ ማንበብ
+        db.ref(`tirfe_system/motors`).orderByChild('locationKey').equalTo(officerLocKey).on('value', (snapshot) => {
+            if(!localDB.motors) localDB.motors = {};
+            if(snapshot.exists()) {
+                let incomingMotors = snapshot.val();
+                for (let mUser in incomingMotors) {
+                    let mData = incomingMotors[mUser];
+                    if(shouldUpdateLocal(mData, localDB.motors[mUser], 'motors', mUser)) {
+                         localDB.motors[mUser] = mData;
+                    }
+                }
+            }
             saveToLocalStorage();
             if(typeof renderRevenuePanel === 'function') renderRevenuePanel();
         });
