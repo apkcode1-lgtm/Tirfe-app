@@ -10,10 +10,12 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
-        
+
         /* Header */
         header { text-align: center; background: var(--accent-color); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
         header h1 { font-size: 1.8rem; margin-bottom: 5px; }
+        #customerStatus { margin-top: 12px; }
+        #customerStatus button { width: auto; padding: 6px 14px; background: #fff; color: var(--accent-color); }
 
         /* Product Grid */
         .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
@@ -21,11 +23,11 @@
         .product-card h3 { color: var(--accent-color); font-size: 1.2rem; margin-bottom: 5px; }
         .product-card .price { font-size: 1.4rem; font-weight: bold; color: var(--success-color); margin: 10px 0; }
         .product-card .stock { font-size: 0.9rem; color: #64748b; margin-bottom: 15px; }
-        
+
         button { padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; }
         .btn-order { background: var(--accent-color); color: #fff; }
         .btn-order:hover { background: #0284c7; }
-        
+
         /* Modal Form */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: var(--card-bg); padding: 25px; border-radius: 12px; max-width: 400px; width: 100%; }
@@ -40,6 +42,7 @@
     <header>
         <h1>🛍️ ትርፌ የጅምላ ማከፋፈያ</h1>
         <p>ጥራት ያላቸውን እቃዎች በጅምላ ዋጋ ያዙ!</p>
+        <div id="customerStatus"></div>
     </header>
 
     <!-- እቃዎች የሚደረደሩበት ቦታ -->
@@ -48,56 +51,156 @@
     </div>
 </div>
 
+<!-- የደንበኛ ምዝገባ ፎርም -->
+<div id="customerModal" class="modal hidden">
+    <div class="modal-content">
+        <h2>👤 የደንበኛ ምዝገባ</h2>
+        <p style="color:#64748b; font-size:0.85rem; margin-bottom:10px;">እቃ ለማዘዝ በስልክ ቁጥርዎ አንዴ ብቻ ይመዝገቡ። ቀጣይ ጊዜ ተመሳሳይ ስልክ ቁጥር ሲያስገቡ በራስ ሰር ይገባሉ።</p>
+        <input type="text" id="regName" placeholder="ሙሉ ስም">
+        <input type="tel" id="regPhone" placeholder="ስልክ ቁጥር">
+        <input type="text" id="regAddress" placeholder="አድራሻ (ከተማ እና ሰፈር)">
+        <button class="btn-order" style="background: var(--success-color); margin-top: 15px;" onclick="registerCustomer()">✅ ተመዝገብ / ግባ</button>
+        <button class="btn-order" style="background: #e2e8f0; color: #0f172a; margin-top: 10px;" onclick="closeCustomerModal()">ዝጋ</button>
+    </div>
+</div>
+
 <!-- የትዕዛዝ ማረጋገጫ ፎርም -->
 <div id="orderModal" class="modal hidden">
     <div class="modal-content">
         <h2>📦 ትዕዛዝ ማረጋገጫ</h2>
         <p id="orderItemName" style="font-weight: bold; margin-bottom: 10px;"></p>
-        
-        <input type="hidden" id="customerItem">
+
         <input type="text" id="customerName" placeholder="ሙሉ ስምዎ">
         <input type="tel" id="customerPhone" placeholder="ስልክ ቁጥር">
         <input type="text" id="customerAddress" placeholder="አድራሻ (ከተማ እና ሰፈር)">
         <input type="number" id="customerQty" placeholder="የሚፈልጉት ብዛት" min="1">
-        
+
         <button class="btn-order" style="background: var(--success-color); margin-top: 15px;" onclick="submitOrder()">✅ አዝዝ</button>
         <button class="btn-order" style="background: #e2e8f0; color: #0f172a; margin-top: 10px;" onclick="closeModal()">ዝጋ</button>
     </div>
 </div>
 
 <script>
-    // ከአከፋፋዩ (Admin) ገፅ የተመዘገቡትን እቃዎች ማንበብ
-    let inventory = JSON.parse(localStorage.getItem('distInventory')) || [];
-    let orders = JSON.parse(localStorage.getItem('distOrders')) || [];
+    // 1. Supabase ማስጀመሪያ
+    const SUPABASE_URL = 'https://hjsiobhtiwegtwejxamv.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_M1g0FcHA9gwSx6IskyacDg_4Oa0VWEV';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // እቃዎቹን በካርድ መልክ ማሳየት
-    function displayProducts() {
-        let container = document.getElementById('productsContainer');
-        container.innerHTML = '';
+    let currentCustomer = JSON.parse(localStorage.getItem('trf_customer')) || null;
+    let productsById = {};
+    let selectedItem = null;
 
-        if(inventory.length === 0) {
-            container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #64748b;">እስካሁን ምንም አይነት እቃ አልቀረበም።</p>';
+    // ---------------- የደንበኛ ሁኔታ ማሳያ ----------------
+    function renderCustomerStatus() {
+        const el = document.getElementById('customerStatus');
+        if (currentCustomer) {
+            el.innerHTML = `
+                <span style="font-size:0.9rem;">ሰላም, ${currentCustomer.name} 👋</span>
+                <button onclick="logoutCustomer()" style="margin-left:8px;">ውጣ</button>`;
+        } else {
+            el.innerHTML = `<button onclick="openCustomerModal()">👤 ተመዝገብ / ግባ</button>`;
+        }
+    }
+
+    function openCustomerModal() { document.getElementById('customerModal').classList.remove('hidden'); }
+    function closeCustomerModal() { document.getElementById('customerModal').classList.add('hidden'); }
+
+    async function registerCustomer() {
+        const name = document.getElementById('regName').value.trim();
+        const phone = document.getElementById('regPhone').value.trim();
+        const address = document.getElementById('regAddress').value.trim();
+
+        if (!name || !phone) {
+            alert('እባክዎ ስምና ስልክ ቁጥር ያስገቡ!');
             return;
         }
 
-        inventory.forEach(item => {
-            if (item.qty > 0) { // ክምችት ላይ ያለውን ብቻ ለማሳየት
-                container.innerHTML += `
-                    <div class="product-card">
-                        <h3>${item.name}</h3>
-                        <p style="color: #64748b; font-size: 0.9rem;">ሞዴል: ${item.model || '-'}</p>
-                        <p class="price">${item.price.toLocaleString()} ብር</p>
-                        <p class="stock">በክምችት ያለው: ${item.qty}</p>
-                        <button class="btn-order" onclick="openOrderModal('${item.name}')">🛒 አሁን አዝዝ</button>
-                    </div>
-                `;
+        // ተመሳሳይ ስልክ ቁጥር ቀድሞ ተመዝግቦ እንደሆነ ማየት
+        const { data: existing } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('phone', phone)
+            .maybeSingle();
+
+        let customer = existing;
+        if (!customer) {
+            const { data: created, error } = await supabase
+                .from('customers')
+                .insert([{ name, phone, address }])
+                .select()
+                .single();
+            if (error) {
+                console.error(error);
+                alert('ምዝገባው አልተሳካም። እንደገና ይሞክሩ!');
+                return;
             }
-        });
+            customer = created;
+        }
+
+        currentCustomer = customer;
+        localStorage.setItem('trf_customer', JSON.stringify(customer));
+        renderCustomerStatus();
+        closeCustomerModal();
+        alert(`እንኳን ደህና መጡ, ${customer.name}!`);
     }
 
-    function openOrderModal(itemName) {
-        document.getElementById('orderItemName').innerText = `የመረጡት እቃ፦ ${itemName}`;
-        document.getElementById('customerItem').value = itemName;
+    function logoutCustomer() {
+        currentCustomer = null;
+        localStorage.removeItem('trf_customer');
+        renderCustomerStatus();
+    }
+
+    // ---------------- እቃዎችን ማምጣት እና ማሳየት ----------------
+    async function displayProducts() {
+        const container = document.getElementById('productsContainer');
+        container.innerHTML = '<p style="grid-column:1/-1; text-align:center;">እቃዎችን ከዳታቤዝ በማምጣት ላይ...</p>';
+
+        // ማሳሰቢያ: 'cost' (የግዢ ዋጋ) ሆን ተብሎ አልተመረጠም፤ ደንበኛ የአከፋፋዩን ድብቅ ዋጋ እንዳያይ ለመከላከል
+        const { data, error } = await supabase
+            .from('inventory')
+            .select('id, name, model, price, qty, vendor_id')
+            .gt('qty', 0);
+
+        if (error) {
+            console.error('ስህተት:', error);
+            container.innerHTML = '<p style="color:red; text-align:center;">እቃዎችን ማምጣት አልተቻለም!</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        if (!data || data.length === 0) {
+            container.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#64748b;">እስካሁን ምንም አይነት እቃ አልቀረበም።</p>';
+            return;
+        }
+
+        productsById = {};
+        data.forEach(item => {
+            productsById[item.id] = item;
+            container.innerHTML += `
+                <div class="product-card">
+                    <h3>${item.name}</h3>
+                    <p style="color:#64748b; font-size:0.9rem;">ሞዴል: ${item.model || '-'}</p>
+                    <p class="price">${Number(item.price).toLocaleString()} ብር</p>
+                    <p class="stock">በክምችት ያለው: ${item.qty}</p>
+                    <button class="btn-order" onclick="openOrderModal(${item.id})">🛒 አሁን አዝዝ</button>
+                </div>`;
+        });
+    }
+    function openOrderModal(itemId) {
+        selectedItem = productsById[itemId];
+        if (!selectedItem) return;
+
+        if (!currentCustomer) {
+            alert('እባክዎ በመጀመሪያ እንደ ደንበኛ ይመዝገቡ!');
+            openCustomerModal();
+            return;
+        }
+
+        document.getElementById('orderItemName').innerText = `የመረጡት እቃ፦ ${selectedItem.name}`;
+        document.getElementById('customerName').value = currentCustomer.name;
+        document.getElementById('customerPhone').value = currentCustomer.phone;
+        document.getElementById('customerAddress').value = currentCustomer.address || '';
+        document.getElementById('customerQty').value = '';
         document.getElementById('orderModal').classList.remove('hidden');
     }
 
@@ -105,92 +208,61 @@
         document.getElementById('orderModal').classList.add('hidden');
     }
 
-    // ተረካቢው ሲያዝ መረጃውን ወደ Orders array መላክ
-    function submitOrder() {
-        let item = document.getElementById('customerItem').value;
-        let name = document.getElementById('customerName').value;
-        let phone = document.getElementById('customerPhone').value;
-        let address = document.getElementById('customerAddress').value;
-        let qty = parseInt(document.getElementById('customerQty').value);
+    // ---------------- ትዕዛዝ መላክ ----------------
+    async function submitOrder() {
+        const name = document.getElementById('customerName').value.trim();
+        const phone = document.getElementById('customerPhone').value.trim();
+        const address = document.getElementById('customerAddress').value.trim();
+        const qty = parseInt(document.getElementById('customerQty').value);
 
-        if(!name || !phone || !address || !qty || qty <= 0) {
-            alert("እባክዎ መረጃዎን በትክክል ይሙሉ!");
+        if (!name || !phone || !address || !qty || qty <= 0) {
+            alert('እባክዎ መረጃዎን በትክክል ይሙሉ!');
             return;
         }
-
-        // ትዕዛዙን አዘጋጅቶ ወደ ማከማቻ (orders) መጨመር
-        let newOrder = {
-            id: Date.now(),
-            item: item,
+        if (!selectedItem) {
+            alert('እባክዎ እቃ ይምረጡ!');
+            return;
+        }
+        if (qty > selectedItem.qty) {
+            alert(`ይቅርታ፣ በክምችት ያለው ${selectedItem.qty} ብቻ ነው!`);
+            return;
+        }
+        const newOrder = {
+            item_id: selectedItem.id,
+            item: selectedItem.name,
+            vendor_id: selectedItem.vendor_id,
+            customer_id: currentCustomer.id,
             qty: qty,
-            address: address + " (ስልክ: " + phone + ")",
-            payment: "ያልተከፈለ",
-            status: "pending"
+            price: selectedItem.price,
+            address: address + ' (ስልክ: ' + phone + ')',
+            payment: 'ያልተከፈለ',
+            status: 'pending'
         };
 
-        orders.push(newOrder);
-        localStorage.setItem('distOrders', JSON.stringify(orders)); // ዳታውን ሴቭ ማድረግ
+        const { error } = await supabase.from('orders').insert([newOrder]);
+        if (error) {
+            console.error(error);
+            alert('ትዕዛዙ አልተላከም። እንደገና ይሞክሩ!');
+            return;
+        }
 
-        alert("ትዕዛዝዎ በተሳካ ሁኔታ ተልኳል! በቅርቡ እንደውልልዎታለን።");
-        
-        // ፎርሙን ማጽዳት
-        document.getElementById('customerName').value = '';
-        document.getElementById('customerPhone').value = '';
-        document.getElementById('customerAddress').value = '';
+        // የክምችት ብዛት መቀነስ
+        await supabase
+            .from('inventory')
+            .update({ qty: selectedItem.qty - qty })
+            .eq('id', selectedItem.id);
+
+        alert('ትዕዛዝዎ በተሳካ ሁኔታ ተልኳል! በቅርቡ እንደውልልዎታለን።');
         document.getElementById('customerQty').value = '';
         closeModal();
+        displayProducts(); // ክምችቱን ማደስ
     }
 
-<script>
-    // 1. ከላይ የተጠቀምከውን ተመሳሳይ URL እና KEY እዚህም አስገባ
-    const SUPABASE_URL = 'https://hjsiobhtiwegtwejxamv.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_M1g0FcHA9gwSx6IskyacDg_4Oa0VWEV';
-    
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    // 2. እቃዎችን ከዳታቤዝ አምጥቶ የማሳየት ፈንክሽን
-    async function displayProducts() {
-        let container = document.getElementById('productsContainer');
-        container.innerHTML = '<p style="text-align: center;">እቃዎችን ከዳታቤዝ በማምጣት ላይ...</p>';
-
-        // ከ 'inventory' ቴብል መረጃዎችን ማምጣት (Fetch/Select)
-        // .gt('qty', 0) ማለት ክምችታቸው ከ 0 በላይ የሆኑትን ብቻ አምጣ ማለት ነው
-        const { data: inventory, error } = await supabase
-            .from('inventory')
-            .select('*')
-            .gt('qty', 0);
-
-        if (error) {
-            console.error("ስህተት:", error);
-            container.innerHTML = '<p style="color: red; text-align: center;">እቃዎችን ማምጣት አልተቻለም!</p>';
-            return;
-        }
-
-        container.innerHTML = ''; // ሎዲንግ ጽሁፉን ማጥፋት
-
-        if(inventory.length === 0) {
-            container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">እስካሁን ምንም አይነት እቃ አልቀረበም።</p>';
-            return;
-        }
-
-        // የመጡትን እቃዎች በካርድ መልክ መደርደር
-        inventory.forEach(item => {
-            container.innerHTML += `
-                <div class="product-card">
-                    <h3>${item.name}</h3>
-                    <p style="color: #64748b; font-size: 0.9rem;">ሞዴል: ${item.model || '-'}</p>
-                    <p class="price">${item.price.toLocaleString()} ብር</p>
-                    <p class="stock">በክምችት ያለው: ${item.qty}</p>
-                    <button class="btn-order" onclick="openOrderModal('${item.name}')">🛒 አሁን አዝዝ</button>
-                </div>
-            `;
-        });
-    }
-
-    // ገፁ ልክ ሲከፈት ዳታ ማምጣት እንዲጀምር
-    window.onload = displayProducts;
-    
+    // ---------------- ገፅ ሲከፈት ----------------
+    window.onload = () => {
+        renderCustomerStatus();
+        displayProducts();
+    };
 </script>
 </body>
 </html>
-
