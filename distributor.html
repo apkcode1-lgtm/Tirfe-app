@@ -10,7 +10,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
-        
+
         /* Header & Dashboard */
         header { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); }
         h1 { color: var(--success-color); font-size: 1.5rem; }
@@ -18,7 +18,6 @@
         .card { background: var(--card-bg); padding: 20px; border-radius: 10px; text-align: center; border-left: 4px solid var(--accent-color); border-top: 1px solid var(--border-color); }
         .card h3 { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; }
         .card p { font-size: 1.5rem; font-weight: bold; color: var(--success-color); }
-
         /* Forms & Boxes */
         .section-box { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); overflow-x: auto; }
         .section-box h2 { font-size: 1.2rem; margin-bottom: 15px; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
@@ -27,12 +26,12 @@
         .btn-add { background: var(--accent-color); color: #000; width: 100%; margin-top: 10px; }
         .btn-settings { background: #64748b; color: #fff; }
         .btn-action { background: var(--warning-color); color: #000; font-size: 0.8rem; padding: 6px 10px; }
-        
+
         /* Table Styles */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 700px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
         th { background: rgba(0,0,0,0.4); color: var(--accent-color); }
-        
+
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
         .status-pending { background: rgba(251, 191, 36, 0.2); color: var(--warning-color); }
         .status-shipped { background: rgba(56, 189, 248, 0.2); color: var(--accent-color); }
@@ -61,7 +60,7 @@
             <p id="distCapital">0.00 ETB</p>
         </div>
         <div class="card" style="border-left-color: var(--success-color);">
-            <h3>የዚህ ወር የተጣራ ትርፍ</h3>
+            <h3>የዚህ ወር የተጣራ ትርፍ (የደረሱ ትዕዛዞች)</h3>
             <p id="distProfit">0.00 ETB</p>
         </div>
     </section>
@@ -79,7 +78,7 @@
         <button class="btn-add" onclick="registerDistItem()">📥 እቃውን መዝግብ</button>
     </section>
 
-    <!-- የገቡ እቃዎች ዝርዝር (አዲስ የተጨመረ) -->
+    <!-- የገቡ እቃዎች ዝርዝር -->
     <section class="section-box">
         <h2>📋 መጋዘን ውስጥ ያሉ እቃዎች</h2>
         <table>
@@ -118,128 +117,230 @@
     </section>
 </div>
 
+<!-- የአከፋፋይ መግቢያ / ምዝገባ ፎርም -->
+<div id="authModal" class="modal">
+    <div class="modal-content">
+        <h3 style="color: var(--accent-color); margin-bottom: 15px;">🔐 የአከፋፋይ መግቢያ</h3>
+        <input type="email" id="authEmail" placeholder="ኢሜይል">
+        <input type="password" id="authPassword" placeholder="የይለፍ ቃል (ቢያንስ 6 ፊደል)">
+        <button class="btn-add" onclick="vendorLogin()">🔓 ግባ</button>
+        <button class="btn-add" style="background: var(--success-color); color:#000;" onclick="vendorRegister()">🆕 አዲስ አካውንት ክፈት</button>
+        <p id="authError" style="color: var(--danger-color); font-size: 0.85rem; margin-top: 10px;"></p>
+    </div>
+</div>
+
 <!-- መቼት ሞዳል -->
 <div id="settingsModal" class="modal hidden">
     <div class="modal-content">
         <h3 style="color: var(--accent-color); margin-bottom: 15px;">⚙️ መቼቶች</h3>
-        <button class="btn-add" style="background: var(--danger-color); color: #fff;" onclick="clearData()">🗑️ ዳታ ማጽጃ (Clear Data)</button>
+        <p id="vendorEmailDisplay" style="color: #94a3b8; margin-bottom: 15px;"></p>
+        <button class="btn-add" style="background: var(--danger-color); color: #fff;" onclick="vendorLogout()">🚪 ውጣ (Logout)</button>
         <button class="btn-settings" style="width:100%; margin-top:10px;" onclick="toggleModal('settingsModal')">ዝጋ</button>
     </div>
 </div>
 
 <script>
-    // 1. ከ Supabase ዳሽቦርድህ ያገኘኸውን URL እና KEY እዚህ አስገባ
+    // 1. Supabase ማስጀመሪያ
     const SUPABASE_URL = 'https://hjsiobhtiwegtwejxamv.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_M1g0FcHA9gwSx6IskyacDg_4Oa0VWEV';
-    
-    // 2. Supabase ን ማስጀመር
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 3. እቃውን ወደ ዳታቤዝ የመላኪያ ፈንክሽን
+    let vendorId = null;
+    let inventory = [];
+    let orders = [];
+
+    function toggleModal(id) {
+        document.getElementById(id).classList.toggle('hidden');
+    }
+
+    // ---------------- Authentication ----------------
+    async function checkAuth() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            vendorId = session.user.id;
+            document.getElementById('vendorEmailDisplay').innerText = 'ገብተዋል እንደ: ' + session.user.email;
+            document.getElementById('authModal').classList.add('hidden');
+            await loadAll();
+        } else {
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+    }
+
+    async function vendorRegister() {
+        const email = document.getElementById('authEmail').value.trim();
+        const password = document.getElementById('authPassword').value;
+        const errEl = document.getElementById('authError');
+        errEl.style.color = 'var(--danger-color)';
+
+        if (!email || password.length < 6) {
+            errEl.innerText = 'ትክክለኛ ኢሜይል እና ቢያንስ 6 ፊደል ያለው የይለፍ ቃል ያስገቡ።';
+            return;
+        }
+
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+            errEl.innerText = error.message;
+            return;
+        }
+
+        if (data.session) {
+            vendorId = data.user.id;
+            document.getElementById('vendorEmailDisplay').innerText = 'ገብተዋል እንደ: ' + data.user.email;
+            document.getElementById('authModal').classList.add('hidden');
+            await loadAll();
+        } else {
+            errEl.style.color = 'var(--success-color)';
+            errEl.innerText = 'ተመዝግበዋል! ኢሜይልዎን በማረጋገጫ ይክፈቱ፣ ከዚያ ይግቡ።';
+        }
+    }
+
+    async function vendorLogin() {
+        const email = document.getElementById('authEmail').value.trim();
+        const password = document.getElementById('authPassword').value;
+        const errEl = document.getElementById('authError');
+        errEl.style.color = 'var(--danger-color)';
+
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+            errEl.innerText = 'ስህተት: ትክክለኛ ኢሜይል ወይም የይለፍ ቃል አይደለም።';
+            return;
+        }
+
+        vendorId = data.user.id;
+        document.getElementById('vendorEmailDisplay').innerText = 'ገብተዋል እንደ: ' + data.user.email;
+        document.getElementById('authModal').classList.add('hidden');
+        await loadAll();
+    }
+
+    async function vendorLogout() {
+        await supabase.auth.signOut();
+        location.reload();
+    }
+
+    async function loadAll() {
+        await loadInventory();
+        await loadOrders();
+    }
+
+    // ---------------- እቃ መመዝገብ / ማምጣት ----------------
     async function registerDistItem() {
-        let name = document.getElementById('pName').value;
-        let model = document.getElementById('pModel').value;
+        let name = document.getElementById('pName').value.trim();
+        let model = document.getElementById('pModel').value.trim();
         let cost = parseFloat(document.getElementById('pCost').value) || 0;
         let price = parseFloat(document.getElementById('pPrice').value) || 0;
         let qty = parseInt(document.getElementById('pQty').value) || 0;
 
-        if(!name || cost <= 0 || qty <= 0) {
-            alert("እባክዎ መረጃዎችን በትክክል ይሙሉ!");
+        if (!name || cost <= 0 || qty <= 0) {
+            alert('እባክዎ መረጃዎችን በትክክል ይሙሉ!');
             return;
         }
 
-        // ዳታውን ወደ 'inventory' ቴብል መላክ (Insert)
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('inventory')
-            .insert([
-                { name: name, model: model, cost: cost, price: price, qty: qty }
-            ]);
+            .insert([{ name, model, cost, price, qty, vendor_id: vendorId }]);
 
         if (error) {
-            console.error("ስህተት ተፈጥሯል:", error);
-            alert("እቃውን መመዝገብ አልተቻለም። ኢንተርኔትዎን ይፈትሹ!");
-        } else {
-            alert("እቃው በተሳካ ሁኔታ Supabase ዳታቤዝ ላይ ተመዝግቧል!");
-            // ፎርሙን ማጽዳት
-            document.getElementById('pName').value = '';
-            document.getElementById('pModel').value = '';
-            document.getElementById('pCost').value = '';
-            document.getElementById('pPrice').value = '';
-            document.getElementById('pQty').value = '';
+            console.error('ስህተት ተፈጥሯል:', error);
+            alert('እቃውን መመዝገብ አልተቻለም። ኢንተርኔትዎን ይፈትሹ!');
+            return;
         }
+
+        alert('እቃው በተሳካ ሁኔታ ተመዝግቧል!');
+        document.getElementById('pName').value = '';
+        document.getElementById('pModel').value = '';
+        document.getElementById('pCost').value = '';
+        document.getElementById('pPrice').value = '';
+        document.getElementById('pQty').value = '';
+        await loadInventory();
     }
 
-    // ገጹ ሲከፈት የነጋዴውን እቃዎች ከዳታቤዝ የሚያመጣ ፋንክሽን
-async function loadVendorItems() {
-    // 1. መጀመሪያ ሲስተሙ ውስጥ የገባውን የነጋዴ መታወቂያ (ID) እናገኛለን
-    // (ለጊዜው መታወቂያውን ከ LocalStorage እናመጣዋለን ብለን እናስብ)
-    let current_vendor_id = localStorage.getItem('logged_in_vendor_id');
+    async function loadInventory() {
+        const { data, error } = await supabase
+            .from('inventory')
+            .select('*')
+            .eq('vendor_id', vendorId)
+            .order('id', { ascending: false });
 
-    // 2. ሱፓቤዝን የዚህን ነጋዴ እቃዎች ብቻ ስጠኝ ብለን እንጠይቃለን
-    const { data, error } = await supabase
-      .from('inventory')
-      .select('*')
-      .eq('vendor_id', current_vendor_id); // ማጣሪያ (Filter) - የዚህን ነጋዴ ብቻ
-
-    // 3. ውጤቱን ማረጋገጥ
-    if (error) {
-        console.error("መረጃ በማምጣት ላይ ስህተት ተፈጥሯል:", error.message);
-    } else {
-        console.log("የነጋዴው እቃዎች:", data);
-        // እዚህ ጋር 'data' ውስጥ የመጡትን እቃዎች 
-        // በ HTML ሰንጠረዥ (Table) ውስጥ በ loop እየዞርክ ታስገባቸዋለህ
+        if (error) { console.error(error); return; }
+        inventory = data || [];
+        renderInventory();
+        computeCapitalAndProfit();
     }
-}
-
-// ዌብሳይቱ ሲከፈት ይሄ ፋንክሽን ራሱን ችሎ እንዲሰራ ማድረግ
-window.onload = loadVendorItems;
 
     function renderInventory() {
         let tbody = document.getElementById('inventoryTableBody');
         tbody.innerHTML = '';
-        let totalCapital = 0;
 
-        if(inventory.length === 0) {
+        if (inventory.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">ምንም እቃ አልተመዘገበም</td></tr>';
-        } else {
-            inventory.forEach(item => {
-                totalCapital += (item.cost * item.qty);
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${item.name}</td>
-                        <td>${item.model || '-'}</td>
-                        <td>${item.cost.toLocaleString()} ብር</td>
-                        <td>${item.price.toLocaleString()} ብር</td>
-                        <td><strong>${item.qty}</strong></td>
-                        <td><button onclick="deleteItem(${item.id})" style="background:var(--danger-color); color:#fff; padding:5px 10px;">ሰርዝ</button></td>
-                    </tr>
-                `;
-            });
+            return;
         }
-        document.getElementById('distCapital').innerText = totalCapital.toLocaleString() + " ETB";
+
+        inventory.forEach(item => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>${item.model || '-'}</td>
+                    <td>${Number(item.cost).toLocaleString()} ብር</td>
+                    <td>${Number(item.price).toLocaleString()} ብር</td>
+                    <td><strong>${item.qty}</strong></td>
+                    <td><button onclick="deleteItem(${item.id})" style="background:var(--danger-color); color:#fff; padding:5px 10px;">ሰርዝ</button></td>
+                </tr>`;
+        });
+    }
+
+    async function deleteItem(id) {
+        if (!confirm('እርግጠኛ ነዎት ይህን እቃ መሰረዝ ይፈልጋሉ?')) return;
+
+        const { error } = await supabase
+            .from('inventory')
+            .delete()
+            .eq('id', id)
+            .eq('vendor_id', vendorId);
+
+        if (error) {
+            console.error(error);
+            alert('መሰረዝ አልተቻለም!');
+            return;
+        }
+        await loadInventory();
+    }
+
+    // ---------------- ትዕዛዞችን ማምጣት / ማዘመን ----------------
+    async function loadOrders() {
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('vendor_id', vendorId)
+            .order('id', { ascending: false });
+
+        if (error) { console.error(error); return; }
+        orders = data || [];
+        renderOrders();
+        computeCapitalAndProfit();
     }
 
     function renderOrders() {
         let tbody = document.getElementById('ordersTableBody');
         tbody.innerHTML = '';
-        if(orders.length === 0) {
+
+        if (orders.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">እስካሁን የመጣ ትዕዛዝ የለም</td></tr>';
             return;
         }
 
-        orders.forEach((order, index) => {
+        orders.forEach(order => {
             let statusBadge = '';
             let actionBtn = '';
-
-            if(order.status === 'pending') {
+            if (order.status === 'pending') {
                 statusBadge = '<span class="badge status-pending">ይጠብቃል (Pending)</span>';
-                actionBtn = `<button class="btn-action" onclick="updateOrderStatus(${index}, 'shipped')">ወደ ማድረሻ ላክ</button>`;
+                actionBtn = `<button class="btn-action" onclick="updateOrderStatus(${order.id}, 'shipped')">ወደ ማድረሻ ላክ</button>`;
             } else if (order.status === 'shipped') {
                 statusBadge = '<span class="badge status-shipped">በመንገድ ላይ (Shipped)</span>';
-                actionBtn = `<button class="btn-action" style="background:var(--success-color);" onclick="updateOrderStatus(${index}, 'delivered')">ደርሷል በል</button>`;
+                actionBtn = `<button class="btn-action" style="background:var(--success-color);" onclick="updateOrderStatus(${order.id}, 'delivered')">ደርሷል በል</button>`;
             } else {
                 statusBadge = '<span class="badge status-delivered">ደርሷል (Delivered)</span>';
-                actionBtn = `<span style="color:#94a3b8; font-size:0.8rem;">ተጠናቋል</span>`;
+                actionBtn = '<span style="color:#94a3b8; font-size:0.8rem;">ተጠናቋል</span>';
             }
 
             tbody.innerHTML += `
@@ -250,46 +351,51 @@ window.onload = loadVendorItems;
                     <td>${order.payment}</td>
                     <td>${statusBadge}</td>
                     <td>${actionBtn}</td>
-                </tr>
-            `;
+                </tr>`;
         });
     }
 
-    function updateOrderStatus(index, newStatus) {
-        orders[index].status = newStatus;
-        saveData();
-        renderOrders();
-    }
+    async function updateOrderStatus(id, newStatus) {
+        const { error } = await supabase
+            .from('orders')
+            .update({ status: newStatus })
+            .eq('id', id)
+            .eq('vendor_id', vendorId);
 
-    function deleteItem(id) {
-        inventory = inventory.filter(item => item.id !== id);
-        saveData();
-        renderInventory();
-    }
-
-    function saveData() {
-        localStorage.setItem('distInventory', JSON.stringify(inventory));
-        localStorage.setItem('distOrders', JSON.stringify(orders));
-    }
-
-    function clearData() {
-        if(confirm('እርግጠኛ ነዎት ሁሉንም ዳታ ማጥፋት ይፈልጋሉ?')) {
-            localStorage.clear();
-            inventory = [];
-            orders = [];
-            renderInventory();
-            renderOrders();
-            toggleModal('settingsModal');
+        if (error) {
+            console.error(error);
+            alert('ማዘመን አልተቻለም!');
+            return;
         }
+        await loadOrders();
     }
 
-    window.onload = () => {
-        document.getElementById('distProfit').innerText = monthlyProfit.toLocaleString() + " ETB";
-        renderInventory();
-        renderOrders();
-    };
+    // ---------------- ካፒታል እና ትርፍ ማስላት ----------------
+    function computeCapitalAndProfit() {
+        let totalCapital = inventory.reduce((sum, i) => sum + (i.cost * i.qty), 0);
+        document.getElementById('distCapital').innerText = totalCapital.toLocaleString() + ' ETB';
 
-    
+        const costById = {};
+        inventory.forEach(i => costById[i.id] = i.cost);
+
+        const now = new Date();
+        const thisMonth = now.getMonth();
+        const thisYear = now.getFullYear();
+
+        let profit = 0;
+        orders.forEach(o => {
+            if (o.status !== 'delivered') return;
+            const d = new Date(o.created_at);
+            if (d.getMonth() !== thisMonth || d.getFullYear() !== thisYear) return;
+            const cost = costById[o.item_id];
+            if (cost === undefined) return; // እቃው ተሰርዞ ከሆነ ትክክለኛ ስሌት ስለማይኖር ይዘለላል
+            profit += (o.price - cost) * o.qty;
+        });
+        document.getElementById('distProfit').innerText = profit.toLocaleString() + ' ETB';
+    }
+
+    // ---------------- ገፅ ሲከፈት ----------------
+    window.onload = checkAuth;
 </script>
 </body>
-</html>
+    </html>
