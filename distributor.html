@@ -11,23 +11,22 @@
         body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
 
-        /* Header & Dashboard */
         header { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); }
         h1 { color: var(--success-color); font-size: 1.5rem; }
         .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .card { background: var(--card-bg); padding: 20px; border-radius: 10px; text-align: center; border-left: 4px solid var(--accent-color); border-top: 1px solid var(--border-color); }
         .card h3 { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; }
         .card p { font-size: 1.5rem; font-weight: bold; color: var(--success-color); }
-        /* Forms & Boxes */
+
         .section-box { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); overflow-x: auto; }
         .section-box h2 { font-size: 1.2rem; margin-bottom: 15px; color: var(--accent-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #3a506b; background: rgba(0,0,0,0.3); color: white; outline: none; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #3a506b; background: rgba(0,0,0,0.3); color: white; outline: none; font-family: inherit; font-size: 1rem; }
+        select option { background: #151f32; color: white; }
         button { padding: 10px 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-add { background: var(--accent-color); color: #000; width: 100%; margin-top: 10px; }
         .btn-settings { background: #64748b; color: #fff; }
         .btn-action { background: var(--warning-color); color: #000; font-size: 0.8rem; padding: 6px 10px; }
 
-        /* Table Styles */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 700px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
         th { background: rgba(0,0,0,0.4); color: var(--accent-color); }
@@ -37,10 +36,10 @@
         .status-shipped { background: rgba(56, 189, 248, 0.2); color: var(--accent-color); }
         .status-delivered { background: rgba(74, 222, 128, 0.2); color: var(--success-color); }
 
-        /* Modal */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: var(--card-bg); padding: 25px; border-radius: 12px; max-width: 400px; width: 100%; border: 1px solid var(--border-color); }
         .hidden { display: none !important; }
+        .field-label { font-size: 0.8rem; color: #94a3b8; display: block; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -65,7 +64,6 @@
         </div>
     </section>
 
-    <!-- እቃ መመዝገቢያ -->
     <section class="section-box">
         <h2>📦 አዲስ የጅምላ እቃ መመዝገቢያ</h2>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
@@ -78,7 +76,6 @@
         <button class="btn-add" onclick="registerDistItem()">📥 እቃውን መዝግብ</button>
     </section>
 
-    <!-- የገቡ እቃዎች ዝርዝር -->
     <section class="section-box">
         <h2>📋 መጋዘን ውስጥ ያሉ እቃዎች</h2>
         <table>
@@ -97,7 +94,6 @@
         </table>
     </section>
 
-    <!-- የትዕዛዝ መከታተያ -->
     <section class="section-box">
         <h2>🚚 የደንበኞች ትዕዛዝ መከታተያ</h2>
         <table>
@@ -123,6 +119,13 @@
         <h3 style="color: var(--accent-color); margin-bottom: 15px;">🔐 የአከፋፋይ መግቢያ</h3>
         <input type="email" id="authEmail" placeholder="ኢሜይል">
         <input type="password" id="authPassword" placeholder="የይለፍ ቃል (ቢያንስ 6 ፊደል)">
+
+        <label class="field-label">የንግድ ዘርፍ (ለአዲስ ምዝገባ ብቻ ያስፈልጋል)</label>
+        <select id="authCategory" onchange="onCategoryChange()">
+            <option value="">-- የንግድ ዘርፍ ይምረጡ --</option>
+        </select>
+        <input type="text" id="authCategoryOther" placeholder="አዲስ የንግድ ዘርፍ ስም ያስገቡ" class="hidden">
+
         <button class="btn-add" onclick="vendorLogin()">🔓 ግባ</button>
         <button class="btn-add" style="background: var(--success-color); color:#000;" onclick="vendorRegister()">🆕 አዲስ አካውንት ክፈት</button>
         <p id="authError" style="color: var(--danger-color); font-size: 0.85rem; margin-top: 10px;"></p>
@@ -140,7 +143,6 @@
 </div>
 
 <script>
-    // 1. Supabase ማስጀመሪያ
     const SUPABASE_URL = 'https://hjsiobhtiwegtwejxamv.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_M1g0FcHA9gwSx6IskyacDg_4Oa0VWEV';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -153,12 +155,53 @@
         document.getElementById(id).classList.toggle('hidden');
     }
 
+    // ---------------- የንግድ ዘርፍ ዝርዝር (ድግግሞሽ እንዳይኖር) ----------------
+    async function loadCategories() {
+        const { data, error } = await supabase.from('vendor_profiles').select('category');
+        const select = document.getElementById('authCategory');
+        select.innerHTML = '<option value="">-- የንግድ ዘርፍ ይምረጡ --</option>';
+        if (!error && data) {
+            const categories = [...new Set(data.map(r => r.category).filter(Boolean))];
+            categories.forEach(cat => {
+                select.innerHTML += `<option value="${cat}">${cat}</option>`;
+            });
+        }
+        select.innerHTML += '<option value="__other__">➕ ሌላ (Others)</option>';
+    }
+
+    function onCategoryChange() {
+        const val = document.getElementById('authCategory').value;
+        document.getElementById('authCategoryOther').classList.toggle('hidden', val !== '__other__');
+    }
+
+    async function saveVendorProfile(id, category) {
+        const { data: existing } = await supabase
+            .from('vendor_profiles')
+            .select('id')
+            .eq('id', id)
+            .maybeSingle();
+        if (!existing) {
+            await supabase.from('vendor_profiles').insert([{ id, category }]);
+        }
+    }
+
+    async function showVendorInfo(email) {
+        const { data } = await supabase
+            .from('vendor_profiles')
+            .select('category')
+            .eq('id', vendorId)
+            .maybeSingle();
+        const cat = data ? data.category : '—';
+        document.getElementById('vendorEmailDisplay').innerHTML =
+            'ገብተዋል እንደ: ' + email + '<br>የንግድ ዘርፍ: ' + cat;
+    }
+
     // ---------------- Authentication ----------------
     async function checkAuth() {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
             vendorId = session.user.id;
-            document.getElementById('vendorEmailDisplay').innerText = 'ገብተዋል እንደ: ' + session.user.email;
+            await showVendorInfo(session.user.email);
             document.getElementById('authModal').classList.add('hidden');
             await loadAll();
         } else {
@@ -172,8 +215,16 @@
         const errEl = document.getElementById('authError');
         errEl.style.color = 'var(--danger-color)';
 
+        const categorySelect = document.getElementById('authCategory').value;
+        const categoryOther = document.getElementById('authCategoryOther').value.trim();
+        const category = categorySelect === '__other__' ? categoryOther : categorySelect;
+
         if (!email || password.length < 6) {
             errEl.innerText = 'ትክክለኛ ኢሜይል እና ቢያንስ 6 ፊደል ያለው የይለፍ ቃል ያስገቡ።';
+            return;
+        }
+        if (!category) {
+            errEl.innerText = 'እባክዎ የንግድ ዘርፍዎን ይምረጡ ወይም "ሌላ" መርጠው ያስገቡ!';
             return;
         }
 
@@ -185,12 +236,15 @@
 
         if (data.session) {
             vendorId = data.user.id;
-            document.getElementById('vendorEmailDisplay').innerText = 'ገብተዋል እንደ: ' + data.user.email;
+            await saveVendorProfile(vendorId, category);
+            await showVendorInfo(data.user.email);
             document.getElementById('authModal').classList.add('hidden');
             await loadAll();
         } else {
+            // ኢሜይል ማረጋገጫ የሚያስፈልግ ከሆነ ዘርፉን ለጊዜው እናስቀምጣለን፣ ሲገቡ እናጠናቅቀዋለን
+            localStorage.setItem('trf_pending_category_' + email, category);
             errEl.style.color = 'var(--success-color)';
-            errEl.innerText = 'ተመዝግበዋል! ኢሜይልዎን በማረጋገጫ ይክፈቱ፣ ከዚያ ይግቡ።';
+            errEl.innerText = 'ተመዝግበዋል! ኢሜይልዎን በማረጋገጫ ይክፈቱ ከዚያ ይግቡ።';
         }
     }
 
@@ -207,7 +261,14 @@
         }
 
         vendorId = data.user.id;
-        document.getElementById('vendorEmailDisplay').innerText = 'ገብተዋል እንደ: ' + data.user.email;
+
+        const pendingCategory = localStorage.getItem('trf_pending_category_' + email);
+        if (pendingCategory) {
+            await saveVendorProfile(vendorId, pendingCategory);
+            localStorage.removeItem('trf_pending_category_' + email);
+        }
+
+        await showVendorInfo(data.user.email);
         document.getElementById('authModal').classList.add('hidden');
         await loadAll();
     }
@@ -332,6 +393,7 @@
         orders.forEach(order => {
             let statusBadge = '';
             let actionBtn = '';
+
             if (order.status === 'pending') {
                 statusBadge = '<span class="badge status-pending">ይጠብቃል (Pending)</span>';
                 actionBtn = `<button class="btn-action" onclick="updateOrderStatus(${order.id}, 'shipped')">ወደ ማድረሻ ላክ</button>`;
@@ -388,16 +450,17 @@
             const d = new Date(o.created_at);
             if (d.getMonth() !== thisMonth || d.getFullYear() !== thisYear) return;
             const cost = costById[o.item_id];
-            if (cost === undefined) return; // እቃው ተሰርዞ ከሆነ ትክክለኛ ስሌት ስለማይኖር ይዘለላል
+            if (cost === undefined) return;
             profit += (o.price - cost) * o.qty;
         });
         document.getElementById('distProfit').innerText = profit.toLocaleString() + ' ETB';
     }
 
     // ---------------- ገፅ ሲከፈት ----------------
-    window.onload = checkAuth;
+    window.onload = () => {
+        loadCategories();
+        checkAuth();
+    };
 </script>
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
 </body>
-    </html>
+</html>
