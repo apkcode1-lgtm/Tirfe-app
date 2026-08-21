@@ -157,16 +157,23 @@
 
     // ---------------- የንግድ ዘርፍ ዝርዝር (ድግግሞሽ እንዳይኖር) ----------------
     async function loadCategories() {
-        const { data, error } = await supabase.from('vendor_profiles').select('category');
         const select = document.getElementById('authCategory');
         select.innerHTML = '<option value="">-- የንግድ ዘርፍ ይምረጡ --</option>';
-        if (!error && data) {
-            const categories = [...new Set(data.map(r => r.category).filter(Boolean))];
-            categories.forEach(cat => {
-                select.innerHTML += `<option value="${cat}">${cat}</option>`;
-            });
+        try {
+            const { data, error } = await supabase.from('vendor_profiles').select('category');
+            if (!error && data) {
+                const categories = [...new Set(data.map(r => r.category).filter(Boolean))];
+                categories.forEach(cat => {
+                    select.innerHTML += `<option value="${cat}">${cat}</option>`;
+                });
+            }
+            if (error) console.error('loadCategories error:', error);
+        } catch (e) {
+            console.error('loadCategories exception:', e);
+        } finally {
+            // "ሌላ" አማራጭ ከላይ ያለው ቢከሽፍም እንኳ ሁልጊዜ መታየት አለበት
+            select.innerHTML += '<option value="__other__">➕ ሌላ (Others)</option>';
         }
-        select.innerHTML += '<option value="__other__">➕ ሌላ (Others)</option>';
     }
 
     function onCategoryChange() {
@@ -305,7 +312,6 @@
             alert('እቃውን መመዝገብ አልተቻለም። ኢንተርኔትዎን ይፈትሹ!');
             return;
         }
-
         alert('እቃው በተሳካ ሁኔታ ተመዝግቧል!');
         document.getElementById('pName').value = '';
         document.getElementById('pModel').value = '';
@@ -389,7 +395,6 @@
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">እስካሁን የመጣ ትዕዛዝ የለም</td></tr>';
             return;
         }
-
         orders.forEach(order => {
             let statusBadge = '';
             let actionBtn = '';
@@ -431,7 +436,6 @@
         }
         await loadOrders();
     }
-
     // ---------------- ካፒታል እና ትርፍ ማስላት ----------------
     function computeCapitalAndProfit() {
         let totalCapital = inventory.reduce((sum, i) => sum + (i.cost * i.qty), 0);
@@ -465,4 +469,4 @@
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
 </body>
-</html>
+    </html>
