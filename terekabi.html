@@ -11,13 +11,11 @@
         body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
 
-        /* Header */
         header { text-align: center; background: var(--accent-color); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
         header h1 { font-size: 1.8rem; margin-bottom: 5px; }
         #customerStatus { margin-top: 12px; }
         #customerStatus button { width: auto; padding: 6px 14px; background: #fff; color: var(--accent-color); }
 
-        /* Product Grid */
         .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
         .product-card { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); text-align: center; }
         .product-card h3 { color: var(--accent-color); font-size: 1.2rem; margin-bottom: 5px; }
@@ -28,12 +26,12 @@
         .btn-order { background: var(--accent-color); color: #fff; }
         .btn-order:hover { background: #0284c7; }
 
-        /* Modal Form */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: var(--card-bg); padding: 25px; border-radius: 12px; max-width: 400px; width: 100%; }
         .modal-content h2 { margin-bottom: 15px; color: var(--accent-color); }
-        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid var(--border-color); outline: none; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid var(--border-color); outline: none; background: #fff; font-family: inherit; font-size: 1rem; }
         .hidden { display: none !important; }
+        .field-note { font-size: 0.8rem; color: #64748b; margin: 4px 0 0; }
     </style>
 </head>
 <body>
@@ -45,7 +43,6 @@
         <div id="customerStatus"></div>
     </header>
 
-    <!-- እቃዎች የሚደረደሩበት ቦታ -->
     <div class="products-grid" id="productsContainer">
         <!-- በጃቫስክሪፕት የሚሞላ -->
     </div>
@@ -55,10 +52,16 @@
 <div id="customerModal" class="modal hidden">
     <div class="modal-content">
         <h2>👤 የደንበኛ ምዝገባ</h2>
-        <p style="color:#64748b; font-size:0.85rem; margin-bottom:10px;">እቃ ለማዘዝ በስልክ ቁጥርዎ አንዴ ብቻ ይመዝገቡ። ቀጣይ ጊዜ ተመሳሳይ ስልክ ቁጥር ሲያስገቡ በራስ ሰር ይገባሉ።</p>
+        <p class="field-note" style="margin-bottom:10px;">እቃ ለማዘዝ በስልክ ቁጥርዎ አንዴ ብቻ ይመዝገቡ። ቀጣይ ጊዜ ተመሳሳይ ስልክ ቁጥር ሲያስገቡ በራስ ሰር ይገባሉ።</p>
         <input type="text" id="regName" placeholder="ሙሉ ስም">
         <input type="tel" id="regPhone" placeholder="ስልክ ቁጥር">
         <input type="text" id="regAddress" placeholder="አድራሻ (ከተማ እና ሰፈር)">
+
+        <select id="regCategory">
+            <option value="">-- የንግድ ዘርፍ ይምረጡ --</option>
+        </select>
+        <p class="field-note">የእርስዎ የንግድ ዘርፍ በዝርዝሩ ውስጥ ከሌለ ምዝገባ ማድረግ አይችሉም።</p>
+
         <button class="btn-order" style="background: var(--success-color); margin-top: 15px;" onclick="registerCustomer()">✅ ተመዝገብ / ግባ</button>
         <button class="btn-order" style="background: #e2e8f0; color: #0f172a; margin-top: 10px;" onclick="closeCustomerModal()">ዝጋ</button>
     </div>
@@ -81,7 +84,6 @@
 </div>
 
 <script>
-    // 1. Supabase ማስጀመሪያ
     const SUPABASE_URL = 'https://hjsiobhtiwegtwejxamv.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_M1g0FcHA9gwSx6IskyacDg_4Oa0VWEV';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -90,32 +92,51 @@
     let productsById = {};
     let selectedItem = null;
 
+    // ---------------- የደንበኛ ዘርፍ ምርጫ መሙላት ----------------
+    async function loadCategoriesForCustomer() {
+        const { data, error } = await supabase.from('vendor_profiles').select('category');
+        const select = document.getElementById('regCategory');
+        select.innerHTML = '<option value="">-- የንግድ ዘርፍ ይምረጡ --</option>';
+        if (error || !data || data.length === 0) return;
+        const categories = [...new Set(data.map(r => r.category).filter(Boolean))];
+        categories.forEach(cat => {
+            select.innerHTML += `<option value="${cat}">${cat}</option>`;
+        });
+    }
+
     // ---------------- የደንበኛ ሁኔታ ማሳያ ----------------
     function renderCustomerStatus() {
         const el = document.getElementById('customerStatus');
         if (currentCustomer) {
             el.innerHTML = `
-                <span style="font-size:0.9rem;">ሰላም, ${currentCustomer.name} 👋</span>
+                <span style="font-size:0.9rem;">ሰላም, ${currentCustomer.name} (${currentCustomer.category || '—'}) 👋</span>
                 <button onclick="logoutCustomer()" style="margin-left:8px;">ውጣ</button>`;
         } else {
             el.innerHTML = `<button onclick="openCustomerModal()">👤 ተመዝገብ / ግባ</button>`;
         }
     }
 
-    function openCustomerModal() { document.getElementById('customerModal').classList.remove('hidden'); }
+    function openCustomerModal() {
+        loadCategoriesForCustomer();
+        document.getElementById('customerModal').classList.remove('hidden');
+    }
     function closeCustomerModal() { document.getElementById('customerModal').classList.add('hidden'); }
 
     async function registerCustomer() {
         const name = document.getElementById('regName').value.trim();
         const phone = document.getElementById('regPhone').value.trim();
         const address = document.getElementById('regAddress').value.trim();
+        const category = document.getElementById('regCategory').value;
 
         if (!name || !phone) {
             alert('እባክዎ ስምና ስልክ ቁጥር ያስገቡ!');
             return;
         }
+        if (!category) {
+            alert('እባክዎ የንግድ ዘርፍዎን ይምረጡ! የእርስዎ ዘርፍ በዝርዝሩ ውስጥ ከሌለ ምዝገባ ማድረግ አይችሉም።');
+            return;
+        }
 
-        // ተመሳሳይ ስልክ ቁጥር ቀድሞ ተመዝግቦ እንደሆነ ማየት
         const { data: existing } = await supabase
             .from('customers')
             .select('*')
@@ -126,7 +147,7 @@
         if (!customer) {
             const { data: created, error } = await supabase
                 .from('customers')
-                .insert([{ name, phone, address }])
+                .insert([{ name, phone, address, category }])
                 .select()
                 .single();
             if (error) {
@@ -136,29 +157,60 @@
             }
             customer = created;
         }
+        // ማሳሰቢያ: ነባር ደንበኛ ከሆነ ቀድሞ የተመዘገበው ዘርፍ እንደተያዘ ይቆያል
 
         currentCustomer = customer;
         localStorage.setItem('trf_customer', JSON.stringify(customer));
         renderCustomerStatus();
         closeCustomerModal();
-        alert(`እንኳን ደህና መጡ, ${customer.name}!`);
+        displayProducts();
+        alert(`እንኳን ደህና መጡ, ${customer.name}! (${customer.category})`);
     }
 
     function logoutCustomer() {
         currentCustomer = null;
         localStorage.removeItem('trf_customer');
         renderCustomerStatus();
+        displayProducts();
     }
 
-    // ---------------- እቃዎችን ማምጣት እና ማሳየት ----------------
+    // ---------------- እቃዎችን ማምጣት እና ማሳየት (በደንበኛው ዘርፍ ብቻ) ----------------
     async function displayProducts() {
         const container = document.getElementById('productsContainer');
+
+        if (!currentCustomer) {
+            container.innerHTML = `
+                <div style="grid-column:1/-1; text-align:center; padding:30px;">
+                    <p style="color:#64748b; margin-bottom:15px;">እቃዎችን ለማየት እባክዎ የንግድ ዘርፍዎን መርጠው ይመዝገቡ።</p>
+                    <button class="btn-order" style="width:auto; padding:10px 20px;" onclick="openCustomerModal()">👤 ተመዝገብ / ግባ</button>
+                </div>`;
+            return;
+        }
         container.innerHTML = '<p style="grid-column:1/-1; text-align:center;">እቃዎችን ከዳታቤዝ በማምጣት ላይ...</p>';
 
-        // ማሳሰቢያ: 'cost' (የግዢ ዋጋ) ሆን ተብሎ አልተመረጠም፤ ደንበኛ የአከፋፋዩን ድብቅ ዋጋ እንዳያይ ለመከላከል
+        // 1. በደንበኛው ዘርፍ የተመዘገቡ አከፋፋዮችን ማግኘት
+        const { data: vendorRows, error: vendorErr } = await supabase
+            .from('vendor_profiles')
+            .select('id')
+            .eq('category', currentCustomer.category);
+
+        if (vendorErr) {
+            console.error(vendorErr);
+            container.innerHTML = '<p style="color:red; text-align:center;">እቃዎችን ማምጣት አልተቻለም!</p>';
+            return;
+        }
+
+        const vendorIds = (vendorRows || []).map(v => v.id);
+        if (vendorIds.length === 0) {
+            container.innerHTML = `<p style="grid-column:1/-1; text-align:center; color:#64748b;">በ"${currentCustomer.category}" ዘርፍ እስካሁን የተመዘገበ አከፋፋይ የለም።</p>`;
+            return;
+        }
+
+        // 2. ከእነዚያ አከፋፋዮች ብቻ ያለውን ክምችት ማምጣት (cost አልተካተተም - ደህንነት)
         const { data, error } = await supabase
             .from('inventory')
             .select('id, name, model, price, qty, vendor_id')
+            .in('vendor_id', vendorIds)
             .gt('qty', 0);
 
         if (error) {
@@ -169,7 +221,7 @@
 
         container.innerHTML = '';
         if (!data || data.length === 0) {
-            container.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#64748b;">እስካሁን ምንም አይነት እቃ አልቀረበም።</p>';
+            container.innerHTML = `<p style="grid-column:1/-1; text-align:center; color:#64748b;">በ"${currentCustomer.category}" ዘርፍ እስካሁን ምንም እቃ አልቀረበም።</p>`;
             return;
         }
 
@@ -186,6 +238,7 @@
                 </div>`;
         });
     }
+
     function openOrderModal(itemId) {
         selectedItem = productsById[itemId];
         if (!selectedItem) return;
@@ -195,7 +248,6 @@
             openCustomerModal();
             return;
         }
-
         document.getElementById('orderItemName').innerText = `የመረጡት እቃ፦ ${selectedItem.name}`;
         document.getElementById('customerName').value = currentCustomer.name;
         document.getElementById('customerPhone').value = currentCustomer.phone;
@@ -208,7 +260,6 @@
         document.getElementById('orderModal').classList.add('hidden');
     }
 
-    // ---------------- ትዕዛዝ መላክ ----------------
     async function submitOrder() {
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
@@ -227,6 +278,7 @@
             alert(`ይቅርታ፣ በክምችት ያለው ${selectedItem.qty} ብቻ ነው!`);
             return;
         }
+
         const newOrder = {
             item_id: selectedItem.id,
             item: selectedItem.name,
@@ -246,7 +298,6 @@
             return;
         }
 
-        // የክምችት ብዛት መቀነስ
         await supabase
             .from('inventory')
             .update({ qty: selectedItem.qty - qty })
@@ -255,16 +306,14 @@
         alert('ትዕዛዝዎ በተሳካ ሁኔታ ተልኳል! በቅርቡ እንደውልልዎታለን።');
         document.getElementById('customerQty').value = '';
         closeModal();
-        displayProducts(); // ክምችቱን ማደስ
+        displayProducts();
     }
 
-    // ---------------- ገፅ ሲከፈት ----------------
     window.onload = () => {
         renderCustomerStatus();
+        loadCategoriesForCustomer();
         displayProducts();
     };
 </script>
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
 </body>
 </html>
