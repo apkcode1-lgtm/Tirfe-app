@@ -188,10 +188,6 @@ window.openRevenueRegistrationModal = function() {
         if(localDB.revenueAuthorities[user]) { showCustomAlert("ስህተት", "ይህ ዩዘርኔም አስቀድሞ ተይዟል!");
             return; }
         try {
-            // 🔒 ማስተካከያ: client-side auth.createUserWithEmailAndPassword() ከዚህ በፊት
-            // የ admin ን session በአዲሱ officer ይተካው ነበር (Firebase behavior)። አሁን
-            // Admin SDK backend endpoint ብቻ ነው user የሚፈጥረው/role የሚሰጠው - የ admin
-            // session ሳይነካ፣ እና ፓስዎርድ በጭራሽ Realtime Database ላይ ሳይቀመጥ (Firebase Auth ብቻ ይይዘዋል)።
             let adminIdToken = await auth.currentUser.getIdToken();
             let createRes = await fetch('/api/create-privileged-user', {
                 method: 'POST',
@@ -216,9 +212,6 @@ window.openRevenueRegistrationModal = function() {
             };
 
             pushAdminRecordUpdate('revenueAuthorities', user, localDB.revenueAuthorities[user]);
-            // 🆕 ማስተካከያ: ተከራይ/ገዢ/ሞተረኛ በራሳቸው registration ጊዜ usernames index ላይ
-            // role ይመዘግባሉ፣ ገቢዎች ግን በአድሚን ስለሚፈጠሩ ይህ ጎድሎ ነበር - login flow ወዲያውኑ
-            // ትክክለኛውን collection እንዲያውቅ (permission_denied ሳይገጥመው) ያስፈልጋል
             if(isOnline && typeof db !== 'undefined') {
                 db.ref(`tirfe_system/usernames/${user}`).set({ role: 'revenue' }).catch(err => console.error('Username index write failed:', err));
             }
@@ -363,9 +356,6 @@ window.renderAdminMotors = function() {
         let statusBadge = "";
         let actionText = "";
         let actionClass = "";
-
-        // 🛠️ ማስተካከያ: accountStatus (አድሚን የሚቆጣጠረው) ተለይቷል ከ onlineStatus (ሞተረኛ የሚቆጣጠረው)
-        // የቆየ ዳታ accountStatus ገና ከሌለው fallback: status "online"/"offline" ማለት ሞተረኛው ንቁ ነው ማለት ስለሆነ "active" ይቆጠራል
         let mAccountStatus = m.accountStatus || (m.status === "pending" ? "pending" : (m.status === "blocked" ? "blocked" : "active"));
 
         if (mAccountStatus === "pending") {
