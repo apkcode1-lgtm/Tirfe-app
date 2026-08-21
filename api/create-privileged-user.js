@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { idToken, email, password, role, tenantUsername } = req.body || {};
+    const { idToken, email, password, role, tenantUsername, authRegion, authZone, authWoreda } = req.body || {};
 
     if (!idToken || !email || !password || !role) {
         return res.status(400).json({ error: 'idToken, email, password እና role ያስፈልጋሉ' });
@@ -29,6 +29,11 @@ module.exports = async function handler(req, res) {
             // revenue/admin ለመፍጠር ጠሪው admin መሆን አለበት
             if (decodedToken.role !== 'admin') {
                 return res.status(403).json({ error: 'ይህንን ለማድረግ የ admin ፍቃድ ያስፈልጋል' });
+            }
+            // 🆕 'revenue' ከሆነ authRegion/authZone/authWoreda ያስፈልጋሉ - motorQuotas
+            // rules officer የራሱን ክልል (locationKey claim) ብቻ እንዲጽፍ ለመገደብ ይህ ያስፈልጋል
+            if (role === 'revenue' && (!authRegion || !authZone || !authWoreda)) {
+                return res.status(400).json({ error: 'ለ revenue officer authRegion, authZone እና authWoreda ያስፈልጋሉ' });
             }
         } else if (role === 'staff') {
             // 🆕 ስታፍ ለመፍጠር ጠሪው admin ወይም የዚያ tenant ትክክለኛ ባለቤት (owner) መሆን አለበት
@@ -48,7 +53,14 @@ module.exports = async function handler(req, res) {
         const newUser = await admin.auth().createUser({ email, password });
 
         // 3️⃣ Custom Claim (role) ወዲያውኑ መስጠት
-        await admin.auth().setCustomUserClaims(newUser.uid, { role });
+        // 🆕 role === 'revenue' ከሆነ locationKey ጭምር እንደ claim እናስቀምጣለን
+        // (database.rules.json ውስጥ motorQuotas/$locKey officer ራሱን ብቻ
+        // እንዲጽፍ ለማወዳደር ይህን ይጠቀማል)
+        const customClaims = { role };
+        if (role === 'revenue') {
+            customClaims.locationKey = `${authRegion}_${authZone}_${authWoreda}`;
+        }
+        await admin.auth().setCustomUserClaims(newUser.uid, customClaims);
 
         return res.status(200).json({ success: true, uid: newUser.uid });
     } catch (error) {
