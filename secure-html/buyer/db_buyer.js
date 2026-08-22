@@ -1,5 +1,5 @@
 // ==========================================
-// 📁 db_modules/db_buyer.js - ገዢ (Buyer) ብቻ የሚጠቀምበት
+// db_buyer.js
 // ==========================================
 function pushBuyerFirebase() {
     if(typeof currentBuyer !== 'undefined' && currentBuyer) {
