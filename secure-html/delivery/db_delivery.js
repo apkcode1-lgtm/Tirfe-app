@@ -27,7 +27,8 @@ function pushMotorFirebase() {
 // 🛠️ ማስተካከያ: አድሚን
 // --------------------------------------------------------
 function buildAdminMotorSummary(motorData, currentTime) {
-    return {
+    // 🛠️ ማስተካከያ: undefined ፊልድ ካለ Firebase .update() በጸጥታ እንዳይወድቅ cleanData() ጠቅልል
+    return cleanData({
         username: motorData.username,
         firstName: motorData.firstName,
         lastName: motorData.lastName,
@@ -44,7 +45,7 @@ function buildAdminMotorSummary(motorData, currentTime) {
         idCardImage: motorData.idCardImage,
         licenseImage: motorData.licenseImage,
         lastUpdated: currentTime
-    };
+    });
 }
 
 // --------------------------------------------------------
