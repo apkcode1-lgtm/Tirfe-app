@@ -1,5 +1,5 @@
 // ==========================================
-// 📁 db_modules/db_admin.js
+// db_admin.js
 // ==========================================
 function pushAdminFirebase() {
     let adminUpdates = {};
@@ -11,6 +11,25 @@ function pushAdminFirebase() {
         queueAction('UPDATE', '', null, adminUpdates);
     }
 }
+// --------------------------------------------------------
+// 🆕 የገቢዎች ባለስልጣን whitelist summary
+// --------------------------------------------------------
+window.buildAdminRevenueSummary = function(cleaned, lastUpdated) {
+    return {
+        uid: cleaned.uid,
+        username: cleaned.username,
+        authUser: cleaned.authUser,
+        authName: cleaned.authName,
+        authPhone: cleaned.authPhone,
+        authEmail: cleaned.authEmail,
+        authRegion: cleaned.authRegion,
+        authZone: cleaned.authZone,
+        authWoreda: cleaned.authWoreda,
+        status: cleaned.status,
+        lastUpdated: lastUpdated
+    };
+};
+
 // --------------------------------------------------------
 // 🛠️ አድሚን ማንኛውንም ተጠቃሚ (ተከራይ/ሞተረኛ/ገቢዎች) በቀጥታ የሚያስተካክልበት
 // --------------------------------------------------------
@@ -31,6 +50,9 @@ function pushAdminRecordUpdate(collection, docId, data) {
             lastUpdated: cleaned.lastUpdated
         });
     }
+    if(collection === 'revenueAuthorities') {
+        queueAction('UPDATE', 'admin_revenue_summary', docId, buildAdminRevenueSummary(cleaned, cleaned.lastUpdated));
+    }
 
     saveToLocalStorage();
     processActionQueue();
@@ -38,11 +60,12 @@ function pushAdminRecordUpdate(collection, docId, data) {
 function pushAdminRecordDelete(collection, docId) {
     if(!docId) return;
     queueAction('DELETE', collection, docId, null);
-    // 🆕 ማስተካከያ: ሞተረኛ ሲሰረዝ mirror node-ዎቹም (admin_motor_summary, motor_location_view)
-    // አብረው መጥፋት አለባቸው - ካልሆነ የ"ሞተ" ግቤት dashboard/ገቢዎች ቆጠራ ላይ ይቀራል
     if(collection === 'motors') {
         queueAction('DELETE', 'admin_motor_summary', docId, null);
         queueAction('DELETE', 'motor_location_view', docId, null);
+    }
+    if(collection === 'revenueAuthorities') {
+        queueAction('DELETE', 'admin_revenue_summary', docId, null);
     }
     saveToLocalStorage();
     processActionQueue();
@@ -53,9 +76,6 @@ function pushAdminTenantUpdate(username, tenantData) {
     cleaned.lastUpdated = Date.now();
     cleaned.locationKey = computeLocationKey(cleaned);
     queueAction('UPDATE', 'tenants', username, cleaned);
-
-    // 🛠️ ማስተካከያ: ከ db_shop.js pushTenantFirebase() ጋር ወጥ እንዲሆን whitelist
-    // ተግባርበናል - staffAccounts/bankAccount/tinNumber ወዘተ ጨርሶ አይካተትም
     let summary = {
         username: cleaned.username,
         shopName: cleaned.shopName,
@@ -117,7 +137,7 @@ window.setupAdminListeners = function() {
         const adminNodes = [
             { fbNode: 'admin_tenant_summary', localKey: 'tenants' },
             { fbNode: 'admin_motor_summary', localKey: 'motors' },
-            { fbNode: 'revenueAuthorities', localKey: 'revenueAuthorities' }
+            { fbNode: 'admin_revenue_summary', localKey: 'revenueAuthorities' }
         ];
         adminNodes.forEach(nodeObj => {
             let fbPath = nodeObj.fbNode;
