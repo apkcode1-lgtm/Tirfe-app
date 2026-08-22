@@ -192,10 +192,7 @@ function queueAction(actionType, collection, docId, data) {
    }
 }
 let isProcessingQueue = false;
-// 🆕 ማስተካከያ: ከዚህ በላይ ከተሞከረ (ወይም permission-denied ከሆነ ወዲያውኑ) action-ውን
-// ትቶ ወደ ቀጣዩ መሄድ አለበት - አለበለዚያ አንድ ለዘላለም የማይሳካ action (ለምሳሌ rules ገና
-// ካልደረሱ ወይም ገና ካልታደሱ ትእዛዝ) ከሱ በኋላ የተጨመሩ ሁሉንም አዲስ ምዝገባ/
-// ማስተካከያ actions ለዘላለም ያግዳቸዋል (ምንም ስህተት ሳይታይ በጸጥታ)
+// 🆕 
 const MAX_RETRY_COUNT = 6;
 let failedActionsLog = [];
 function processActionQueue() {
@@ -233,9 +230,7 @@ function processActionQueue() {
         }).catch(err => {
             console.error("Firebase Sync Error:", err, currentAction);
             currentAction.retryCount += 1;
-            // 🆕 ማስተካከያ: permission-denied ፈጽሞ retry ቢደረግ አይስተካከልም (rules
-            // ካልተቀየሩ በስተቀር) - ወዲያውኑ ትተን ወደ ቀጣዩ action እንሂድ፣ ላልተወሰነ ጊዜ
-            // እንዳንጠብቅ። ሌላ ዓይነት ስህተት ከሆነ (ኔትወርክ ወዘተ) እስከ MAX_RETRY_COUNT ብቻ እንሞክር
+            // 🆕
             let isPermissionError = err && err.code === 'PERMISSION_DENIED';
             if (isPermissionError || currentAction.retryCount >= MAX_RETRY_COUNT) {
                 console.error(`⚠️ Action permanently failed and dropped (${isPermissionError ? 'permission denied' : 'max retries'}):`, currentAction);
@@ -376,13 +371,7 @@ function triggerUIRefresh() {
 // 🔐 shouldUpdateLocal
 // --------------------------------------------------------
 function shouldUpdateLocal(incomingData, localData, collection, docId) {
-    let pendingQueue = actionQueue || [];
-    if (collection) {
-        let hasPendingForThis = pendingQueue.some(a =>
-            a.collection === collection && (!docId || a.docId === docId)
-        );
-        if (hasPendingForThis) return false;
-    }
+    // 🛠️
     if (!localData) return true;
     let incomingTime = (incomingData && typeof incomingData.lastUpdated === 'number') ? incomingData.lastUpdated : 0;
     let localTime = (localData && typeof localData.lastUpdated === 'number') ? localData.lastUpdated : 0;
@@ -422,4 +411,4 @@ if (typeof db !== 'undefined') {
         setupSecureUserListeners();
         processActionQueue();
     });                                    
-        }
+            }
