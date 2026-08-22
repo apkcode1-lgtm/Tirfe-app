@@ -39,7 +39,10 @@ function pushTenantFirebase(scopes) {
             // 2️⃣ 'public_tenants' + 3️⃣ 'buyer_catalog' (የመገለጫ ክፍል) + 4️⃣ 'admin_tenant_summary'
             // - እነዚህ ሶስቱ የ"ስም/ስልክ/ፎቶ" ለውጥ ላይ የጋራ ናቸው (scope: 'profile')
             if(hasScope('profile')) {
-                
+                // 🛠️ ማስተካከያ: እነዚህ object-ዎች በእጅ (manually) ስለሚገነቡ፣ tenantData ላይ
+                // ገና ያልተሞላ (undefined) ፊልድ ካለ (ለምሳሌ contractType, registrationFee)፣
+                // Firebase's .update() ወዲያውኑ በጸጥታ ይወድቃል (payload/validation error)።
+                // cleanData() (JSON round-trip) እነዚያን undefined ፊልዶች ስለሚያስወግድ ችግሩን ይፈታል።
                 let publicTenantData = cleanData({
                     shopName: tenantData.shopName,
                     businessType: tenantData.businessType,
