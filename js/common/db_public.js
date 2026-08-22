@@ -192,6 +192,12 @@ function queueAction(actionType, collection, docId, data) {
    }
 }
 let isProcessingQueue = false;
+// 🆕 ማስተካከያ: ከዚህ በላይ ከተሞከረ (ወይም permission-denied ከሆነ ወዲያውኑ) action-ውን
+// ትቶ ወደ ቀጣዩ መሄድ አለበት - አለበለዚያ አንድ ለዘላለም የማይሳካ action (ለምሳሌ rules ገና
+// ካልደረሱ ወይም ገና ካልታደሱ ትእዛዝ) ከሱ በኋላ የተጨመሩ ሁሉንም አዲስ ምዝገባ/
+// ማስተካከያ actions ለዘላለም ያግዳቸዋል (ምንም ስህተት ሳይታይ በጸጥታ)
+const MAX_RETRY_COUNT = 6;
+let failedActionsLog = [];
 function processActionQueue() {
     if (!isOnline || actionQueue.length === 0 || typeof db === 'undefined' || isProcessingQueue) return;
     isProcessingQueue = true;
@@ -225,9 +231,22 @@ function processActionQueue() {
             isProcessingQueue = false;
             if (actionQueue.length > 0) processActionQueue();
         }).catch(err => {
-            console.error("Firebase Sync Error:", err);
+            console.error("Firebase Sync Error:", err, currentAction);
             currentAction.retryCount += 1;
-            // ❌ ዳታው እንዳይጠፋ ከ Queue ውስጥ አይሰረዝም!
+            // 🆕 ማስተካከያ: permission-denied ፈጽሞ retry ቢደረግ አይስተካከልም (rules
+            // ካልተቀየሩ በስተቀር) - ወዲያውኑ ትተን ወደ ቀጣዩ action እንሂድ፣ ላልተወሰነ ጊዜ
+            // እንዳንጠብቅ። ሌላ ዓይነት ስህተት ከሆነ (ኔትወርክ ወዘተ) እስከ MAX_RETRY_COUNT ብቻ እንሞክር
+            let isPermissionError = err && err.code === 'PERMISSION_DENIED';
+            if (isPermissionError || currentAction.retryCount >= MAX_RETRY_COUNT) {
+                console.error(`⚠️ Action permanently failed and dropped (${isPermissionError ? 'permission denied' : 'max retries'}):`, currentAction);
+                failedActionsLog.push({ action: currentAction, error: (err && err.message) || String(err), droppedAt: Date.now() });
+                if (typeof idbSet === 'function') idbSet('tirfe_failed_actions', failedActionsLog).catch(()=>{});
+                actionQueue.shift();
+                saveActionQueue();
+                isProcessingQueue = false;
+                if (actionQueue.length > 0) processActionQueue();
+                return;
+            }
             saveActionQueue();
             isProcessingQueue = false;
             // ከ 3 ጊዜ በላይ ከተሳሳተ 10 ሰከንድ፣ አለበለዚያ 2 ሰከንድ አርፎ እንደገና ይሞክራል (Exponential Backoff)
@@ -403,4 +422,4 @@ if (typeof db !== 'undefined') {
         setupSecureUserListeners();
         processActionQueue();
     });                                    
-                    }
+        }
