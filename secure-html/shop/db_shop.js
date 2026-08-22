@@ -34,8 +34,11 @@ function pushTenantFirebase(scopes) {
         if(tenantData) {
             tenantData.lastUpdated = currentTime;
             tenantData.locationKey = computeLocationKey(tenantData);
-            // 1️⃣ 'tenants' - የራሱ ሙሉ ዳታ - ሁልጊዜ ይጻፋል (staff/multi-device sync ወሳኝ ስለሆነ)
-            queueAction('UPDATE', 'tenants', currentTenant.username, tenantData);
+            // 🛠️ ማስተካከያ (ቅደም ተከተል): ቀደም ሲል ትልቁ 'tenants' ሙሉ ዳታ ሁልጊዜ መጀመሪያ
+            // ይላክ ስለነበር፣ processActionQueue() ተከታታይ (አንድ በአንድ) ስለሚሰራ፣ ትንሽና
+            // ጊዜ-ተኮር የሆኑት (ቫት/ትዕዛዝ/እቃ ዝርዝር) ያ ትልቁ ጥያቄ እስኪጠናቀቅ ድረስ ይዘገዩ ነበር
+            // (ገቢዎች ጋር ቫት ዘግይቶ የሚደርሰው ለዚህ ነው)። አሁን ጊዜ-ተኮር የሆኑት scope-ተኮር
+            // ግፖች መጀመሪያ ተሰልፈው፣ ትልቁ ሙሉ 'tenants' ግፖ በመጨረሻ ይሰለፋል።
             // 2️⃣ 'public_tenants' + 3️⃣ 'buyer_catalog' (የመገለጫ ክፍል) + 4️⃣ 'admin_tenant_summary'
             // - እነዚህ ሶስቱ የ"ስም/ስልክ/ፎቶ" ለውጥ ላይ የጋራ ናቸው (scope: 'profile')
             if(hasScope('profile')) {
@@ -122,6 +125,11 @@ function pushTenantFirebase(scopes) {
                     lastUpdated: currentTime
                 });
             }
+
+            // 1️⃣ 'tenants' - የራሱ ሙሉ ዳታ - ሁልጊዜ ይጻፋል (staff/multi-device sync ወሳኝ ስለሆነ)
+            // 🛠️ ሆን ተብሎ በመጨረሻ ተቀምጧል: ከላይ ያሉት ጊዜ-ተኮር (ቫት/ትዕዛዝ/እቃ) ግፖች ቀድመው
+            // ወደ ወረፋው እንዲገቡ እና ቀድመው Firebase ላይ እንዲደርሱ ለማድረግ
+            queueAction('UPDATE', 'tenants', currentTenant.username, tenantData);
         }
     }
 }
