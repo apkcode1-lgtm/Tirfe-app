@@ -29,7 +29,7 @@ function pushRevenueFirebase() {
         // 🆕 
         let officerLocKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
         if(localDB.motorQuotas && localDB.motorQuotas[officerLocKey] !== undefined) {
-            queueAction('UPDATE', 'motorQuotas', officerLocKey, localDB.motorQuotas[officerLocKey]);
+            queueAction('SET', 'motorQuotas', officerLocKey, localDB.motorQuotas[officerLocKey]);
         }
     }
 }
