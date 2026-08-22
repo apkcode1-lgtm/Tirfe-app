@@ -192,7 +192,15 @@ window.openRevenueRegistrationModal = function() {
             let createRes = await fetch('/api/create-privileged-user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idToken: adminIdToken, email, password: pass, role: 'revenue' })
+                // 🆕 ማስተካከያ: backend authRegion/authZone/authWoreda ይፈልጋል
+                // (revenue officer's locationKey claim ለማዘጋጀት) - ቀድሞ
+                // ፎርሙ ላይ ተሰብስበው ወደ API ሳይላኩ ስለቀሩ "ያስፈልጋሉ" ስህተት ይመጣ ነበር
+                body: JSON.stringify({
+                    idToken: adminIdToken, email, password: pass, role: 'revenue',
+                    authRegion: (res.revRegion || "").trim(),
+                    authZone: (res.revZone || "").trim(),
+                    authWoreda: (res.revWoreda || "").trim()
+                })
             });
             let createData = await createRes.json();
             if(!createRes.ok) throw new Error(createData.error || 'የ officer አካውንት መፍጠር አልተቻለም');
