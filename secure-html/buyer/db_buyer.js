@@ -43,6 +43,16 @@ window.setupBuyerListeners = function() {
             }
         });
         //
+        // 🛠️ ማስተካከያ: ከዚህ በፊት እነዚህ listeners ምንም error callback ስላልነበራቸው፣
+        // permission-denied ቢከሰት (ለምሳሌ የ auth custom-claim (role='buyer') ገና
+        // ካልታደሰ) ምንም ስህተት ሳይታይ ገፁ ላይ ካታሎግ ባዶ ሆኖ ይቀር ነበር። አሁን ቢያንስ
+        // console ላይ ይታያል፣ እና ተጠቃሚው ላይ ግልጽ ማስጠንቀቂያ ይታያል።
+        function onBuyerCatalogError(err) {
+            console.error("Buyer catalog listener denied/failed:", err);
+            if (typeof showCustomAlert === 'function') {
+                showCustomAlert("ማሳሰቢያ", "የዕቃ ዝርዝር ማምጣት አልተቻለም። እባክዎ ዳግም ይግቡ (logout/login) ወይም ገፁን ያድሱ።");
+            }
+        }
         let buyerCatalogRef = db.ref('tirfe_system/buyer_catalog');
         buyerCatalogRef.on('child_added', (snapshot) => {
             let incomingData = snapshot.val();
@@ -52,7 +62,7 @@ window.setupBuyerListeners = function() {
                 saveToLocalStorage();
                 if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
             }
-        });
+        }, onBuyerCatalogError);
         buyerCatalogRef.on('child_changed', (snapshot) => {
             let incomingData = snapshot.val();
             let tKey = snapshot.key;
@@ -61,17 +71,17 @@ window.setupBuyerListeners = function() {
                 saveToLocalStorage();
                 if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
             }
-        });
+        }, onBuyerCatalogError);
         buyerCatalogRef.on('child_removed', (snapshot) => {
             delete localDB.tenants[snapshot.key];
             saveToLocalStorage();
             if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-        });
+        }, onBuyerCatalogError);
         // 🆕 🔒 PRIVACY FIX:
         db.ref(`tirfe_system/buyer_orders/${currentBuyer.username}`).on('value', (snapshot) => {
             localDB.myOrders = snapshot.exists() ? snapshot.val() : {};
             saveToLocalStorage();
             if(typeof renderBuyerCatalog === 'function') renderBuyerCatalog();
-        });
+        }, (err) => console.error("buyer_orders listener denied/failed:", err));
     }
 };
