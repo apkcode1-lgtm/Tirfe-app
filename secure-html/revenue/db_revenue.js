@@ -2,7 +2,8 @@
 // db_revenue.js
 // ==========================================
 function buildAdminRevenueSummaryFromOfficer(cleaned, lastUpdated) {
-    return {
+    // 🛠️ ማስተካከያ: undefined ፊልድ ካለ Firebase .update() በጸጥታ እንዳይወድቅ cleanData() ጠቅልል
+    return cleanData({
         uid: cleaned.uid,
         username: cleaned.username,
         authUser: cleaned.authUser,
@@ -14,7 +15,7 @@ function buildAdminRevenueSummaryFromOfficer(cleaned, lastUpdated) {
         authWoreda: cleaned.authWoreda,
         status: cleaned.status,
         lastUpdated: lastUpdated
-    };
+    });
 }
 
 function pushRevenueFirebase() {
@@ -27,6 +28,9 @@ function pushRevenueFirebase() {
             queueAction('UPDATE', 'admin_revenue_summary', currentRevenueOfficer.username, buildAdminRevenueSummaryFromOfficer(revData, currentTime));
         }
         // 🆕 
+        // 🛠️ ማስተካከያ: payload እዚህ ላይ ነጠላ ቁጥር (number) ነው፣ object አይደለም። Firebase's
+        // .update() object ብቻ ነው የሚቀበለው - ቁጥር ብትሰጠው ወዲያውኑ (synchronously) ይወድቃል
+        // እና ዳታው ለዘላለም local ላይ ብቻ ይቀራል፣ Firebase ላይ ጨርሶ አይደርስም። .set() ትክክለኛው ነው።
         let officerLocKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
         if(localDB.motorQuotas && localDB.motorQuotas[officerLocKey] !== undefined) {
             queueAction('SET', 'motorQuotas', officerLocKey, localDB.motorQuotas[officerLocKey]);
