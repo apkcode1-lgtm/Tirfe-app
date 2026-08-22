@@ -161,6 +161,7 @@ function addItemDirectly() {
             showCustomAlert("🔄 ዕቃው ተሞልቷል", `"${name}" አስቀድሞ ስለነበረ አዲሱ ብዛት ተደምሮበታል። አጠቃላይ የነበረው ብዛት፦ ${existingItem.qty}`);
         } else {
             inv.push({ name, model: model || "-", cost, price, qty, sold: 0, profit: 0, imgUrl: imgBase64 || "", unitType: "pcs" });
+            showCustomAlert("ተሳክቷል", `"${name}" የተባለው ዕቃ በተሳካ ሁኔታ ተመዝግቧል! ብዛት፦ ${qty}`);
         }
         currentTenant.data.inventory = inv; saveAndRefresh(['inventory']);
         
@@ -387,4 +388,4 @@ function deleteInventoryItem(idx) {
     showCustomConfirm("እቃ መሰረዣ", "ይህንን እቃ ማጥፋት ይፈልጋሉ?", () => { 
         currentTenant.data.inventory.splice(idx, 1); saveAndRefresh(['inventory']); 
     });
-}
+                  }
