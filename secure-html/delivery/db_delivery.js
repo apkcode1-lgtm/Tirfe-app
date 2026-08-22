@@ -1,5 +1,5 @@
 // ==========================================
-// 📁 db_modules/db_delivery.js
+// db_delivery.js
 // ==========================================
 function pushMotorFirebase() {
     if(typeof currentMotor !== 'undefined' && currentMotor) {
