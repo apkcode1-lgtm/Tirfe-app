@@ -15,7 +15,8 @@ function pushAdminFirebase() {
 // 🆕 የገቢዎች ባለስልጣን whitelist summary
 // --------------------------------------------------------
 window.buildAdminRevenueSummary = function(cleaned, lastUpdated) {
-    return {
+    // 🛠️ ማስተካከያ: undefined ፊልድ ካለ Firebase .update() በጸጥታ እንዳይወድቅ cleanData() ጠቅልል
+    return cleanData({
         uid: cleaned.uid,
         username: cleaned.username,
         authUser: cleaned.authUser,
@@ -27,7 +28,7 @@ window.buildAdminRevenueSummary = function(cleaned, lastUpdated) {
         authWoreda: cleaned.authWoreda,
         status: cleaned.status,
         lastUpdated: lastUpdated
-    };
+    });
 };
 
 // --------------------------------------------------------
