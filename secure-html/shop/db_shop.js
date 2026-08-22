@@ -39,7 +39,8 @@ function pushTenantFirebase(scopes) {
             // 2️⃣ 'public_tenants' + 3️⃣ 'buyer_catalog' (የመገለጫ ክፍል) + 4️⃣ 'admin_tenant_summary'
             // - እነዚህ ሶስቱ የ"ስም/ስልክ/ፎቶ" ለውጥ ላይ የጋራ ናቸው (scope: 'profile')
             if(hasScope('profile')) {
-                let publicTenantData = {
+                
+                let publicTenantData = cleanData({
                     shopName: tenantData.shopName,
                     businessType: tenantData.businessType,
                     phone: tenantData.phone,
@@ -47,10 +48,10 @@ function pushTenantFirebase(scopes) {
                     googleMapsLink: tenantData.googleMapsLink,
                     shopLogo: tenantData.shopLogo,
                     lastUpdated: currentTime
-                };
+                });
                 queueAction('UPDATE', 'public_tenants', currentTenant.username, publicTenantData);
 
-                queueAction('UPDATE', 'buyer_catalog', currentTenant.username, {
+                queueAction('UPDATE', 'buyer_catalog', currentTenant.username, cleanData({
                     status: tenantData.status,
                     shopName: tenantData.shopName,
                     businessType: tenantData.businessType,
@@ -59,9 +60,9 @@ function pushTenantFirebase(scopes) {
                     telegram: tenantData.telegram,
                     shopLogo: tenantData.shopLogo,
                     lastUpdated: currentTime
-                });
+                }));
 
-                queueAction('UPDATE', 'admin_tenant_summary', currentTenant.username, {
+                queueAction('UPDATE', 'admin_tenant_summary', currentTenant.username, cleanData({
                     username: tenantData.username,
                     shopName: tenantData.shopName,
                     businessType: tenantData.businessType,
@@ -78,8 +79,8 @@ function pushTenantFirebase(scopes) {
                     uid: tenantData.uid,
                     locationKey: tenantData.locationKey,
                     lastUpdated: currentTime
-                });
-                queueAction('UPDATE', 'revenue_view', currentTenant.username, {
+                }));
+                queueAction('UPDATE', 'revenue_view', currentTenant.username, cleanData({
                     username: tenantData.username,
                     fullName: tenantData.fullName,
                     shopName: tenantData.shopName,
@@ -93,7 +94,7 @@ function pushTenantFirebase(scopes) {
                     tinNumber: tenantData.tinNumber,
                     locationKey: tenantData.locationKey,
                     lastUpdated: currentTime
-                });
+                }));
             }
 
             if(hasScope('inventory')) {
@@ -106,10 +107,10 @@ function pushTenantFirebase(scopes) {
 
             // 6️⃣ 'revenue_view/data/accumulatedVat' - ቫት ሲቆረጥ/ሲጨመር ብቻ
             if(hasScope('vat')) {
-                queueAction('UPDATE', 'revenue_view', currentTenant.username, {
+                queueAction('UPDATE', 'revenue_view', currentTenant.username, cleanData({
                     'data/accumulatedVat': (tenantData.data && tenantData.data.accumulatedVat) || 0,
                     lastUpdated: currentTime
-                });
+                }));
             }
 
             if(hasScope('orders')) {
