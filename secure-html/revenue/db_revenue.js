@@ -27,10 +27,6 @@ function pushRevenueFirebase() {
             queueAction('UPDATE', 'revenueAuthorities', currentRevenueOfficer.username, revData);
             queueAction('UPDATE', 'admin_revenue_summary', currentRevenueOfficer.username, buildAdminRevenueSummaryFromOfficer(revData, currentTime));
         }
-        // 🆕 
-        // 🛠️ ማስተካከያ: payload እዚህ ላይ ነጠላ ቁጥር (number) ነው፣ object አይደለም። Firebase's
-        // .update() object ብቻ ነው የሚቀበለው - ቁጥር ብትሰጠው ወዲያውኑ (synchronously) ይወድቃል
-        // እና ዳታው ለዘላለም local ላይ ብቻ ይቀራል፣ Firebase ላይ ጨርሶ አይደርስም። .set() ትክክለኛው ነው።
         let officerLocKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
         if(localDB.motorQuotas && localDB.motorQuotas[officerLocKey] !== undefined) {
             queueAction('SET', 'motorQuotas', officerLocKey, localDB.motorQuotas[officerLocKey]);
