@@ -1,6 +1,22 @@
 // ==========================================
-// 📁 db_modules/db_revenue.js - የገቢዎች ባለስልጣን (Revenue) ብቻ የሚጠቀምበት
+// db_revenue.js
 // ==========================================
+function buildAdminRevenueSummaryFromOfficer(cleaned, lastUpdated) {
+    return {
+        uid: cleaned.uid,
+        username: cleaned.username,
+        authUser: cleaned.authUser,
+        authName: cleaned.authName,
+        authPhone: cleaned.authPhone,
+        authEmail: cleaned.authEmail,
+        authRegion: cleaned.authRegion,
+        authZone: cleaned.authZone,
+        authWoreda: cleaned.authWoreda,
+        status: cleaned.status,
+        lastUpdated: lastUpdated
+    };
+}
+
 function pushRevenueFirebase() {
     if(typeof currentRevenueOfficer !== 'undefined' && currentRevenueOfficer) {
       let currentTime = Date.now();
@@ -8,6 +24,7 @@ function pushRevenueFirebase() {
         if(revData) {
             revData.lastUpdated = currentTime;
             queueAction('UPDATE', 'revenueAuthorities', currentRevenueOfficer.username, revData);
+            queueAction('UPDATE', 'admin_revenue_summary', currentRevenueOfficer.username, buildAdminRevenueSummaryFromOfficer(revData, currentTime));
         }
         // 🆕 
         let officerLocKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
@@ -45,8 +62,6 @@ window.setupRevenueListeners = function() {
         // 🆕 የገቢዎች ሰራተኛው ክልል+ዞን+ወረዳ የተጣመረ መለያ (locationKey) - ተመሳሳይ ስም ያላቸው ወረዳዎች
         // (ለምሳሌ በተለያዩ ዞን ያሉ) እንዳይምታቱ
         let officerLocKey = `${currentRevenueOfficer.authRegion}_${currentRevenueOfficer.authZone}_${currentRevenueOfficer.authWoreda}`;
-        // 🆕 ማስተካከያ: ከ `tirfe_system/tenants` (ሙሉ ጥሬ ዳታ - password ጭምር) ይልቅ አሁን
-        // `tirfe_system/revenue_view` (ገቢዎች የሚፈልገውን ብቻ የያዘ mirror node) ነው query የሚደረገው
         db.ref(`tirfe_system/revenue_view`).orderByChild('locationKey').equalTo(officerLocKey).on('value', (snapshot) => {
          let hasUpdates = false;
             if(snapshot.exists()) {
